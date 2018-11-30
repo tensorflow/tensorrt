@@ -13,13 +13,14 @@ utilities for model construction and optimization.
 <a name="setup"></a>
 ## Setup
 
-1. If you haven't installed the TensorFlow models repository, run the ``install_dependencies.sh`` script.
+1. Install object detection dependencies (from tftrt/examples/object_detection)
 
 ```bash
+git submodule update --init
 ./install_dependencies.sh
 ```
 
-2. Install the tftrt python package
+2. Ensure you've installed the tftrt package (from root folder of repository)
 
 ```bash
 python setup.py install --user
