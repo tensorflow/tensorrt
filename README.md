@@ -7,5 +7,4 @@ detection.
 <a name="ex"></a>
 ## Examples
 
-* [Image Classification](tftrt/examples/image_classification)
 * [Object Detection](tftrt/examples/object_detection)
