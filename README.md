@@ -10,7 +10,7 @@ that show how to use TF-TRT.
 
 ## Examples
 
-* [Image Classification](tftrt/examples/image_classification)
+* [Image Classification](tftrt/examples/image-classification/)
 * [Object Detection](tftrt/examples/object_detection)
 
 ## License
