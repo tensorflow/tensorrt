@@ -17,10 +17,10 @@
 # =============================================================================
 
 echo Setup local variables...
-TF_MODELS_DIR=third_party/models
+TF_MODELS_DIR=../third_party/models
 RESEARCH_DIR=$TF_MODELS_DIR/research
 SLIM_DIR=$RESEARCH_DIR/slim
-COCO_API_DIR=third_party/cocoapi
+COCO_API_DIR=../third_party/cocoapi
 PYCOCO_DIR=$COCO_API_DIR/PythonAPI
 PROTO_BASE_URL="https://github.com/google/protobuf/releases/download/v3.5.1/"
 PROTOC_DIR=$PWD/protoc

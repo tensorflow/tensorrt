@@ -29,6 +29,7 @@ import nets.nets_factory
 import tensorflow.contrib.slim as slim
 import official.resnet.imagenet_main
 from preprocessing import inception_preprocessing, vgg_preprocessing
+from pympler import asizeof
 
 class LoggerHook(tf.train.SessionRunHook):
     """Logs runtime of each iteration"""
@@ -577,7 +578,9 @@ if __name__ == '__main__':
         cache=args.cache,
         default_models_dir=args.default_models_dir)
 
-    def print_dict(input_dict, str=''):
+	print('frozen_graph_size: %d' % asizeof.asizeof(frozen_graph))
+	
+	def print_dict(input_dict, str=''):
         for k, v in sorted(input_dict.items()):
             headline = '{}({}): '.format(str, k) if str else '{}: '.format(k)
             print('{}{}'.format(headline, '%.1f'%v if type(v)==float else v))
