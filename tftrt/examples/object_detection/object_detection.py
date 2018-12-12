@@ -612,7 +612,8 @@ def benchmark_model(frozen_graph,
     statistics = {
         'map': eval.stats[0],
         'avg_latency_ms': 1000.0 * np.mean(runtimes),
-        'avg_throughput_fps': np.sum(image_counts) / np.sum(runtimes)
+        'avg_throughput_fps': np.sum(image_counts) / np.sum(runtimes),
+        'runtimes_ms': [1000.0 * r for r in runtimes]
     }
 
     if output_path is not None:
