@@ -553,7 +553,7 @@ if __name__ == '__main__':
 
     if args.precision != 'fp32' and not args.use_trt:
         raise ValueError('TensorRT must be enabled for fp16 or int8 modes (--use_trt).')
-    if args.precision == 'int8' and not args.calib_data_dir:
+    if args.precision == 'int8' and not args.calib_data_dir and not args.use_synthetic:
         raise ValueError('--calib_data_dir is required for int8 mode')
     if args.num_iterations is not None and args.num_iterations <= args.num_warmup_iterations:
         raise ValueError('--num_iterations must be larger than --num_warmup_iterations '
