@@ -2,7 +2,7 @@
 
 This example includes scripts to run inference using a number of popular image classification models.
 
-You can turn on TensorFlow-TensorRT integration with the flag `--use_trt`. This
+You can turn on TF-TRT integration with the flag `--use_trt`. This
 will apply TensorRT inference optimization to speed up execution for portions of
 the model's graph where supported, and will fall back to native TensorFlow for
 layers and operations which are not supported.
@@ -84,14 +84,4 @@ Run with `--help` to see all available options.
 
 See [General Script Usage
 ](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#image-class-usage)
-for more information.
-
-### Accuracy tests
-
-There is the script `check_accuracy.py` provided in the example that parses the output log of `inference.py`
-to find the reported accuracy, and reports whether that accuracy matches with the
-baseline numbers.
-
-See [Checking Accuracy
-](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#image-class-accuracy)
 for more information.
