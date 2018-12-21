@@ -435,7 +435,8 @@ def get_frozen_graph(
     num_calib_inputs=None,
     use_synthetic=False,
     cache=False,
-    default_models_dir='./data'):
+    default_models_dir='./data',
+    max_workspace_size=(2<<32)-1000):
     """Retreives a frozen GraphDef from model definitions in classification.py and applies TF-TRT
 
     model: str, the model name (see NETS table in classification.py)
@@ -473,7 +474,7 @@ def get_frozen_graph(
             input_graph_def=frozen_graph,
             outputs=['logits', 'classes'],
             max_batch_size=batch_size,
-            max_workspace_size_bytes=(4096<<20)-1000,
+            max_workspace_size_bytes=max_workspace_size,
             precision_mode=precision,
             minimum_segment_size=minimum_segment_size,
             is_dynamic_op=use_dynamic_op
@@ -551,6 +552,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_calib_inputs', type=int, default=500,
         help='Number of inputs (e.g. images) used for calibration '
         '(last batch is skipped in case it is not full)')
+    parser.add_argument('--max_workspace_size', type=int, default=(2<<32)-1000,
+        help='workspace size in bytes')
     parser.add_argument('--cache', action='store_true',
         help='If set, graphs will be saved to disk after conversion. If a converted graph is present on disk, it will be loaded instead of building the graph again.')
     args = parser.parse_args()
@@ -579,12 +582,17 @@ if __name__ == '__main__':
         num_calib_inputs=args.num_calib_inputs,
         use_synthetic=args.use_synthetic,
         cache=args.cache,
-        default_models_dir=args.default_models_dir)
+        default_models_dir=args.default_models_dir,
+        max_workspace_size=args.max_workspace_size)
 
     def print_dict(input_dict, str=''):
         for k, v in sorted(input_dict.items()):
             headline = '{}({}): '.format(str, k) if str else '{}: '.format(k)
             print('{}{}'.format(headline, '%.1f'%v if type(v)==float else v))
+
+    serialized_graph = frozen_graph.SerializeToString()
+    print('frozen graph size: {}'.format(len(serialized_graph)))
+
     print_dict(vars(args))
     print_dict(num_nodes, str='num_nodes')
     print_dict(times, str='time(s)')
