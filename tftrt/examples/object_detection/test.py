@@ -80,7 +80,12 @@ def test(test_config_path):
     statistics = benchmark_model(
         frozen_graph=frozen_graph,
         **test_config['benchmark_config'])
-    print(json.dumps(statistics, sort_keys=True, indent=4))
+
+    # print some statistics to command line
+    print_statistics = statistics
+    if 'runtimes_ms' in print_statistics:
+        print_statistics.pop('runtimes_ms')
+    print(json.dumps(print_statistics, sort_keys=True, indent=4))
 
     # run assertions
     if 'assertions' in test_config:
