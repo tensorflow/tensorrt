@@ -16,26 +16,24 @@
 # limitations under the License.
 # =============================================================================
 
+echo Setup local variables...
 TF_MODELS_DIR=third_party/models
-COCO_API_DIR=third_party/cocoapi
-
-python -V 2>&1 | grep "Python 3" || \
-  ( export DEBIAN_FRONTEND=noninteractive && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends python-tk )
-
 RESEARCH_DIR=$TF_MODELS_DIR/research
 SLIM_DIR=$RESEARCH_DIR/slim
+COCO_API_DIR=third_party/cocoapi
 PYCOCO_DIR=$COCO_API_DIR/PythonAPI
+PROTO_BASE_URL="https://github.com/google/protobuf/releases/download/v3.5.1/"
+PROTOC_DIR=$PWD/protoc
 
-pushd $RESEARCH_DIR
+#echo Install python-tk ...
+#python -V 2>&1 | grep "Python 3" || \
+#  ( export DEBIAN_FRONTEND=noninteractive && \
+#    apt-get update && \
+#    apt-get install -y --no-install-recommends python-tk )
 
-# GET PROTOC 3.5
+set -v
 
-BASE_URL="https://github.com/google/protobuf/releases/download/v3.5.1/"
-PROTOC_DIR=protoc
-PROTOC_EXE=$PROTOC_DIR/bin/protoc
-
+echo Download protobuf...
 mkdir -p $PROTOC_DIR
 pushd $PROTOC_DIR
 ARCH=$(uname -m)
@@ -47,25 +45,26 @@ else
   echo ERROR: $ARCH not supported.
   exit 1;
 fi
-wget --no-check-certificate ${BASE_URL}${filename}
-unzip ${filename}
+wget --no-check-certificate ${PROTO_BASE_URL}${filename}
+unzip -o ${filename}
 popd
 
-# BUILD PROTOBUF FILES
-$PROTOC_EXE object_detection/protos/*.proto --python_out=.
+echo Compile object detection protobuf files...
+pushd $RESEARCH_DIR
+$PROTOC_DIR/bin/protoc object_detection/protos/*.proto --python_out=.
+popd
 
-# INSTALL OBJECT DETECTION
-
+echo Install tensorflow/models/research...
+pushd $RESEARCH_DIR
 pip install -e .
-
 popd
 
+echo Install tensorflow/models/research/slim...
 pushd $SLIM_DIR
 pip install -e .
 popd
 
-# INSTALL PYCOCOTOOLS
-
+echo Install cocodataset/cocoapi/PythonAPI...
 pushd $PYCOCO_DIR
 pip install -e .
 popd

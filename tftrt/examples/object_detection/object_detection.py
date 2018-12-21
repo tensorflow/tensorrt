@@ -302,7 +302,7 @@ def optimize_model(config_path,
                 1]
     elif config.model.HasField('faster_rcnn'):
         if override_nms_score_threshold is not None:
-            config.model.faster_rcnn.second_stage_post_processing.score_threshold = override_nms_score_threshold
+            config.model.faster_rcnn.second_stage_post_processing.batch_non_max_suppression.score_threshold = override_nms_score_threshold
         if override_resizer_shape is not None:
             config.model.faster_rcnn.image_resizer.fixed_shape_resizer.height = override_resizer_shape[
                 0]
@@ -612,7 +612,8 @@ def benchmark_model(frozen_graph,
     statistics = {
         'map': eval.stats[0],
         'avg_latency_ms': 1000.0 * np.mean(runtimes),
-        'avg_throughput_fps': np.sum(image_counts) / np.sum(runtimes)
+        'avg_throughput_fps': np.sum(image_counts) / np.sum(runtimes),
+        'runtimes_ms': [1000.0 * r for r in runtimes]
     }
 
     if output_path is not None:
