@@ -1,6 +1,6 @@
 [submodule "third_party/models"]
-	path = tftrt/examples/third_party/models
+	path = tftrt/examples/object_detection/third_party/models
 	url = https://github.com/tensorflow/models
 [submodule "third_party/cocoapi"]
-	path = tftrt/examples/third_party/cocoapi
+	path = tftrt/examples/object_detection/third_party/cocoapi
 	url = https://github.com/cocodataset/cocoapi
