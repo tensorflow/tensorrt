@@ -431,7 +431,7 @@ def get_frozen_graph(
     use_synthetic=False,
     cache=False,
     default_models_dir='./data',
-    max_workspace_size=(2<<32)-1000):
+    max_workspace_size=(1<<32)):
     """Retreives a frozen GraphDef from model definitions in classification.py and applies TF-TRT
 
     model: str, the model name (see NETS table in classification.py)
@@ -547,7 +547,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_calib_inputs', type=int, default=500,
         help='Number of inputs (e.g. images) used for calibration '
         '(last batch is skipped in case it is not full)')
-    parser.add_argument('--max_workspace_size', type=int, default=(2<<32)-1000,
+    parser.add_argument('--max_workspace_size', type=int, default=(1<<32),
         help='workspace size in bytes')
     parser.add_argument('--cache', action='store_true',
         help='If set, graphs will be saved to disk after conversion. If a converted graph is present on disk, it will be loaded instead of building the graph again.')
