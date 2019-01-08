@@ -56,15 +56,15 @@ popd
 
 echo Install tensorflow/models/research...
 pushd $RESEARCH_DIR
-pip install -e .
+pip install .
 popd
 
 echo Install tensorflow/models/research/slim...
 pushd $SLIM_DIR
-pip install -e .
+pip install .
 popd
 
 echo Install cocodataset/cocoapi/PythonAPI...
 pushd $PYCOCO_DIR
-pip install -e .
+pip install .
 popd
