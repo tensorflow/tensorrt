@@ -53,7 +53,7 @@ class LoggerHook(tf.train.SessionRunHook):
                 self.batch_size / self.iter_times[-1]))
 
 def run(frozen_graph, model, data_files, batch_size,
-    num_iterations, num_warmup_iterations, use_synthetic, display_every=100, run_calibration=False):
+    num_iterations, num_warmup_iterations, use_synthetic=False, display_every=100, run_calibration=False):
     """Evaluates a frozen graph
     
     This function evaluates a graph on the ImageNet validation set.
@@ -493,7 +493,7 @@ def get_frozen_graph(
             print('Calibrating INT8...')
             start_time = time.time()
             run(calib_graph, model, calib_files, batch_size,
-                num_calib_inputs // batch_size, 0, False, run_calibration=True)
+                num_calib_inputs // batch_size, 0, use_synthetic=use_synthetic, run_calibration=True)
             times['trt_calibration'] = time.time() - start_time
 
             start_time = time.time()
