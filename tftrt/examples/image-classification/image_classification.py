@@ -175,6 +175,10 @@ class NetDef(object):
     def get_num_classes(self):
         return self.num_classes
 
+    def get_url(self):
+        return self.url
+
+
 def get_netdef(model):
     """
     Creates the dictionary NETS with model names as keys and NetDef as values.
@@ -606,6 +610,7 @@ if __name__ == '__main__':
             print('{}{}'.format(headline, '%.1f'%v if type(v)==float else v))
 
     print_dict(vars(args))
+    print("url: " + get_netdef(args.model).get_url())
     print_dict(num_nodes, str='num_nodes')
     print_dict(graph_sizes, str='graph_size(MB)', scale=1./(1<<20))
     print_dict(times, str='time(s)')
