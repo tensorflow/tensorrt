@@ -66,5 +66,8 @@ popd
 
 echo Install cocodataset/cocoapi/PythonAPI...
 pushd $PYCOCO_DIR
-pip install .
+python setup.py build_ext --inplace
+make
+# pip install .
+python setup.py install
 popd
