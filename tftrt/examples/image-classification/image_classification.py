@@ -58,6 +58,7 @@ class LoggerHook(tf.train.SessionRunHook):
 
 def run(frozen_graph, model, data_files, batch_size,
     num_iterations, num_warmup_iterations, use_synthetic, display_every=100, run_calibration=False, mode='validation'):
+
     """Evaluates a frozen graph
     
     This function evaluates a graph on the ImageNet validation set.
@@ -220,6 +221,10 @@ class NetDef(object):
 
     def get_num_classes(self):
         return self.num_classes
+
+    def get_url(self):
+        return self.url
+
 
 def get_netdef(model):
     """
@@ -535,7 +540,7 @@ def get_frozen_graph(
             print('Calibrating INT8...')
             start_time = time.time()
             run(calib_graph, model, calib_files, batch_size,
-                num_calib_inputs // batch_size, 0, False, run_calibration=True)
+                num_calib_inputs // batch_size, 0, use_synthetic=use_synthetic, run_calibration=True)
             times['trt_calibration'] = time.time() - start_time
 
             start_time = time.time()
@@ -616,7 +621,7 @@ if __name__ == '__main__':
 
     if args.precision != 'fp32' and not args.use_trt:
         raise ValueError('TensorRT must be enabled for fp16 or int8 modes (--use_trt).')
-    if args.precision == 'int8' and not args.calib_data_dir:
+    if args.precision == 'int8' and not args.calib_data_dir and not args.use_synthetic:
         raise ValueError('--calib_data_dir is required for int8 mode')
     if args.num_iterations is not None and args.num_iterations <= args.num_warmup_iterations:
         raise ValueError('--num_iterations must be larger than --num_warmup_iterations '
@@ -671,6 +676,7 @@ if __name__ == '__main__':
             print('{}{}'.format(headline, '%.1f'%v if type(v)==float else v))
 
     print_dict(vars(args))
+    print("url: " + get_netdef(args.model).get_url())
     print_dict(num_nodes, str='num_nodes')
     print_dict(graph_sizes, str='graph_size(MB)', scale=1./(1<<20))
     print_dict(times, str='time(s)')

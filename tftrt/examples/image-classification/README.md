@@ -11,8 +11,11 @@ See https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html for mor
 When using TF-TRT, you can also control the precision with `--precision`.
 float32 is the default (`--precision fp32`) with float16 (`--precision fp16`) or
 int8 (`--precision int8`) allowing further performance improvements.
-int8 mode requires a calibration step which is done
-automatically.
+
+int8 mode requires a calibration step which is done automatically, but you will
+also have to specificy the directory in which the calibration dataset is stored
+with `--calib_data_dir /imagenet_validation_data`. You can use the same data for
+both calibration and validation.
 
 ## Models
 
@@ -34,6 +37,10 @@ ImageNet validation dataset, see
 [Verified Models](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#verified-models)
 
 ## Setup
+If you are running these examples within the [NVIDIA TensorFlow docker
+container](https://ngc.nvidia.com/catalog/containers/nvidia:tensorflow), you can
+skip these steps by running `./install_dependencies.sh`.
+
 ```
 # Clone [tensorflow/models](https://github.com/tensorflow/models)
 git clone https://github.com/tensorflow/models.git
@@ -78,7 +85,7 @@ for more information.
 
 ## Usage
 
-`python inference.py --data_dir /imagenet_validation_data --model vgg_16 [--use_trt]`
+`python image_classification.py --data_dir /imagenet_validation_data --model vgg_16 [--use_trt]`
 
 Run with `--help` to see all available options.
 
