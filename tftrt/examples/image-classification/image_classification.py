@@ -35,6 +35,7 @@ from preprocessing import inception_preprocessing, vgg_preprocessing
 class LoggerHook(tf.train.SessionRunHook):
     """Logs runtime of each iteration"""
     def __init__(self, batch_size, num_records, display_every):
+        self.iteration_number = 0
         self.iter_times = []
         self.display_every = display_every
         self.num_steps = (num_records + batch_size - 1) / batch_size
@@ -53,6 +54,9 @@ class LoggerHook(tf.train.SessionRunHook):
             print("    step %d/%d, iter_time(ms)=%.4f, images/sec=%d" % (
                 current_step, self.num_steps, duration * 1000,
                 self.batch_size / self.iter_times[-1]))
+        self.iteration_number += 1
+        if self.iteration_number >= self.num_steps:
+            run_context.request_stop()
 
 def run(frozen_graph, model, data_files, batch_size,
     num_iterations, num_warmup_iterations, use_synthetic, display_every=100, run_calibration=False, mode='validation'):
