@@ -30,12 +30,9 @@ import tensorflow.contrib.slim as slim
 import official.resnet.imagenet_main
 from preprocessing import inception_preprocessing, vgg_preprocessing
 
-
-
 class LoggerHook(tf.train.SessionRunHook):
     """Logs runtime of each iteration"""
     def __init__(self, batch_size, num_records, display_every):
-        self.iteration_number = 0
         self.iter_times = []
         self.display_every = display_every
         self.num_steps = (num_records + batch_size - 1) / batch_size
@@ -54,15 +51,14 @@ class LoggerHook(tf.train.SessionRunHook):
             print("    step %d/%d, iter_time(ms)=%.4f, images/sec=%d" % (
                 current_step, self.num_steps, duration * 1000,
                 self.batch_size / self.iter_times[-1]))
-        self.iteration_number += 1
-        if self.iteration_number >= self.num_steps:
-            run_context.request_stop()
 
-class DurationHook(tf.train.SessionRunHook):
+class BenchmarkHook(tf.train.SessionRunHook):
     """Limits run duration"""
-    def __init__(self, target_duration):
+    def __init__(self, target_duration, iteration_limit):
         self.target_duration = target_duration
         self.start_time = None
+        self.iteration_number = 0
+        self.iteration_limit = iteration_limit
 
     def after_run(self, run_context, run_values):
         if not self.target_duration:
@@ -76,6 +72,10 @@ class DurationHook(tf.train.SessionRunHook):
         current_time = time.time()
         if (current_time - self.start_time) > self.target_duration:
             print("    target duration %d reached at %d, requesting stop" % (self.target_duration, current_time))
+            run_context.request_stop()
+
+        self.iteration_number += 1
+        if self.iteration_number >= self.num_steps:
             run_context.request_stop()
 
 def run(frozen_graph, model, data_files, batch_size,
@@ -149,7 +149,7 @@ def run(frozen_graph, model, data_files, batch_size,
                 dataset = dataset.repeat(count=1)
                 iterator = dataset.make_one_shot_iterator()
                 features, labels = iterator.get_next()
-            else:
+            elif mode == 'benchmark':
                 dataset = tf.data.Dataset.from_tensor_slices(data_files)
                 dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
                 dataset = dataset.repeat(count=1)
@@ -161,13 +161,17 @@ def run(frozen_graph, model, data_files, batch_size,
                     size=(batch_size),
                     dtype=np.int32)
                 labels = tf.identity(tf.constant(labels))
+            else:
+                raise ValueError("Mode must be equal 'validation' or 'benchmark'") 
         return features, labels
 
     # Evaluate model
     if mode == 'validation':
         num_records = get_tfrecords_count(data_files)
-    else:
+    elif mode == 'benchmark':
         num_records = len(data_files) 
+    else:
+        raise ValueError("Mode must be equal 'validation' or 'benchmark'")
     logger = LoggerHook(
         display_every=display_every,
         batch_size=batch_size,
@@ -178,16 +182,18 @@ def run(frozen_graph, model, data_files, batch_size,
         model_fn=model_fn,
         config=tf.estimator.RunConfig(session_config=tf_config),
         model_dir='model_dir')
+    results = {}
     if mode == 'validation':
         results = estimator.evaluate(input_fn, steps=num_iterations, hooks=[logger])
-    else:
-        results = {}
-        duration_hook = DurationHook(target_duration)
-        prediction_results = estimator.predict(input_fn, predict_keys=["classes"],  hooks=[logger, duration_hook])
+    elif mode == 'benchmark':
+        benchmark_hook = BenchmarkHook(target_duration, (num_records + batch_size - 1)/batch_size)
+        prediction_results = estimator.predict(input_fn, predict_keys=["classes"],  hooks=[logger, benchmark_hook])
         x = 0
         for i in prediction_results:
             x += 1
-    #: Gather additional results
+    else:
+        raise ValueError("Mode must be equal 'validation' or 'benchmark'")
+    # Gather additional results
     iter_times = np.array(logger.iter_times[num_warmup_iterations:])
     results['total_time'] = np.sum(iter_times)
     results['images_per_sec'] = np.mean(batch_size / iter_times)
@@ -240,10 +246,8 @@ class NetDef(object):
 
 
 def get_netdef(model):
-    """
-    Creates the dictionary NETS with model names as keys and NetDef as values.
+    """Creates the dictionary NETS with model names as keys and NetDef as values.
     Returns the NetDef corresponding to the model specified in the parameter.
-3
     model: string, the model name (see NETS table)
     """
     NETS = {
@@ -358,8 +362,10 @@ def get_preprocess_fn(model, mode='validation'):
     
     if mode == 'validation':
         return validation_process
-    else:
+    elif mode == 'benchmark':
         return benchmark_process
+    else:
+        raise ValueError("Mode must be equal 'validation' or 'benchmark'")
 
     
 
@@ -640,7 +646,7 @@ if __name__ == '__main__':
     parser.add_argument('--target_duration', type=int, default=None,
         help='If set, script will run for specified number of seconds.')
     args = parser.parse_args()
-    
+
     if args.precision != 'fp32' and not args.use_trt:
         raise ValueError('TensorRT must be enabled for fp16 or int8 modes (--use_trt).')
     if args.precision == 'int8' and not args.calib_data_dir and not args.use_synthetic:
@@ -661,20 +667,21 @@ if __name__ == '__main__':
             return []
         files = tf.gfile.Glob(os.path.join(data_dir, filename_pattern))
         if files == []:
-            raise ValueError('Can not find any files in {} with pattern "{}"'.format(data_dir, filename_pattern))
+            raise ValueError('Can not find any files in {} with pattern "{}"'.format(
+			    data_dir, filename_pattern))
         return files
 
     if args.mode == "validation":
-        validation_files = get_files(args.data_dir, 'validation*')
-    else:    
-        val_paths = get_files(args.data_dir, "n*")
-        x = val_paths[0]
-        validation_files = []
-        for path in val_paths:
-            validation_files = validation_files + get_files(path, "I*")
+        data_files = get_files(args.data_dir, 'validation*')
+    elif args.mode == "benchmark":    
+        benchmark_paths = get_files(args.data_dir, "*")
+        data_files = []
+        for path in benchmark_paths:
+            data_files = data_files + get_files(path, "*")
         if args.num_iterations != None:
-            validation_files = validation_files[:args.num_iterations*args.batch_size]
-   
+            data_files = data_files[:args.num_iterations*args.batch_size]
+    else:
+        raise ValueError("Mode must be equal 'validation' or 'benchamark'")
     calib_files = get_files(args.calib_data_dir, 'train*')
 
     frozen_graph, num_nodes, times, graph_sizes = get_frozen_graph(
@@ -709,7 +716,7 @@ if __name__ == '__main__':
     results = run(
         frozen_graph,
         model=args.model,
-        data_files=validation_files,
+        data_files=data_files,
         batch_size=args.batch_size,
         num_iterations=args.num_iterations,
         num_warmup_iterations=args.num_warmup_iterations,
