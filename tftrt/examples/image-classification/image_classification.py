@@ -53,30 +53,29 @@ class LoggerHook(tf.train.SessionRunHook):
                 self.batch_size / self.iter_times[-1]))
 
 class BenchmarkHook(tf.train.SessionRunHook):
-    """Limits run duration"""
-    def __init__(self, target_duration, iteration_limit):
+    """Limits run duration and number of iterations"""
+    def __init__(self, target_duration=None, iteration_limit=None):
         self.target_duration = target_duration
         self.start_time = None
-        self.iteration_number = 0
+        self.current_iteration = 0
         self.iteration_limit = iteration_limit
 
-    def after_run(self, run_context, run_values):
-        if not self.target_duration:
-            return
-
+    def before_run(self, run_context):
         if not self.start_time:
             self.start_time = time.time()
-            print("    running for target duration from %d" % self.start_time)
-            return
+            print("    running for target duration from %d", self.start_time)
 
-        current_time = time.time()
-        if (current_time - self.start_time) > self.target_duration:
-            print("    target duration %d reached at %d, requesting stop" % (self.target_duration, current_time))
-            run_context.request_stop()
+    def after_run(self, run_context, run_values):
+        if self.target_duration:
+            current_time = time.time()
+            if (current_time - self.start_time) > self.target_duration:
+                print("    target duration %d reached at %d, requesting stop" % (self.target_duration, current_time))
+                run_context.request_stop()
 
-        self.iteration_number += 1
-        if self.iteration_number >= self.num_steps:
-            run_context.request_stop()
+        if self.iteration_limit:
+            self.current_iteration += 1
+            if self.current_iteration >= self.iteration_limit:
+                run_context.request_stop()
 
 def run(frozen_graph, model, data_files, batch_size,
     num_iterations, num_warmup_iterations, use_synthetic, display_every=100, run_calibration=False, 
@@ -96,7 +95,7 @@ def run(frozen_graph, model, data_files, batch_size,
     use_synthetic: bool, if true run using real data, otherwise synthetic
     display_every: int, print log every @display_every iteration
     run_calibration: bool, run using calibration or not (only int8 precision)
-	mode: validation - using estimator.evaluate with accuracy measurments,
+    mode: validation - using estimator.evaluate with accuracy measurments,
           benchmark - using estimator.predict
     """
     # Define model function for tf.estimator.Estimator
@@ -186,11 +185,11 @@ def run(frozen_graph, model, data_files, batch_size,
     if mode == 'validation':
         results = estimator.evaluate(input_fn, steps=num_iterations, hooks=[logger])
     elif mode == 'benchmark':
-        benchmark_hook = BenchmarkHook(target_duration, (num_records + batch_size - 1)/batch_size)
-        prediction_results = estimator.predict(input_fn, predict_keys=["classes"],  hooks=[logger, benchmark_hook])
-        x = 0
-        for i in prediction_results:
-            x += 1
+        benchmark_hook = BenchmarkHook(target_duration, num_iterations)
+        prediction_results = [p for p in estimator.predict(input_fn, predict_keys=["classes"],  hooks=[logger, benchmark_hook])]
+        #x = 0
+        #for i in prediction_results:
+        #    x += 1
     else:
         raise ValueError("Mode must be equal 'validation' or 'benchmark'")
     # Gather additional results
