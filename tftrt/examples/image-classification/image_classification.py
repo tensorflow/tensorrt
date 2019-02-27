@@ -398,15 +398,17 @@ def find_checkpoint_in_dir(model_dir):
     checkpoint_path = '.'.join(parts[:ckpt_index+1])
     return checkpoint_path
 
-def copy(source, destination):
-    try:
-        shutil.copy2(source, destination)
-    except OSError as e:
-        pass
-    except shutil.Error as e:
-        pass
 
 def download_checkpoint(model, destination_path):
+    #copy files from source to destination (without any directories)
+    def copy_files(source, destination):
+        try:
+            shutil.copy2(source, destination)
+        except OSError as e:
+            pass
+        except shutil.Error as e:
+            pass
+
     # Make directories if they don't exist.
     if not os.path.exists(destination_path):
         os.makedirs(destination_path)
@@ -424,7 +426,7 @@ def download_checkpoint(model, destination_path):
                                     get_netdef(model).model_dir_in_archive,
                                     '*')
         for f in glob.glob(source_files):
-            copy(f, destination_path)
+            copy_files(f, destination_path)
 
 def get_frozen_graph(
     model,
