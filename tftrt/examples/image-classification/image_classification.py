@@ -161,7 +161,7 @@ def run(frozen_graph, model, data_files, batch_size,
                     dtype=np.int32)
                 labels = tf.identity(tf.constant(labels))
             else:
-                raise ValueError("Mode must be equal 'validation' or 'benchmark'") 
+                raise ValueError("Mode must be either 'validation' or 'benchmark'") 
         return features, labels
 
     # Evaluate model
@@ -185,11 +185,8 @@ def run(frozen_graph, model, data_files, batch_size,
     if mode == 'validation':
         results = estimator.evaluate(input_fn, steps=num_iterations, hooks=[logger])
     elif mode == 'benchmark':
-        benchmark_hook = BenchmarkHook(target_duration, num_iterations)
+        benchmark_hook = BenchmarkHook(target_duration=target_duration, iteration_limit=num_iterations)
         prediction_results = [p for p in estimator.predict(input_fn, predict_keys=["classes"],  hooks=[logger, benchmark_hook])]
-        #x = 0
-        #for i in prediction_results:
-        #    x += 1
     else:
         raise ValueError("Mode must be equal 'validation' or 'benchmark'")
     # Gather additional results
@@ -640,7 +637,7 @@ if __name__ == '__main__':
         help='workspace size in bytes')
     parser.add_argument('--cache', action='store_true',
         help='If set, graphs will be saved to disk after conversion. If a converted graph is present on disk, it will be loaded instead of building the graph again.')
-    parser.add_argument('--mode', type=str, default='validation',
+    parser.add_argument('--mode', choices=['validation', 'benchmark'], default='validation',
         help='Which mode to use (validation or benchmark)')
     parser.add_argument('--target_duration', type=int, default=None,
         help='If set, script will run for specified number of seconds.')
@@ -658,27 +655,20 @@ if __name__ == '__main__':
             '({} <= {})'.format(args.num_calib_inputs, args.batch_size))
     if args.mode == 'validation' and args.use_synthetic:
         raise ValueError('Cannot use both validation mode and synthetic dataset')
-    if args.mode != 'validation' and args.mode != 'benchmark':
-        raise ValueError('invalid mode argument (must be validation or benchmark)')
-    
+
     def get_files(data_dir, filename_pattern):
         if data_dir == None:
             return []
         files = tf.gfile.Glob(os.path.join(data_dir, filename_pattern))
         if files == []:
-            raise ValueError('Can not find any files in {} with pattern "{}"'.format(
-			    data_dir, filename_pattern))
+            raise ValueError('Can not find any files in {} with '
+                             'pattern "{}"'.format(data_dir, filename_pattern))
         return files
 
     if args.mode == "validation":
         data_files = get_files(args.data_dir, 'validation*')
     elif args.mode == "benchmark":    
-        benchmark_paths = get_files(args.data_dir, "*")
-        data_files = []
-        for path in benchmark_paths:
-            data_files = data_files + get_files(path, "*")
-        if args.num_iterations != None:
-            data_files = data_files[:args.num_iterations*args.batch_size]
+        data_files = [os.path.join(path, name) for path, _, files in os.walk(args.data_dir) for name in files]
     else:
         raise ValueError("Mode must be equal 'validation' or 'benchamark'")
     calib_files = get_files(args.calib_data_dir, 'train*')
