@@ -78,7 +78,7 @@ class BenchmarkHook(tf.train.SessionRunHook):
                 run_context.request_stop()
 
 def run(frozen_graph, model, data_files, batch_size,
-    num_iterations, num_warmup_iterations, use_synthetic, display_every=100, run_calibration=False, 
+    num_iterations, num_warmup_iterations, use_synthetic, display_every=100, run_calibration=False,
     mode='validation', target_duration=None):
     """Evaluates a frozen graph
 
