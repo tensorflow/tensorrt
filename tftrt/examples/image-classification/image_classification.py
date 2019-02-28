@@ -170,7 +170,7 @@ def run(frozen_graph, model, data_files, batch_size,
     elif mode == 'benchmark':
         num_records = len(data_files) 
     else:
-        raise ValueError("Mode must be equal 'validation' or 'benchmark'")
+        raise ValueError("Mode must be either 'validation' or 'benchmark'")
     logger = LoggerHook(
         display_every=display_every,
         batch_size=batch_size,
@@ -188,7 +188,7 @@ def run(frozen_graph, model, data_files, batch_size,
         benchmark_hook = BenchmarkHook(target_duration=target_duration, iteration_limit=num_iterations)
         prediction_results = [p for p in estimator.predict(input_fn, predict_keys=["classes"],  hooks=[logger, benchmark_hook])]
     else:
-        raise ValueError("Mode must be equal 'validation' or 'benchmark'")
+        raise ValueError("Mode must be either 'validation' or 'benchmark'")
     # Gather additional results
     iter_times = np.array(logger.iter_times[num_warmup_iterations:])
     results['total_time'] = np.sum(iter_times)
@@ -361,7 +361,7 @@ def get_preprocess_fn(model, mode='validation'):
     elif mode == 'benchmark':
         return benchmark_process
     else:
-        raise ValueError("Mode must be equal 'validation' or 'benchmark'")
+        raise ValueError("Mode must be either 'validation' or 'benchmark'")
 
     
 
@@ -670,7 +670,7 @@ if __name__ == '__main__':
     elif args.mode == "benchmark":    
         data_files = [os.path.join(path, name) for path, _, files in os.walk(args.data_dir) for name in files]
     else:
-        raise ValueError("Mode must be equal 'validation' or 'benchamark'")
+        raise ValueError("Mode must be either 'validation' or 'benchamark'")
     calib_files = get_files(args.calib_data_dir, 'train*')
 
     frozen_graph, num_nodes, times, graph_sizes = get_frozen_graph(
