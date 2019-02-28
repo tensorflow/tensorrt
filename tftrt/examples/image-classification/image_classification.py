@@ -334,7 +334,7 @@ def get_preprocess_fn(model, mode='validation'):
     """Creates a function to parse and process a TFRecord using the model's parameters
 
     model: string, the model name (see NETS table)
-    mode: string, whether the model is for classification or detection
+    mode: string, which mode to use (validation or benchmark)
     returns: function, the preprocessing function for a record
     """
     def validation_process(record):
