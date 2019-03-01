@@ -1,21 +1,29 @@
-# Image classification examples
+# Image classification example
 
-This example includes scripts to run inference using a number of popular image classification models.
+The example script `image_classification.py` runs inference using a number of
+popular image classification models.  This script is included in the NVIDIA
+TensorFlow Docker containers under `/workspace/nvidia-examples`.  See [Preparing
+To Use NVIDIA
+Containers](https://docs.nvidia.com/deeplearning/dgx/preparing-containers/index.html)
+for more information.
 
-You can turn on TF-TRT integration with the flag `--use_trt`. This
-will apply TensorRT inference optimization to speed up execution for portions of
-the model's graph where supported, and will fall back to native TensorFlow for
-layers and operations which are not supported.
-See https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html for more information.
+You can enable TF-TRT integration by passing the `--use_trt` flag to the script.
+This causes the script to apply TensorRT inference optimization to speed up
+execution for portions of the model's graph where supported, and to fall back on
+native TensorFlow for layers and operations which are not supported.  See
+[Accelerating Inference In TensorFlow With TensorRT User
+Guide](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html) for
+more information.
 
-When using TF-TRT, you can also control the precision with `--precision`.
-float32 is the default (`--precision fp32`) with float16 (`--precision fp16`) or
-int8 (`--precision int8`) allowing further performance improvements.
+When using the TF-TRT integration flag, you can use the precision option
+(`--precision`) to control precision.  float32 is the default (`--precision
+fp32`) with float16 (`--precision fp16`) or int8 (`--precision int8`) allowing
+further performance improvements.
 
-int8 mode requires a calibration step which is done automatically, but you will
-also have to specificy the directory in which the calibration dataset is stored
-with `--calib_data_dir /imagenet_validation_data`. You can use the same data for
-both calibration and validation.
+int8 mode requires a calibration step (which is done automatically), but you
+also must specificy the directory in which the calibration dataset is stored
+with `--calib_data_dir /imagenet_validation_data`.  You can use the same data
+for both calibration and validation.
 
 ## Models
 
@@ -34,61 +42,211 @@ We have verified the following models.
 
 For the accuracy numbers of these models on the
 ImageNet validation dataset, see
-[Verified Models](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#verified-models)
+[Verified Models](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#verified-models).
 
 ## Setup
+
+### Setup for running within an NVIDIA TensorFlow Docker container
+
 If you are running these examples within the [NVIDIA TensorFlow docker
-container](https://ngc.nvidia.com/catalog/containers/nvidia:tensorflow), you can
-skip these steps by running `./install_dependencies.sh`.
+container](https://ngc.nvidia.com/catalog/containers/nvidia:tensorflow) under
+`/workspace/nvidia-examples/tensorrt/tftrt/examples/image-classification`, run
+the `install_dependencies.sh` setup script.  Then skip below to the
+[Data](#Data) section.
 
 ```
-# Clone [tensorflow/models](https://github.com/tensorflow/models)
+cd /workspace/nvidia-examples/tensorrt/tftrt/examples/image-classification
+./install_dependencies.sh
+cd ../third_party/models
+export PYTHONPATH="$PYTHONPATH:$PWD"
+```
+
+### Setup for running standalone
+
+If you are running these examples within your own TensorFlow environment,
+perform the following steps:
+
+```
+# Clone this repository (tensorflow/tensorrt) if you haven't already.
+git clone https://github.com/tensorflow/tensorrt.git
+
+# Clone tensorflow/models.
 git clone https://github.com/tensorflow/models.git
 
 # Add the models directory to PYTHONPATH to install tensorflow/models.
 cd models
 export PYTHONPATH="$PYTHONPATH:$PWD"
 
-# Run the TF Slim setup.
+# Run the TensorFlow Slim setup.
 cd research/slim
 python setup.py install
 
-# You may also need to install the requests package
+# Install the requests package.
 pip install requests
 ```
-Note: the PYTHONPATH environment variable will be not be saved between different
-shells. You can either repeat that step each time you work in a new shell, or
-add `export PYTHONPATH="$PYTHONPATH:/path/to/tensorflow_models"` to your .bashrc
-file (replacing /path/to/tensorflow_models with the path to your
-tensorflow/models repository).
 
-See [Setting Up The Environment
+### PYTHONPATH environment variable
+
+The `PYTHONPATH` environment variable is not saved between different shell
+sessions.  To avoid having to set `PYTHONPATH` in each new shell session, you
+can add the following line to your `.bashrc` file:
+
+```export PYTHONPATH="$PYTHONPATH:/path/to/tensorflow_models"```
+
+replacing `/path/to/tensorflow_models` with the path to your `tensorflow/models`
+repository).
+
+Also see [Setting Up The Environment
 ](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#image-class-envirn)
 for more information.
 
 ### Data
 
-The example supports using a dataset in TFRecords or synthetic data.
-In case of using TFRecord files, the scripts assume that TFRecords
-are named according to the pattern: `validation-*-of-00128`.
+The example script supports either using a dataset in TFRecord format or using
+autogenerated synthetic data (with the `--use_synthetic` flag).  If you use
+TFRecord files, the script assumes that the TFRecords are named according to the
+pattern: `validation-*-of-00128`.
 
-The reported accuracy numbers are the results of running the scripts on
+Note: The reported accuracy numbers are the results of running the scripts on
 the ImageNet validation dataset.
-You can download and process Imagenet using [this script provided by TF
-Slim](https://github.com/tensorflow/models/blob/master/research/slim/datasets/download_imagenet.sh).
-Please note that this script downloads both the training and validation sets,
-and this example only requires the validation set.
 
-See [Obtaining The ImageNet Data
+To download and process the ImageNet data, you can:
+
+- Use the scripts provided in the `nvidia-examples/build_imagenet_data`
+  directory in the NVIDIA TensorFlow Docker container `workspace` directory.
+  Follow the `README` file in that directory for instructions on how to use
+  these scripts.
+
+or
+
+- Use the scripts provided by TF Slim in the `tensorflow/models` repository at
+  `research/slim`.  Consult the `README` file under `research/slim for
+  instructions on how to use these scripts.  Also please note that these scripts
+  download both the training and validation sets, and this example only requires
+  the validation set.
+
+Also see [Obtaining The ImageNet Data
 ](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#image-class-data)
 for more information.
 
+## Running the examples as a Jupyter notebook
+
+You can run the examples as a Jupyter notebook (`image-classification.ipynb`)
+from this directory:
+
+```
+jupyter notebook --ip=0.0.0.0
+```
+
+If you want to run these examples as a Jupyter notebook within an NVIDIA
+TensorFlow Docker container, first you need to run the container with the
+`--publish 0.0.0.0:8888:8888` option to publish Jupyter's port `8888` to the
+host machine at port `8888` over all network interfaces (`0.0.0.0`).  Then you
+can use the following command in the
+`/workspace/nvidia-examples/tensorrt/tftrt/examples/image-classification`
+directory:
+
+```
+jupyter notebook --ip=0.0.0.0 --allow-root
+```
+
 ## Usage
 
-`python image_classification.py --data_dir /imagenet_validation_data --model vgg_16 [--use_trt]`
+The main Python script is `image_classification.py`.  Assuming that the ImageNet
+validation data are located under `/data/imagenet/train-val-tfrecord`, you can
+evaluate inference with TF-TRT integration using the pre-trained ResNet V1 50
+model as follows:
+
+```
+python image_classification.py --model resnet_v1_50 \
+    --data_dir /data/imagenet/train-val-tfrecord \
+    --use_trt \
+    --precision fp16
+```
+
+Where:
+
+`--model`: Which model to use to run inference, in this case ResNet V1 50.
+
+`--data_dir`: Path to the ImageNet TFRecord validation files.
+
+`--use_trt`: Convert the graph to a TensorRT graph.
+
+`--precision`: Precision mode to use, in this case FP16.
 
 Run with `--help` to see all available options.
 
-See [General Script Usage
+Also see [General Script Usage
 ](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#image-class-usage)
 for more information.
+
+## Output
+
+The script first loads the pre-trained model.  If given the flag `--use_trt`,
+the model is converted to a TensorRT graph, and the script displays (in addition
+to its initial configuration options):
+
+- the number of nodes before conversion (`num_nodes(native_tf)`)
+
+- the number of nodes after conversion (`num_nodes(trt_total)`)
+
+- the number of separate TensorRT nodes (`num_nodes(trt_only)`)
+
+- the size of the graph before conversion (`graph_size(MB)(native_tf)`)
+
+- the size of the graph after conversion (`graph_size(MB)(trt)`)
+
+- how long the conversion took (`time(s)(trt_conversion)`)
+
+For example:
+
+```
+num_nodes(native_tf): 741
+num_nodes(trt_total): 10
+num_nodes(trt_only): 1
+graph_size(MB)(native_tf): ***
+graph_size(MB)(tft): ***
+time(s)(trt_conversion): ***
+```
+
+Note: For a list of supported operations that can be converted to a TensorRT
+graph, see the [Supported
+Ops](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#support-ops)
+section of the [Accelerating Inference In TensorFlow With TensorRT User
+Guide](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html).
+
+The script then begins running inference on the ImageNet validation set,
+displaying run times of each iteration after the interval defined by the
+`--display_every` option (default: `100`):
+
+```
+running inference...
+    step 100/6202, iter_time(ms)=**.****, images/sec=***
+    step 200/6202, iter_time(ms)=**.****, images/sec=***
+    step 300/6202, iter_time(ms)=**.****, images/sec=***
+    ...
+```
+
+On completion, the script prints overall accuracy and timing information over
+the inference session:
+
+```
+results of resnet_v1_50:
+    accuracy: 75.95
+    images/sec: ***
+    99th_percentile(ms): ***
+    total_time(s): ***
+    latency_mean(ms): ***
+```
+
+The accuracy metric measures the percentage of predictions from inference that
+match the labels on the ImageNet Validation set.  The remaining metrics capture
+various performance measurements:
+
+- number of images processed per second (`images/sec`)
+
+- total time of the inference session (`total_time(s)`)
+
+- the mean duration for each iteration (`latency_mean(ms)`)
+
+- the slowest duration for an iteration (`99th_percentile(ms)`)

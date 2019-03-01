@@ -52,29 +52,34 @@ class LoggerHook(tf.train.SessionRunHook):
                 current_step, self.num_steps, duration * 1000,
                 self.batch_size / self.iter_times[-1]))
 
-class DurationHook(tf.train.SessionRunHook):
-    """Limits run duration"""
-    def __init__(self, target_duration):
+class BenchmarkHook(tf.train.SessionRunHook):
+    """Limits run duration and number of iterations"""
+    def __init__(self, target_duration=None, iteration_limit=None):
         self.target_duration = target_duration
         self.start_time = None
+        self.current_iteration = 0
+        self.iteration_limit = iteration_limit
 
-    def after_run(self, run_context, run_values):
-        if not self.target_duration:
-            return
-
+    def before_run(self, run_context):
         if not self.start_time:
             self.start_time = time.time()
-            print("    running for target duration from %d" % self.start_time)
-            return
+            print("    running for target duration from %d", self.start_time)
 
-        current_time = time.time()
-        if (current_time - self.start_time) > self.target_duration:
-            print("    target duration %d reached at %d, requesting stop" % (self.target_duration, current_time))
-            run_context.request_stop()
+    def after_run(self, run_context, run_values):
+        if self.target_duration:
+            current_time = time.time()
+            if (current_time - self.start_time) > self.target_duration:
+                print("    target duration %d reached at %d, requesting stop" % (self.target_duration, current_time))
+                run_context.request_stop()
+
+        if self.iteration_limit:
+            self.current_iteration += 1
+            if self.current_iteration >= self.iteration_limit:
+                run_context.request_stop()
 
 def run(frozen_graph, model, data_files, batch_size,
     num_iterations, num_warmup_iterations, use_synthetic, display_every=100, run_calibration=False,
-    target_duration=None):
+    mode='validation', target_duration=None):
     """Evaluates a frozen graph
 
     This function evaluates a graph on the ImageNet validation set.
@@ -86,6 +91,12 @@ def run(frozen_graph, model, data_files, batch_size,
     data_files: List of TFRecord files used for inference
     batch_size: int, batch size for TensorRT optimizations
     num_iterations: int, number of iterations(batches) to run for
+    num_warmup_iterations: int, number of iteration(batches) to exclude from benchmark measurments
+    use_synthetic: bool, if true run using real data, otherwise synthetic
+    display_every: int, print log every @display_every iteration
+    run_calibration: bool, run using calibration or not (only int8 precision)
+    mode: validation - using estimator.evaluate with accuracy measurments,
+          benchmark - using estimator.predict
     """
     # Define model function for tf.estimator.Estimator
     def model_fn(features, labels, mode):
@@ -93,16 +104,19 @@ def run(frozen_graph, model, data_files, batch_size,
             input_map={'input': features},
             return_elements=['logits:0', 'classes:0'],
             name='')
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits_out)
-        accuracy = tf.metrics.accuracy(labels=labels, predictions=classes_out, name='acc_op')
+        if mode == tf.estimator.ModeKeys.PREDICT:
+            return tf.estimator.EstimatorSpec(mode=mode, 
+                      predictions={'classes': classes_out})
         if mode == tf.estimator.ModeKeys.EVAL:
+            loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits_out)
+            accuracy = tf.metrics.accuracy(labels=labels, predictions=classes_out, name='acc_op')
             return tf.estimator.EstimatorSpec(
                 mode,
                 loss=loss,
                 eval_metric_ops={'accuracy': accuracy})
 
     # preprocess function for input data
-    preprocess_fn = get_preprocess_fn(model)
+    preprocess_fn = get_preprocess_fn(model, mode)
 
     def get_tfrecords_count(files):
         num_records = 0
@@ -112,7 +126,7 @@ def run(frozen_graph, model, data_files, batch_size,
         return num_records
 
     # Define the dataset input function for tf.estimator.Estimator
-    def eval_input_fn():
+    def input_fn():
         if use_synthetic:
             input_width, input_height = get_netdef(model).get_input_dims()
             features = np.random.normal(
@@ -127,28 +141,54 @@ def run(frozen_graph, model, data_files, batch_size,
                 dtype=np.int32)
             labels = tf.identity(tf.constant(labels))
         else:
-            dataset = tf.data.TFRecordDataset(data_files)
-            dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
-            dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
-            dataset = dataset.repeat(count=1)
-            iterator = dataset.make_one_shot_iterator()
-            features, labels = iterator.get_next()
+            if mode == 'validation':
+                dataset = tf.data.TFRecordDataset(data_files)
+                dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
+                dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
+                dataset = dataset.repeat(count=1)
+                iterator = dataset.make_one_shot_iterator()
+                features, labels = iterator.get_next()
+            elif mode == 'benchmark':
+                dataset = tf.data.Dataset.from_tensor_slices(data_files)
+                dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
+                dataset = dataset.repeat(count=1)
+                iterator = dataset.make_one_shot_iterator()
+                features = iterator.get_next()
+                labels = np.random.randint(
+                    low=0,
+                    high=get_netdef(model).get_num_classes(),
+                    size=(batch_size),
+                    dtype=np.int32)
+                labels = tf.identity(tf.constant(labels))
+            else:
+                raise ValueError("Mode must be either 'validation' or 'benchmark'") 
         return features, labels
 
     # Evaluate model
+    if mode == 'validation':
+        num_records = get_tfrecords_count(data_files)
+    elif mode == 'benchmark':
+        num_records = len(data_files) 
+    else:
+        raise ValueError("Mode must be either 'validation' or 'benchmark'")
     logger = LoggerHook(
         display_every=display_every,
         batch_size=batch_size,
-        num_records=get_tfrecords_count(data_files))
+        num_records=num_records)
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
     estimator = tf.estimator.Estimator(
         model_fn=model_fn,
         config=tf.estimator.RunConfig(session_config=tf_config),
         model_dir='model_dir')
-    duration_hook = DurationHook(target_duration)
-    results = estimator.evaluate(eval_input_fn, steps=num_iterations, hooks=[logger, duration_hook])
-
+    results = {}
+    if mode == 'validation':
+        results = estimator.evaluate(input_fn, steps=num_iterations, hooks=[logger])
+    elif mode == 'benchmark':
+        benchmark_hook = BenchmarkHook(target_duration=target_duration, iteration_limit=num_iterations)
+        prediction_results = [p for p in estimator.predict(input_fn, predict_keys=["classes"],  hooks=[logger, benchmark_hook])]
+    else:
+        raise ValueError("Mode must be either 'validation' or 'benchmark'")
     # Gather additional results
     iter_times = np.array(logger.iter_times[num_warmup_iterations:])
     results['total_time'] = np.sum(iter_times)
@@ -202,10 +242,8 @@ class NetDef(object):
 
 
 def get_netdef(model):
-    """
-    Creates the dictionary NETS with model names as keys and NetDef as values.
+    """Creates the dictionary NETS with model names as keys and NetDef as values.
     Returns the NetDef corresponding to the model specified in the parameter.
-
     model: string, the model name (see NETS table)
     """
     NETS = {
@@ -228,16 +266,16 @@ def get_netdef(model):
 
         'resnet_v1_50': NetDef(
             name='resnet_v1_50',
-            url='http://download.tensorflow.org/models/official/20180601_resnet_v1_imagenet_checkpoint.tar.gz',
-            model_dir_in_archive='20180601_resnet_v1_imagenet_checkpoint',
+            url='http://download.tensorflow.org/models/official/20181001_resnet/checkpoints/resnet_imagenet_v1_fp32_20181001.tar.gz',
+            model_dir_in_archive='resnet_imagenet_v1_fp32_20181001',
             slim=False,
             preprocess='vgg',
             model_fn=official.resnet.imagenet_main.ImagenetModel(resnet_size=50, resnet_version=1)),
 
         'resnet_v2_50': NetDef(
             name='resnet_v2_50',
-            url='http://download.tensorflow.org/models/official/20180601_resnet_v2_imagenet_checkpoint.tar.gz',
-            model_dir_in_archive='20180601_resnet_v2_imagenet_checkpoint',
+            url='http://download.tensorflow.org/models/official/20181001_resnet/checkpoints/resnet_imagenet_v2_fp32_20181001.tar.gz',
+            model_dir_in_archive='resnet_imagenet_v2_fp32_20181001',
             slim=False,
             preprocess='vgg',
             model_fn=official.resnet.imagenet_main.ImagenetModel(resnet_size=50, resnet_version=2)),
@@ -292,14 +330,14 @@ def deserialize_image_record(record):
         text    = obj['image/class/text']
         return imgdata, label, bbox, text
 
-def get_preprocess_fn(model, mode='classification'):
+def get_preprocess_fn(model, mode='validation'):
     """Creates a function to parse and process a TFRecord using the model's parameters
 
     model: string, the model name (see NETS table)
-    mode: string, whether the model is for classification or detection
+    mode: string, which mode to use (validation or benchmark)
     returns: function, the preprocessing function for a record
     """
-    def process(record):
+    def validation_process(record):
         # Parse TFRecord
         imgdata, label, bbox, text = deserialize_image_record(record)
         label -= 1 # Change to 0-based (don't use background class)
@@ -310,7 +348,22 @@ def get_preprocess_fn(model, mode='classification'):
         image = netdef.preprocess(image, netdef.input_height, netdef.input_width, is_training=False)
         return image, label
 
-    return process
+    def benchmark_process(path):
+        image = tf.read_file(path)
+        image = tf.image.decode_jpeg(image, channels=3)
+        net_def = get_netdef(model)
+        input_width, input_height = net_def.get_input_dims()
+        image = net_def.preprocess(image, input_width, input_height, is_training=False)
+        return image
+    
+    if mode == 'validation':
+        return validation_process
+    elif mode == 'benchmark':
+        return benchmark_process
+    else:
+        raise ValueError("Mode must be either 'validation' or 'benchmark'")
+
+    
 
 def build_classification_graph(model, model_dir=None, default_models_dir='./data'):
     """Builds an image classification model by name
@@ -424,7 +477,17 @@ def find_checkpoint_in_dir(model_dir):
     checkpoint_path = '.'.join(parts[:ckpt_index+1])
     return checkpoint_path
 
+
 def download_checkpoint(model, destination_path):
+    #copy files from source to destination (without any directories)
+    def copy_files(source, destination):
+        try:
+            shutil.copy2(source, destination)
+        except OSError as e:
+            pass
+        except shutil.Error as e:
+            pass
+
     # Make directories if they don't exist.
     if not os.path.exists(destination_path):
         os.makedirs(destination_path)
@@ -442,7 +505,7 @@ def download_checkpoint(model, destination_path):
                                     get_netdef(model).model_dir_in_archive,
                                     '*')
         for f in glob.glob(source_files):
-            shutil.copy2(f, destination_path)
+            copy_files(f, destination_path)
 
 def get_frozen_graph(
     model,
@@ -584,6 +647,8 @@ if __name__ == '__main__':
         help='workspace size in bytes')
     parser.add_argument('--cache', action='store_true',
         help='If set, graphs will be saved to disk after conversion. If a converted graph is present on disk, it will be loaded instead of building the graph again.')
+    parser.add_argument('--mode', choices=['validation', 'benchmark'], default='validation',
+        help='Which mode to use (validation or benchmark)')
     parser.add_argument('--target_duration', type=int, default=None,
         help='If set, script will run for specified number of seconds.')
     args = parser.parse_args()
@@ -598,20 +663,26 @@ if __name__ == '__main__':
     if args.num_calib_inputs < args.batch_size:
         raise ValueError('--num_calib_inputs must not be smaller than --batch_size'
             '({} <= {})'.format(args.num_calib_inputs, args.batch_size))
+    if args.mode == 'validation' and args.use_synthetic:
+        raise ValueError('Cannot use both validation mode and synthetic dataset')
 
     def get_files(data_dir, filename_pattern):
         if data_dir == None:
             return []
         files = tf.gfile.Glob(os.path.join(data_dir, filename_pattern))
         if files == []:
-            raise ValueError('Can not find any files in {} with pattern "{}"'.format(
-                data_dir, filename_pattern))
+            raise ValueError('Can not find any files in {} with '
+                             'pattern "{}"'.format(data_dir, filename_pattern))
         return files
 
-    validation_files = get_files(args.data_dir, 'validation*')
+    if args.mode == "validation":
+        data_files = get_files(args.data_dir, 'validation*')
+    elif args.mode == "benchmark":    
+        data_files = [os.path.join(path, name) for path, _, files in os.walk(args.data_dir) for name in files]
+    else:
+        raise ValueError("Mode must be either 'validation' or 'benchamark'")
     calib_files = get_files(args.calib_data_dir, 'train*')
 
-    # Retreive graph using NETS table in graph.py
     frozen_graph, num_nodes, times, graph_sizes = get_frozen_graph(
         model=args.model,
         model_dir=args.model_dir,
@@ -644,17 +715,19 @@ if __name__ == '__main__':
     results = run(
         frozen_graph,
         model=args.model,
-        data_files=validation_files,
+        data_files=data_files,
         batch_size=args.batch_size,
         num_iterations=args.num_iterations,
         num_warmup_iterations=args.num_warmup_iterations,
         use_synthetic=args.use_synthetic,
         display_every=args.display_every,
+        mode=args.mode,
         target_duration=args.target_duration)
 
     # Display results
     print('results of {}:'.format(args.model))
-    print('    accuracy: %.2f' % (results['accuracy'] * 100))
+    if args.mode == 'validation':
+        print('    accuracy: %.2f' % (results['accuracy'] * 100))
     print('    images/sec: %d' % results['images_per_sec'])
     print('    99th_percentile(ms): %.1f' % results['99th_percentile'])
     print('    total_time(s): %.1f' % results['total_time'])
