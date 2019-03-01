@@ -351,8 +351,7 @@ def optimize_model(config_path,
                     precision_mode=precision_mode,
                     minimum_segment_size=minimum_segment_size,
                     is_dynamic_op=True,
-                    maximum_cached_engines=10
-                    )
+                    maximum_cached_engines=10)
 
                 # perform calibration for int8 precision
                 if precision_mode == 'INT8':
