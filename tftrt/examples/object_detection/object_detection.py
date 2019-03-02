@@ -216,8 +216,9 @@ def optimize_model(config_path,
                    override_resizer_shape=None,
                    max_batch_size=1,
                    precision_mode='FP32',
-                   minimum_segment_size=50,
-                   max_workspace_size_bytes=1 << 25,
+                   minimum_segment_size=2,
+                   max_workspace_size_bytes=1 << 32,
+                   maximum_cached_engines=100,
                    calib_images_dir=None,
                    num_calib_images=None,
                    calib_image_shape=None,
@@ -351,7 +352,7 @@ def optimize_model(config_path,
                     precision_mode=precision_mode,
                     minimum_segment_size=minimum_segment_size,
                     is_dynamic_op=True,
-                    maximum_cached_engines=10)
+                    maximum_cached_engines=maximum_cached_engines)
 
                 # perform calibration for int8 precision
                 if precision_mode == 'INT8':
