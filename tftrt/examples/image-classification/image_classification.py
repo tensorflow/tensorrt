@@ -646,7 +646,7 @@ if __name__ == '__main__':
              'is provided. This option is ignored when not using tf_trt.')
     parser.add_argument('--use_trt_dynamic_op', action='store_true',
         help='If set, TRT conversion will be done using dynamic op instead of statically.')
-    parser.add_argument('--precision', type=str, choices=['fp32', 'fp16', 'int8'], default='fp32',
+    parser.add_argument('--precision', type=str, choices=['FP32', 'FP16', 'INT8'], default='FP32',
         help='Precision mode to use. FP16 and INT8 only work in conjunction with --use_trt')
     parser.add_argument('--batch_size', type=int, default=8,
         help='Number of images per batch.')
