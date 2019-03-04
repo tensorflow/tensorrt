@@ -264,6 +264,8 @@ def optimize_model(config_path,
             to use for TensorRT graph segmentation.
         max_workspace_size_bytes: An integer representing the max workspace
             size for TensorRT optimization.
+        maximum_cached_engines: An integer represenging the number of TRT engines
+            that can be stored in the cache.
         calib_images_dir: A string representing a directory containing images to
             use for int8 calibration. 
         num_calib_images: An integer representing the number of calibration 
