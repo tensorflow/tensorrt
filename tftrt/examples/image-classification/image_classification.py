@@ -562,7 +562,7 @@ def get_frozen_graph(
             outputs=['logits', 'classes'],
             max_batch_size=batch_size,
             max_workspace_size_bytes=max_workspace_size,
-            precision_mode=precision,
+            precision_mode=precision.upper(),
             minimum_segment_size=minimum_segment_size,
             is_dynamic_op=use_dynamic_op
         )
