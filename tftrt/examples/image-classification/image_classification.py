@@ -78,7 +78,7 @@ class BenchmarkHook(tf.train.SessionRunHook):
                 run_context.request_stop()
 
 def run(frozen_graph, model, data_files, batch_size,
-    num_iterations, num_warmup_iterations, use_synthetic, display_every=100, run_calibration=False,
+    num_iterations, num_warmup_iterations, use_synthetic, display_every=100,
     mode='validation', target_duration=None):
     """Evaluates a frozen graph
 
@@ -94,7 +94,6 @@ def run(frozen_graph, model, data_files, batch_size,
     num_warmup_iterations: int, number of iteration(batches) to exclude from benchmark measurments
     use_synthetic: bool, if true run using real data, otherwise synthetic
     display_every: int, print log every @display_every iteration
-    run_calibration: bool, run using calibration or not (only int8 precision)
     mode: validation - using estimator.evaluate with accuracy measurments,
           benchmark - using estimator.predict
     """
@@ -578,7 +577,7 @@ def get_frozen_graph(
             print('Calibrating INT8...')
             start_time = time.time()
             run(calib_graph, model, calib_files, batch_size,
-                num_calib_inputs // batch_size, 0, use_synthetic=use_synthetic, run_calibration=True)
+                num_calib_inputs // batch_size, 0, use_synthetic=use_synthetic)
             times['trt_calibration'] = time.time() - start_time
 
             start_time = time.time()
