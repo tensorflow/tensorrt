@@ -1,3 +1,7 @@
+# Documentation for TensorRT in TensorFlow (TF-TRT)
+
+The documentaion on how to accelerate inference in TensorFlow with TensorRT (TF-TRT) is here: https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html
+
 # Examples for TensorRT in TensorFlow (TF-TRT)
 
 This repository contains a number of different examples
