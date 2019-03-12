@@ -38,7 +38,7 @@ class LoggerHook(tf.train.SessionRunHook):
         self.num_steps = (num_records + batch_size - 1) / batch_size
         self.batch_size = batch_size
 
-    def begin(self):
+    def before_run(self, run_context):
         self.start_time = time.time()
 
     def after_run(self, run_context, run_values):
