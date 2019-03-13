@@ -18,7 +18,7 @@
 import argparse
 import os
 import tensorflow as tf
-import tensorflow.contrib.tensorrt as trt
+from tensorflow.python.compiler.tensorrt import trt_convert as trt
 import time
 import numpy as np
 import sys
@@ -175,6 +175,7 @@ def run(frozen_graph, model, data_files, batch_size,
         num_records = len(data_files)
     else:
         raise ValueError("Mode must be either 'validation' or 'benchmark'")
+
     logger = LoggerHook(
         display_every=display_every,
         batch_size=batch_size,
@@ -564,15 +565,16 @@ def get_frozen_graph(
     # Convert to TensorRT graph
     if use_trt:
         start_time = time.time()
-        frozen_graph = trt.create_inference_graph(
+        converter = trt.TrtGraphConverter(
             input_graph_def=frozen_graph,
-            outputs=['logits', 'classes'],
+            nodes_blacklist=['logits', 'classes'],
             max_batch_size=batch_size,
             max_workspace_size_bytes=max_workspace_size,
             precision_mode=precision.upper(),
             minimum_segment_size=minimum_segment_size,
             is_dynamic_op=use_dynamic_op
         )
+        frozen_graph = converter.convert()
         times['trt_conversion'] = time.time() - start_time
         num_nodes['tftrt_total'] = len(frozen_graph.node)
         num_nodes['trt_only'] = len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp'])
