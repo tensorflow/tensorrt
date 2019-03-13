@@ -20,7 +20,6 @@ from __future__ import absolute_import
 
 import tensorflow as tf
 import tensorflow.contrib.tensorrt as trt
-import tqdm
 import pdb
 
 from collections import namedtuple
@@ -370,7 +369,7 @@ def optimize_model(config_path,
                     image_paths = glob.glob(os.path.join(calib_images_dir, '*.jpg'))
                     image_paths = image_paths[0:num_calib_images]
 
-                    for image_idx in tqdm.tqdm(range(0, len(image_paths), max_batch_size)):
+                    for image_idx in range(0, len(image_paths), max_batch_size):
 
                         # read batch of images
                         batch_images = []
@@ -461,7 +460,8 @@ def benchmark_model(frozen_graph,
                     num_images=4096,
                     tmp_dir='.benchmark_model_tmp_dir',
                     remove_tmp_dir=True,
-                    output_path=None):
+                    output_path=None,
+                    display_every=100):
     """Computes accuracy and performance statistics
 
     Computes accuracy and performance statistics by executing over many images
@@ -486,7 +486,7 @@ def benchmark_model(frozen_graph,
             a temporary directory to store intermediate files.
         output_path: An optional string representing a path to store the
             statistics in JSON format.
-
+        display_every: int, print log every @display_every iteration
     Returns
     -------
         statistics: A named dictionary of accuracy and performance statistics
@@ -541,7 +541,7 @@ def benchmark_model(frozen_graph,
                 NUM_DETECTIONS_NAME + ':0')
 
             # load batches from coco dataset
-            for image_idx in tqdm.tqdm(range(0, len(image_ids), batch_size)):
+            for image_idx in range(0, len(image_ids), batch_size):
                 batch_image_ids = image_ids[image_idx:image_idx + batch_size]
                 batch_images = []
                 batch_coco_images = []
@@ -570,6 +570,11 @@ def benchmark_model(frozen_graph,
 
                 # log runtime and image count
                 runtimes.append(float(t1 - t0))
+                if len(runtimes) % display_every == 0:
+                    print("    step %d/%d, iter_time(ms)=%.4f" % (
+                        len(runtimes),
+                        (len(image_ids) + batch_size - 1) / batch_size,
+                        np.mean(runtimes) * 1000))
                 image_counts.append(len(batch_images))
 
                 # add coco detections for this batch to running list
