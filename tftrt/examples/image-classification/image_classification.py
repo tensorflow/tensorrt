@@ -536,7 +536,7 @@ def get_frozen_graph(
     # Load from pb file if frozen graph was already created and cached
     if cache:
         # Graph must match the model, TRT mode, precision, and batch size
-        prebuilt_graph_path = "graphs/frozen_graph_%s_%d_%s_%d.pbtrt" % (model, int(use_trt), precision, batch_size)
+        prebuilt_graph_path = "graphs/frozen_graph_%s_%d_%s_%d.pb" % (model, int(use_trt), precision, batch_size)
         if os.path.isfile(prebuilt_graph_path):
             print('Loading cached frozen graph from \'%s\'' % prebuilt_graph_path)
             start_time = time.time()
@@ -553,12 +553,6 @@ def get_frozen_graph(
     frozen_graph = build_classification_graph(model, model_dir, default_models_dir)
     num_nodes['native_tf'] = len(frozen_graph.node)
     graph_sizes['native_tf'] = len(frozen_graph.SerializeToString())
-
-    # Cache graph before trt conversion for reference
-    if cache and not os.path.isfile(prebuilt_graph_path):
-        preconv_graph_path = "graphs/frozen_graph_%s_%d_%s_%d.pb" % (model, 0, precision, batch_size)
-        with tf.gfile.GFile(preconv_graph_path, "wb") as f:
-            f.write(frozen_graph.SerializeToString())
 
     # Convert to TensorRT graph
     if use_trt:
