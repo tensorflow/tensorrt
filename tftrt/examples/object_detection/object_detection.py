@@ -390,7 +390,7 @@ def optimize_model(config_path,
                         if len(runtimes) % display_every == 0:
                             print("    step %d/%d, iter_time(ms)=%.4f" % (
                                 len(runtimes),
-                                (len(image_path) + batch_size - 1) / batch_size,
+                                (len(image_path) + max_batch_size - 1) / max_batch_size,
                                 np.mean(runtimes) * 1000))
 
                     pdb.set_trace()
