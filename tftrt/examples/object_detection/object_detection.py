@@ -222,7 +222,8 @@ def optimize_model(config_path,
                    calib_image_shape=None,
                    tmp_dir='.optimize_model_tmp_dir',
                    remove_tmp_dir=True,
-                   output_path=None):
+                   output_path=None,
+                   display_every=100):
     """Optimizes an object detection model using TensorRT
 
     Optimizes an object detection model using TensorRT.  This method also
@@ -273,6 +274,7 @@ def optimize_model(config_path,
             tmp_dir or throw error.
         output_path: An optional string representing the path to save the
             optimized GraphDef to.
+        display_every: print log for calibration every display_every iteration
 
     Returns
     -------
@@ -340,6 +342,7 @@ def optimize_model(config_path,
 
     # optionally perform TensorRT optimization
     if use_trt:
+        runtimes = []
         with tf.Graph().as_default() as tf_graph:
             with tf.Session(config=tf_config) as tf_sess:
                 frozen_graph = trt.create_inference_graph(
@@ -377,10 +380,18 @@ def optimize_model(config_path,
                             image = _read_image(image_path, calib_image_shape)           
                             batch_images.append(image)
 
+                        t0 = time.time()
                         # execute batch of images
                         boxes, classes, scores, num_detections = tf_sess.run(
                             [tf_boxes, tf_classes, tf_scores, tf_num_detections],
                             feed_dict={tf_input: batch_images})
+                        t1 = time.time()
+                        runtimes.append(float(t1 - t0))
+                        if len(runtimes) % display_every == 0:
+                            print("    step %d/%d, iter_time(ms)=%.4f" % (
+                                len(runtimes),
+                                (len(image_path) + batch_size - 1) / batch_size,
+                                np.mean(runtimes) * 1000))
 
                     pdb.set_trace()
                     frozen_graph = trt.calib_graph_to_infer_graph(frozen_graph)
@@ -486,7 +497,7 @@ def benchmark_model(frozen_graph,
             a temporary directory to store intermediate files.
         output_path: An optional string representing a path to store the
             statistics in JSON format.
-        display_every: int, print log every @display_every iteration
+        display_every: int, print log every display_every iteration
     Returns
     -------
         statistics: A named dictionary of accuracy and performance statistics
