@@ -64,14 +64,14 @@ class BenchmarkHook(tf.train.SessionRunHook):
         if not self.start_time:
             self.start_time = time.time()
             if self.target_duration:
-                print("    running for target duration {} seconds".format(self.target_duration))
+                print("    running for target duration {} seconds".format(self.target_duration), end="")
                 print(" from {}".format(time.asctime(time.localtime(self.start_time))))
 
     def after_run(self, run_context, run_values):
         if self.target_duration:
             current_time = time.time()
             if (current_time - self.start_time) > self.target_duration:
-                print("    target duration {}".format(self.target_duration))
+                print("    target duration {}".format(self.target_duration), end="")
                 print(" reached at {}, requesting stop".format(time.asctime(time.localtime(current_time))))
                 run_context.request_stop()
 
