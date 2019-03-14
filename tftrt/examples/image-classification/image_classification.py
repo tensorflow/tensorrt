@@ -411,8 +411,6 @@ def get_preprocess_fn(model, mode='validation'):
     else:
         raise ValueError("Mode must be either 'validation' or 'benchmark'")
 
-
-
 def build_classification_graph(model, model_dir=None, default_models_dir='./data'):
     """Builds an image classification model by name
 
