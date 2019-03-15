@@ -496,7 +496,8 @@ def benchmark_model(frozen_graph,
         batch_size: An integer representing the batch size to use when feeding
             images to the model.
         image_shape: An optional tuple of integers representing a fixed shape
-            to resize all images before testing.
+            to resize all images before testing. For synthetic data the default
+            image_shape is [600, 600, 3] 
         num_images: An integer representing the number of images in the
             dataset to evaluate with.
         tmp_dir: A string representing the path where the function may create
@@ -561,7 +562,7 @@ def benchmark_model(frozen_graph,
             # load batches from coco dataset
             for image_idx in range(0, num_images, batch_size):
                 if use_synthetic:
-                    if image_shape is not None:
+                    if image_shape is None:
                         batch_images = np.random.randint(256, size=(batch_size, 600, 600, 3))
                     else:
                         batch_images = np.random(256, size=(batch_size, image_shape[0], image_shape[1], 3))
