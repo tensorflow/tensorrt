@@ -38,13 +38,12 @@ class LoggerHook(tf.train.SessionRunHook):
         self.num_steps = (num_records + batch_size - 1) / batch_size
         self.batch_size = batch_size
 
-    def begin(self):
+    def before_run(self, run_context):
         self.start_time = time.time()
 
     def after_run(self, run_context, run_values):
         current_time = time.time()
         duration = current_time - self.start_time
-        self.start_time = current_time
         self.iter_times.append(duration)
         current_step = len(self.iter_times)
         if current_step % self.display_every == 0:
