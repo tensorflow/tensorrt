@@ -286,6 +286,9 @@ def optimize_model(config_path,
     -------
         A GraphDef representing the optimized model.
     """
+    if max_batch_size > 1 and calib_image_shape is None:
+        raise RuntimeError(
+            'Fixed calibration image shape must be provided for max_batch_size > 1')
     if os.path.exists(tmp_dir):
         if not remove_tmp_dir:
             raise RuntimeError(
