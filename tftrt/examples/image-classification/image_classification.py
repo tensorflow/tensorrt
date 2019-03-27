@@ -63,13 +63,16 @@ class BenchmarkHook(tf.train.SessionRunHook):
     def before_run(self, run_context):
         if not self.start_time:
             self.start_time = time.time()
-            print("    running for target duration from %d", self.start_time)
+            if self.target_duration:
+                print("    running for target duration {} seconds".format(self.target_duration), end="")
+                print(" from {}".format(time.asctime(time.localtime(self.start_time))))
 
     def after_run(self, run_context, run_values):
         if self.target_duration:
             current_time = time.time()
             if (current_time - self.start_time) > self.target_duration:
-                print("    target duration %d reached at %d, requesting stop" % (self.target_duration, current_time))
+                print("    target duration {}".format(self.target_duration), end="")
+                print(" reached at {}, requesting stop".format(time.asctime(time.localtime(current_time))))
                 run_context.request_stop()
 
         if self.iteration_limit:
@@ -194,6 +197,8 @@ def run(frozen_graph, model, data_files, batch_size,
     results['images_per_sec'] = np.mean(batch_size / iter_times)
     results['99th_percentile'] = np.percentile(iter_times, q=99, interpolation='lower') * 1000
     results['latency_mean'] = np.mean(iter_times) * 1000
+    results['latency_median'] = np.median(iter_times) * 1000
+    results['latency_min'] = np.min(iter_times) * 1000
     return results
 
 class NetDef(object):
@@ -679,7 +684,7 @@ if __name__ == '__main__':
     elif args.mode == "benchmark":    
         data_files = [os.path.join(path, name) for path, _, files in os.walk(args.data_dir) for name in files]
     else:
-        raise ValueError("Mode must be either 'validation' or 'benchamark'")
+        raise ValueError("Mode must be either 'validation' or 'benchmark'")
     calib_files = get_files(args.calib_data_dir, 'train*')
 
     frozen_graph, num_nodes, times, graph_sizes = get_frozen_graph(
@@ -728,6 +733,8 @@ if __name__ == '__main__':
     if args.mode == 'validation':
         print('    accuracy: %.2f' % (results['accuracy'] * 100))
     print('    images/sec: %d' % results['images_per_sec'])
-    print('    99th_percentile(ms): %.1f' % results['99th_percentile'])
+    print('    99th_percentile(ms): %.2f' % results['99th_percentile'])
     print('    total_time(s): %.1f' % results['total_time'])
-    print('    latency_mean(ms): %.1f' % results['latency_mean'])
+    print('    latency_mean(ms): %.2f' % results['latency_mean'])
+    print('    latency_median(ms): %.2f' % results['latency_median'])
+    print('    latency_min(ms): %.2f' % results['latency_min'])
