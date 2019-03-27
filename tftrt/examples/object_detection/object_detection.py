@@ -346,6 +346,9 @@ def optimize_model(config_path,
         runtimes = []
         with tf.Graph().as_default() as tf_graph:
             with tf.Session(config=tf_config) as tf_sess:
+                graph_size = len(frozen_graph.SerializeToString())
+                num_nodes = len(frozen_graph.node)
+                start_time = time.time()
                 frozen_graph = trt.create_inference_graph(
                     input_graph_def=frozen_graph,
                     outputs=output_names,
@@ -355,6 +358,14 @@ def optimize_model(config_path,
                     minimum_segment_size=minimum_segment_size,
                     is_dynamic_op=True,
                     maximum_cached_engines=maximum_cached_engines)
+                end_time = time.time()
+                print("graph_size(MB)(native_tf): %.1f" % (float(graph_size)/(1<<20)))
+                print("graph_size(MB)(trt): %.1f" %
+                    (float(len(frozen_graph.SerializeToString()))/(1<<20)))
+                print("num_nodes(native_tf): %d" % num_nodes)
+                print("num_nodes(tftrt_total): %d" % len(frozen_graph.node))
+                print("num_nodes(trt_only): %d" % len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp']))                
+                print("time(s) (trt_conversion): %.4f" % (end_time - start_time))
 
                 # perform calibration for int8 precision
                 if precision_mode == 'INT8':
