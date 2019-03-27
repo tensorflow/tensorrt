@@ -167,7 +167,9 @@ def run(frozen_graph, model, data_files, batch_size,
         return features, labels
 
     # Evaluate model
-    if mode == 'validation':
+    if use_synthetic:
+        num_records = num_iterations * batch_size
+    elif mode == 'validation':
         num_records = get_tfrecords_count(data_files)
     elif mode == 'benchmark':
         num_records = len(data_files) 
@@ -626,7 +628,7 @@ if __name__ == '__main__':
                  'resnet_v1_50', 'resnet_v2_50', 'resnet_v2_152', 'vgg_16', 'vgg_19',
                  'inception_v3', 'inception_v4'],
         help='Which model to use.')
-    parser.add_argument('--data_dir', type=str, required=True,
+    parser.add_argument('--data_dir', type=str, default=None,
         help='Directory containing validation set TFRecord files.')
     parser.add_argument('--calib_data_dir', type=str,
         help='Directory containing TFRecord files for calibrating int8.')
@@ -683,6 +685,10 @@ if __name__ == '__main__':
             '({} <= {})'.format(args.num_calib_inputs, args.batch_size))
     if args.mode == 'validation' and args.use_synthetic:
         raise ValueError('Cannot use both validation mode and synthetic dataset')
+    if args.data_dir is None and not args.use_synthetic:
+        raise ValueError("--data_dir required if you are not using synthetic data")
+    if args.use_synthetic and args.num_iterations is None:
+        raise ValueError("--num_iterations is required for --use_synthetic")
 
     def get_files(data_dir, filename_pattern):
         if data_dir == None:
@@ -693,13 +699,16 @@ if __name__ == '__main__':
                              'pattern "{}"'.format(data_dir, filename_pattern))
         return files
 
-    if args.mode == "validation":
-        data_files = get_files(args.data_dir, 'validation*')
-    elif args.mode == "benchmark":    
-        data_files = [os.path.join(path, name) for path, _, files in os.walk(args.data_dir) for name in files]
-    else:
-        raise ValueError("Mode must be either 'validation' or 'benchmark'")
-    calib_files = get_files(args.calib_data_dir, 'train*')
+    calib_files = []
+    data_files = []
+    if not args.use_synthetic:
+        if args.mode == "validation":
+            data_files = get_files(args.data_dir, 'validation*')
+        elif args.mode == "benchmark":    
+            data_files = [os.path.join(path, name) for path, _, files in os.walk(args.data_dir) for name in files]
+        else:
+            raise ValueError("Mode must be either 'validation' or 'benchamark'")
+        calib_files = get_files(args.calib_data_dir, 'train*')
 
     frozen_graph, num_nodes, times, graph_sizes = get_frozen_graph(
         model=args.model,
