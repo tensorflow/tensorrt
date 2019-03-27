@@ -515,6 +515,7 @@ def get_frozen_graph(
     model,
     model_dir=None,
     use_trt=False,
+    engine_dir=None,
     use_dynamic_op=False,
     precision='fp32',
     batch_size=8,
@@ -575,6 +576,16 @@ def get_frozen_graph(
         num_nodes['trt_only'] = len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp'])
         graph_sizes['trt'] = len(frozen_graph.SerializeToString())
 
+        if engine_dir:
+            segment_number = 0
+            for node in frozen_graph.node:
+                if node.op == "TRTEngineOp":
+                    engine = node.attr["serialized_segment"].s
+                    engine_path = engine_dir+'/{}_{}_{}_segment{}.trtengine'.format(model, precision, batch_size, segment_number)
+                    segment_number += 1
+                    with open(engine_path, "wb") as f:
+                        f.write(engine)
+
         if precision == 'int8':
             calib_graph = frozen_graph
             graph_sizes['calib'] = len(calib_graph.SerializeToString())
@@ -628,6 +639,9 @@ if __name__ == '__main__':
              'loaded from if --model_dir is not provided.')
     parser.add_argument('--use_trt', action='store_true',
         help='If set, the graph will be converted to a TensorRT graph.')
+    parser.add_argument('--engine_dir', type=str, default=None,
+        help='Directory where to write trt engines. Engines are written only if the directory ' \
+             'is provided. This option is ignored when not using tf_trt.')
     parser.add_argument('--use_trt_dynamic_op', action='store_true',
         help='If set, TRT conversion will be done using dynamic op instead of statically.')
     parser.add_argument('--precision', type=str, choices=['fp32', 'fp16', 'int8'], default='fp32',
@@ -691,6 +705,7 @@ if __name__ == '__main__':
         model=args.model,
         model_dir=args.model_dir,
         use_trt=args.use_trt,
+        engine_dir=args.engine_dir,
         use_dynamic_op=args.use_trt_dynamic_op,
         precision=args.precision,
         batch_size=args.batch_size,
