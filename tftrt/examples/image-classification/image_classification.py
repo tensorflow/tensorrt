@@ -44,7 +44,6 @@ class LoggerHook(tf.train.SessionRunHook):
     def after_run(self, run_context, run_values):
         current_time = time.time()
         duration = current_time - self.start_time
-        self.start_time = current_time
         self.iter_times.append(duration)
         current_step = len(self.iter_times)
         if current_step % self.display_every == 0:
