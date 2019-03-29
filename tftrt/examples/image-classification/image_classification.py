@@ -63,15 +63,15 @@ class BenchmarkHook(tf.train.SessionRunHook):
         if not self.start_time:
             self.start_time = time.time()
             if self.target_duration:
-                print("    running for target duration {} seconds".format(self.target_duration), end="")
-                print(" from {}".format(time.asctime(time.localtime(self.start_time))))
+                print("    running for target duration {} seconds from {}".format(
+                    self.target_duration, time.asctime(time.localtime(self.start_time))))
 
     def after_run(self, run_context, run_values):
         if self.target_duration:
             current_time = time.time()
             if (current_time - self.start_time) > self.target_duration:
-                print("    target duration {}".format(self.target_duration), end="")
-                print(" reached at {}, requesting stop".format(time.asctime(time.localtime(current_time))))
+                print("    target duration {} reached at {}, requesting stop".format(
+                    self.target_duration), time.asctime(time.localtime(current_time)))
                 run_context.request_stop()
 
         if self.iteration_limit:
@@ -134,13 +134,14 @@ def run(frozen_graph, model, data_files, batch_size,
                 loc=112, scale=70,
                 size=(batch_size, input_height, input_width, 3)).astype(np.float32)
             features = np.clip(features, 0.0, 255.0)
-            features = tf.identity(tf.constant(features))
             labels = np.random.randint(
                 low=0,
                 high=get_netdef(model).get_num_classes(),
                 size=(batch_size),
                 dtype=np.int32)
-            labels = tf.identity(tf.constant(labels))
+            with tf.device('/device:GPU:0'):
+                features = tf.identity(tf.constant(features))
+                labels = tf.identity(tf.constant(labels))
         else:
             if mode == 'validation':
                 dataset = tf.data.TFRecordDataset(data_files)
