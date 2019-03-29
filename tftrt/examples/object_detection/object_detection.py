@@ -39,6 +39,9 @@ from google.protobuf import text_format
 from object_detection.protos import pipeline_pb2, image_resizer_pb2
 from object_detection import exporter
 
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
+
 Model = namedtuple('Model', ['name', 'url', 'extract_dir'])
 
 INPUT_NAME = 'image_tensor'
@@ -346,6 +349,9 @@ def optimize_model(config_path,
         runtimes = []
         with tf.Graph().as_default() as tf_graph:
             with tf.Session(config=tf_config) as tf_sess:
+                graph_size = len(frozen_graph.SerializeToString())
+                num_nodes = len(frozen_graph.node)
+                start_time = time.time()
                 frozen_graph = trt.create_inference_graph(
                     input_graph_def=frozen_graph,
                     outputs=output_names,
@@ -355,6 +361,14 @@ def optimize_model(config_path,
                     minimum_segment_size=minimum_segment_size,
                     is_dynamic_op=True,
                     maximum_cached_engines=maximum_cached_engines)
+                end_time = time.time()
+                print("graph_size(MB)(native_tf): %.1f" % (float(graph_size)/(1<<20)))
+                print("graph_size(MB)(trt): %.1f" %
+                    (float(len(frozen_graph.SerializeToString()))/(1<<20)))
+                print("num_nodes(native_tf): %d" % num_nodes)
+                print("num_nodes(tftrt_total): %d" % len(frozen_graph.node))
+                print("num_nodes(trt_only): %d" % len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp']))                
+                print("time(s) (trt_conversion): %.4f" % (end_time - start_time))
 
                 # perform calibration for int8 precision
                 if precision_mode == 'INT8':
@@ -473,7 +487,9 @@ def benchmark_model(frozen_graph,
                     tmp_dir='.benchmark_model_tmp_dir',
                     remove_tmp_dir=True,
                     output_path=None,
-                    display_every=100):
+                    display_every=100,
+                    use_synthetic=False,
+                    num_warmup_iterations=50):
     """Computes accuracy and performance statistics
 
     Computes accuracy and performance statistics by executing over many images
@@ -491,7 +507,8 @@ def benchmark_model(frozen_graph,
         batch_size: An integer representing the batch size to use when feeding
             images to the model.
         image_shape: An optional tuple of integers representing a fixed shape
-            to resize all images before testing.
+            to resize all images before testing. For synthetic data the default
+            image_shape is [600, 600, 3] 
         num_images: An integer representing the number of images in the
             dataset to evaluate with.
         tmp_dir: A string representing the path where the function may create
@@ -499,6 +516,8 @@ def benchmark_model(frozen_graph,
         output_path: An optional string representing a path to store the
             statistics in JSON format.
         display_every: int, print log every display_every iteration
+        num_warmup_iteration: An integer represtening number of initial iteration,
+            that are not cover in performance statistics
     Returns
     -------
         statistics: A named dictionary of accuracy and performance statistics
@@ -512,19 +531,18 @@ def benchmark_model(frozen_graph,
         raise RuntimeError(
             'Fixed image shape must be provided for batch size > 1')
 
-    from pycocotools.coco import COCO
-    from pycocotools.cocoeval import COCOeval
+    if not use_synthetic:
+        coco = COCO(annotation_file=annotation_path)
 
-    coco = COCO(annotation_file=annotation_path)
 
-    # get list of image ids to use for evaluation
-    image_ids = coco.getImgIds()
-    if num_images > len(image_ids):
-        print(
-            'Num images provided %d exceeds number in dataset %d, using %d images instead'
-            % (num_images, len(image_ids), len(image_ids)))
-        num_images = len(image_ids)
-    image_ids = image_ids[0:num_images]
+        # get list of image ids to use for evaluation
+        image_ids = coco.getImgIds()
+        if num_images > len(image_ids):
+            print(
+                'Num images provided %d exceeds number in dataset %d, using %d images instead'
+                % (num_images, len(image_ids), len(image_ids)))
+            num_images = len(image_ids)
+        image_ids = image_ids[0:num_images]
 
     # load frozen graph from file if string, otherwise must be GraphDef
     if isinstance(frozen_graph, str):
@@ -553,93 +571,105 @@ def benchmark_model(frozen_graph,
                 NUM_DETECTIONS_NAME + ':0')
 
             # load batches from coco dataset
-            for image_idx in range(0, len(image_ids), batch_size):
-                batch_image_ids = image_ids[image_idx:image_idx + batch_size]
-                batch_images = []
-                batch_coco_images = []
+            for image_idx in range(0, num_images, batch_size):
+                if use_synthetic:
+                    if image_shape is None:
+                        batch_images = np.random.randint(256, size=(batch_size, 600, 600, 3))
+                    else:
+                        batch_images = np.random(256, size=(batch_size, image_shape[0], image_shape[1], 3))
+                else:
+                    batch_image_ids = image_ids[image_idx:image_idx + batch_size]
+                    batch_images = []
+                    batch_coco_images = []
+                    # read images from file
+                    for image_id in batch_image_ids:
+                        coco_img = coco.imgs[image_id]
+                        batch_coco_images.append(coco_img)
+                        image_path = os.path.join(images_dir,
+                                                  coco_img['file_name'])
+                        image = _read_image(image_path, image_shape)           
+                        batch_images.append(image)
 
-                # read images from file
-                for image_id in batch_image_ids:
-                    coco_img = coco.imgs[image_id]
-                    batch_coco_images.append(coco_img)
-                    image_path = os.path.join(images_dir,
-                                              coco_img['file_name'])
-                    image = _read_image(image_path, image_shape)           
-                    batch_images.append(image)
-
-                # run once outside of timing to initialize
-                if image_idx == 0:
+                # run num_warmup_iterations outside of timing
+                if image_idx < num_warmup_iterations:
                     boxes, classes, scores, num_detections = tf_sess.run(
                         [tf_boxes, tf_classes, tf_scores, tf_num_detections],
                         feed_dict={tf_input: batch_images})
+                else:
+                    # execute model and compute time difference
+                    t0 = time.time()
+                    boxes, classes, scores, num_detections = tf_sess.run(
+                        [tf_boxes, tf_classes, tf_scores, tf_num_detections],
+                        feed_dict={tf_input: batch_images})
+                    t1 = time.time()
 
-                # execute model and compute time difference
-                t0 = time.time()
-                boxes, classes, scores, num_detections = tf_sess.run(
-                    [tf_boxes, tf_classes, tf_scores, tf_num_detections],
-                    feed_dict={tf_input: batch_images})
-                t1 = time.time()
+                    # log runtime and image count
+                    runtimes.append(float(t1 - t0))
+                    if len(runtimes) % display_every == 0:
+                        print("    step %d/%d, iter_time(ms)=%.4f" % (
+                            len(runtimes),
+                            (len(image_ids) + batch_size - 1) / batch_size,
+                            np.mean(runtimes) * 1000))
+                    image_counts.append(len(batch_images))
+                
+                if not use_synthetic:
+                    # add coco detections for this batch to running list
+                    batch_coco_detections = []
+                    for i, image_id in enumerate(batch_image_ids):
+                        image_width = batch_coco_images[i]['width']
+                        image_height = batch_coco_images[i]['height']
 
-                # log runtime and image count
-                runtimes.append(float(t1 - t0))
-                if len(runtimes) % display_every == 0:
-                    print("    step %d/%d, iter_time(ms)=%.4f" % (
-                        len(runtimes),
-                        (len(image_ids) + batch_size - 1) / batch_size,
-                        np.mean(runtimes) * 1000))
-                image_counts.append(len(batch_images))
+                        for j in range(int(num_detections[i])):
+                            bbox = boxes[i][j]
+                            bbox_coco_fmt = [
+                                bbox[1] * image_width,  # x0
+                                bbox[0] * image_height,  # x1
+                                (bbox[3] - bbox[1]) * image_width,  # width
+                                (bbox[2] - bbox[0]) * image_height,  # height
+                            ]
 
-                # add coco detections for this batch to running list
-                batch_coco_detections = []
-                for i, image_id in enumerate(batch_image_ids):
-                    image_width = batch_coco_images[i]['width']
-                    image_height = batch_coco_images[i]['height']
+                            coco_detection = {
+                                'image_id': image_id,
+                                'category_id': int(classes[i][j]),
+                                'bbox': bbox_coco_fmt,
+                                'score': float(scores[i][j])
+                            }
 
-                    for j in range(int(num_detections[i])):
-                        bbox = boxes[i][j]
-                        bbox_coco_fmt = [
-                            bbox[1] * image_width,  # x0
-                            bbox[0] * image_height,  # x1
-                            (bbox[3] - bbox[1]) * image_width,  # width
-                            (bbox[2] - bbox[0]) * image_height,  # height
-                        ]
+                            coco_detections.append(coco_detection)
 
-                        coco_detection = {
-                            'image_id': image_id,
-                            'category_id': int(classes[i][j]),
-                            'bbox': bbox_coco_fmt,
-                            'score': float(scores[i][j])
-                        }
+    if not use_synthetic:
+        # write coco detections to file
+        subprocess.call(['mkdir', '-p', tmp_dir])
+        coco_detections_path = os.path.join(tmp_dir, 'coco_detections.json')
+        with open(coco_detections_path, 'w') as f:
+            json.dump(coco_detections, f)
 
-                        coco_detections.append(coco_detection)
+        # compute coco metrics
+        cocoDt = coco.loadRes(coco_detections_path)
+        eval = COCOeval(coco, cocoDt, 'bbox')
+        eval.params.imgIds = image_ids
 
-    # write coco detections to file
-    subprocess.call(['mkdir', '-p', tmp_dir])
-    coco_detections_path = os.path.join(tmp_dir, 'coco_detections.json')
-    with open(coco_detections_path, 'w') as f:
-        json.dump(coco_detections, f)
+        eval.evaluate()
+        eval.accumulate()
+        eval.summarize()
 
-    # compute coco metrics
-    cocoDt = coco.loadRes(coco_detections_path)
-    eval = COCOeval(coco, cocoDt, 'bbox')
-    eval.params.imgIds = image_ids
-
-    eval.evaluate()
-    eval.accumulate()
-    eval.summarize()
-
-    statistics = {
-        'map': eval.stats[0],
-        'avg_latency_ms': 1000.0 * np.mean(runtimes),
-        'avg_throughput_fps': np.sum(image_counts) / np.sum(runtimes),
-        'runtimes_ms': [1000.0 * r for r in runtimes]
-    }
+        statistics = {
+            'map': eval.stats[0],
+            'avg_latency_ms': 1000.0 * np.mean(runtimes),
+            'avg_throughput_fps': np.sum(image_counts) / np.sum(runtimes),
+            'runtimes_ms': [1000.0 * r for r in runtimes]
+        }
+    else:
+        statistics = {
+            'avg_latency_ms': 1000.0 * np.mean(runtimes),
+            'avg_throughput_fps': np.sum(image_counts) / np.sum(runtimes),
+            'runtimes_ms': [1000.0 * r for r in runtimes]
+        }
 
     if output_path is not None:
         subprocess.call(['mkdir', '-p', os.path.dirname(output_path)])
         with open(output_path, 'w') as f:
             json.dump(statistics, f)
-
     subprocess.call(['rm', '-rf', tmp_dir])
 
     return statistics
