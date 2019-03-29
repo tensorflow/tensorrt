@@ -134,13 +134,14 @@ def run(frozen_graph, model, data_files, batch_size,
                 loc=112, scale=70,
                 size=(batch_size, input_height, input_width, 3)).astype(np.float32)
             features = np.clip(features, 0.0, 255.0)
-            features = tf.identity(tf.constant(features))
             labels = np.random.randint(
                 low=0,
                 high=get_netdef(model).get_num_classes(),
                 size=(batch_size),
                 dtype=np.int32)
-            labels = tf.identity(tf.constant(labels))
+            with tf.device('/device:GPU:0'):
+                features = tf.identity(tf.constant(features))
+                labels = tf.identity(tf.constant(labels))
         else:
             if mode == 'validation':
                 dataset = tf.data.TFRecordDataset(data_files)
