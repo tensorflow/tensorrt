@@ -12,7 +12,7 @@ that optimizes TensorFlow graphs using
 [TensorRT](https://developer.nvidia.com/tensorrt).
 We have used these examples to verify the accuracy and
 performance of TF-TRT. For more information see
-[Verified Models](https://docs.nvidia.com/deeplearning/dgx//tf-trt-user-guide/index.html#verified-models).
+[Verified Models](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html#verified-models).
 
 ## Examples
 
