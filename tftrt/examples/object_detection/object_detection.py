@@ -199,7 +199,7 @@ def download_model(model_name, output_dir='.'):
     if os.path.exists(extract_dir):
         print('Using cached model found at: %s' % extract_dir)
     else:
-        subprocess.call(['wget', model.url, '-O', tar_file])
+        subprocess.call(['wget', '-q', model.url, '-O', tar_file])
         subprocess.call(['tar', '-xzf', tar_file, '-C', output_dir])
 
         # hack fix to handle mobilenet_v2 config bug
@@ -470,14 +470,14 @@ def download_dataset(dataset_name, output_dir='.'):
         print('Using cached annotation_path; %s' % (annotation_path))
     else:
         subprocess.call(
-            ['wget', dataset.annotation_url, '-O', annotation_zip_file])
+            ['wget', '-q', dataset.annotation_url, '-O', annotation_zip_file])
         subprocess.call(['unzip', annotation_zip_file, '-d', output_dir])
 
     # download or use cached images
     if os.path.exists(images_dir):
         print('Using cached images_dir; %s' % (images_dir))
     else:
-        subprocess.call(['wget', dataset.images_url, '-O', images_zip_file])
+        subprocess.call(['wget', '-q', dataset.images_url, '-O', images_zip_file])
         subprocess.call(['unzip', images_zip_file, '-d', output_dir])
 
     return images_dir, annotation_path
