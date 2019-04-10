@@ -1,6 +1,6 @@
 # Documentation for TensorRT in TensorFlow (TF-TRT)
 
-The documentaion on how to accelerate inference in TensorFlow with TensorRT (TF-TRT) is here: https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html
+The documentaion on how to accelerate inference in TensorFlow with TensorRT (TF-TRT) is here: https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html
 
 # Examples for TensorRT in TensorFlow (TF-TRT)
 
@@ -12,7 +12,7 @@ that optimizes TensorFlow graphs using
 [TensorRT](https://developer.nvidia.com/tensorrt).
 We have used these examples to verify the accuracy and
 performance of TF-TRT. For more information see
-[Verified Models](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#verified-models).
+[Verified Models](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html#verified-models).
 
 ## Examples
 
@@ -50,7 +50,7 @@ Installation instructions for compatibility with TensorFlow are provided on the
 
 ## Documentation
 
-[TF-TRT documentaion](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html)
+[TF-TRT documentaion](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html)
 gives an overview of the supported functionalities, provides tutorials
 and verified models, explains best practices with troubleshooting guides.
 

@@ -12,7 +12,7 @@ This causes the script to apply TensorRT inference optimization to speed up
 execution for portions of the model's graph where supported, and to fall back on
 native TensorFlow for layers and operations which are not supported.  See
 [Accelerating Inference In TensorFlow With TensorRT User
-Guide](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html) for
+Guide](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html) for
 more information.
 
 When using the TF-TRT integration flag, you can use the precision option
@@ -42,7 +42,7 @@ We have verified the following models.
 
 For the accuracy numbers of these models on the
 ImageNet validation dataset, see
-[Verified Models](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#verified-models).
+[Verified Models](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html#verified-models).
 
 ## Setup
 
@@ -97,7 +97,7 @@ replacing `/path/to/tensorflow_models` with the path to your `tensorflow/models`
 repository).
 
 Also see [Setting Up The Environment
-](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#image-class-envirn)
+](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html#image-class-envirn)
 for more information.
 
 ### Data
@@ -127,7 +127,7 @@ or
   the validation set.
 
 Also see [Obtaining The ImageNet Data
-](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#image-class-data)
+](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html#image-class-data)
 for more information.
 
 ## Running the examples as a Jupyter notebook
@@ -181,7 +181,7 @@ Where:
 Run with `--help` to see all available options.
 
 Also see [General Script Usage
-](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#image-class-usage)
+](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html#image-class-usage)
 for more information.
 
 ## Output
@@ -215,9 +215,9 @@ time(s)(trt_conversion): ***
 
 Note: For a list of supported operations that can be converted to a TensorRT
 graph, see the [Supported
-Ops](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#support-ops)
+Ops](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html#support-ops)
 section of the [Accelerating Inference In TensorFlow With TensorRT User
-Guide](https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html).
+Guide](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html).
 
 The script then begins running inference on the ImageNet validation set,
 displaying run times of each iteration after the interval defined by the
