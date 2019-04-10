@@ -501,7 +501,7 @@ def download_checkpoint(model, destination_path):
     archive_path = os.path.join(destination_path,
                                 os.path.basename(get_netdef(model).url))
     if not os.path.isfile(archive_path):
-        subprocess.call(['wget', '--no-check-certificate',
+        subprocess.call(['wget', '--no-check-certificate', '-q',
                          get_netdef(model).url, '-O', archive_path])
     # Extract.
     subprocess.call(['tar', '-xzf', archive_path, '-C', destination_path])
