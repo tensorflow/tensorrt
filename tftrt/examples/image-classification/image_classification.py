@@ -588,7 +588,7 @@ def get_frozen_graph(
                     with open(engine_path, "wb") as f:
                         f.write(engine)
 
-        if precision == 'int8':
+        if precision == 'INT8':
             calib_graph = frozen_graph
             graph_sizes['calib'] = len(calib_graph.SerializeToString())
             # INT8 calibration step
@@ -673,10 +673,10 @@ if __name__ == '__main__':
         help='If set, script will run for specified number of seconds.')
     args = parser.parse_args()
 
-    if args.precision != 'fp32' and not args.use_trt:
-        raise ValueError('TensorRT must be enabled for fp16 or int8 modes (--use_trt).')
-    if args.precision == 'int8' and not args.calib_data_dir and not args.use_synthetic:
-        raise ValueError('--calib_data_dir is required for int8 mode')
+    if args.precision != 'FP32' and not args.use_trt:
+        raise ValueError('TensorRT must be enabled for fp16 or INT8 modes (--use_trt).')
+    if args.precision == 'INT8' and not args.calib_data_dir and not args.use_synthetic:
+        raise ValueError('--calib_data_dir is required for INT8 mode')
     if args.num_iterations is not None and args.num_iterations <= args.num_warmup_iterations:
         raise ValueError('--num_iterations must be larger than --num_warmup_iterations '
             '({} <= {})'.format(args.num_iterations, args.num_warmup_iterations))
