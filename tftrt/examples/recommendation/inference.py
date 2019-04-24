@@ -60,7 +60,7 @@ class BenchmarkHook(tf.train.SessionRunHook):
                 run_context.request_stop()
 
 
-def get_frozen_graph(model_checkpoint="/data/marek_ckpt/model.ckpt",
+def get_frozen_graph(model_checkpoint=None,
                      mode="benchmark",
                      use_trt=True,
                      batch_size=1024,
@@ -94,7 +94,7 @@ def get_frozen_graph(model_checkpoint="/data/marek_ckpt/model.ckpt",
                 logits = neural_mf(users, items, model_dtype, nb_users, nb_items, mf_dim, mf_reg, mlp_layer_sizes, mlp_layer_regs, 0.1)
 
             saver = tf.train.Saver()
-            saver.restore(tf_sess, "/data/marek_ckpt/model.ckpt")
+            saver.restore(tf_sess, model_checkpoint)
             graph0 = tf.graph_util.convert_variables_to_constants(tf_sess,
                 tf_sess.graph_def, output_node_names=['neumf/dense_3/BiasAdd'])
             frozen_graph = tf.graph_util.remove_training_nodes(graph0)
@@ -123,7 +123,7 @@ def get_frozen_graph(model_checkpoint="/data/marek_ckpt/model.ckpt",
         num_nodes['trt_only'] = len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp'])
         graph_sizes['trt'] = len(frozen_graph.SerializeToString())
         
-        if precision == 'int8':
+        if precision == 'INT8':
             calib_graph = frozen_graph
             graph_size['calib'] = len(calib_graph.SerializeToString())
             # INT8 calibration step
@@ -148,7 +148,7 @@ def get_frozen_graph(model_checkpoint="/data/marek_ckpt/model.ckpt",
 
 
 def run(frozen_graph,
-        data_dir='/data/ml-20m/',
+        data_dir=None,
         batch_size=1024,
         num_iterations=None,
         num_warmup_iterations=None,
@@ -190,7 +190,7 @@ def run(frozen_graph,
             dataset = pd.read_pickle(data_path)
             users = dataset["user_id"]
             items = dataset["item_id"]
-            print(type(users))
+
             users = users.astype('int32')
             items = items.astype('int32')
             user_dataset = tf.data.Dataset.from_tensor_slices(users)
@@ -218,6 +218,8 @@ def run(frozen_graph,
        dataset = pd.read_pickle(data_path)
        users = dataset["user_id"]
        num_records = len(users)
+       if num_iterations is None:
+           num_iterations = num_records // batch_size
 
     logger = LoggerHook(
         display_every=display_every,
@@ -247,78 +249,7 @@ def run(frozen_graph,
     results['latency_median'] = np.median(iter_times) * 1000
     results['latency_min'] = np.min(iter_times) * 1000
 
-    return results 
-
-
-def input_data(use_synthetic=False,
-               batch_size=1024,
-               data_dir='/data/ml-20m/',
-               num_iterations=None,
-               nb_items=26744,
-               nb_users=1388493):
-    
-    if use_synthetic and num_iterations is None:
-        num_iterations = 10000
-
-    if use_synthetic:
-        items = [[random.randint(1, nb_items) for _ in range(batch_size)] for _ in range(num_iterations)]
-        users = [[random.randint(1, nb_users) for _ in range(batch_size)] for _ in range(num_iterations)]
-    else:
-        if os.path.exists(data_dir):
-             print("Using cached dataset: %s" % (data_dir))
-        else:
-             data_path = os.path.join(data_dir, 'test_ratings.pickle')
-             dataset = pd.read_pickle(data_path)
-             users = dataset["user_id"]
-             items = dataset["item_id"]
-
-    return items, users
-
-
-def run_inference(frozen_graph,
-                  use_synthetic=False,
-                  mode='benchmark',
-                  batch_size=1024,
-                  data_dir='/data/ml-20m/',
-                  num_iterations=10000,
-                  num_warmup_iterations=2000,
-                  nb_items=26744,
-                  nb_users=1388493,
-                  display_every=100):
-
-    items, users = input_data(use_synthetic,
-                              batch_size,
-                              data_dir,
-                              num_iterations,
-                              nb_items,
-                              nb_users)
-
-    with tf.Graph().as_default() as tf_graph:
-        with tf.Session(config=tf.ConfigProto()) as tf_sess:
-            tf.import_graph_def(frozen_graph, name='')
-            for i in tf.get_default_graph().as_graph_def().node:
-                print(i.name)
-            output = tf_sess.graph.get_tensor_by_name('neumf/dense_3/BiasAdd:0')
-            runtimes = []
-            res = []
-
-            for n in range(num_iterations):
-                item = items[n]
-                user = users[n]
-
-                beg = time.time()
-                r = tf_sess.run(output, feed_dict={'item_input:0': item, 'user_input:0': user})
-                end = time.time()
-
-                res.append(r)
-                runtimes.append(end-beg)
-                if n % display_every == 0:
-                    print("    step %d/%d, iter_time(ms)=%.4f" % (
-                        len(runtimes),
-                        num_iterations,
-                        np.mean(runtimes[(-1)*display_every:]) * 1000))
-            print("throughput: %.1f" % 
-                (batch_size * num_iterations/np.sum(runtimes)))
+    return results
 
 
 if __name__ == '__main__':
@@ -328,7 +259,7 @@ if __name__ == '__main__':
             help='If set, one batch of random data is generated and used at every iteration.')
     parser.add_argument('--mode', choices=['validation', 'benchmark'],
             default='validation', help='Which mode to use (validation or benchmark)')
-    parser.add_argument('--data_dir', type=str, default='/data/ml-20m/',
+    parser.add_argument('--data_dir', type=str, default=None,
             help='Directory containing validation set csv files.')
     parser.add_argument('--calib_data_dir', type=str,
         help='Directory containing TFRecord files for calibrating int8.')
@@ -339,7 +270,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_dynamic_op', action='store_true',
         help='If set, TRT conversion will be done using dynamic op instead of statically.')
     parser.add_argument('--precision', type=str, 
-            choices=['fp32', 'fp16', 'int8'], default='fp32',
+            choices=['FP32', 'FP16', 'INT8'], default='FP32',
             help='Precision mode to use. FP16 and INT8 only work in conjunction with --use_trt')
     parser.add_argument('--nb_items', type=int, default=26744,
             help='Number of items') 
