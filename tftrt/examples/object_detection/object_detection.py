@@ -20,7 +20,6 @@ from __future__ import absolute_import
 
 import tensorflow as tf
 import tensorflow.contrib.tensorrt as trt
-import pdb
 
 from collections import namedtuple
 from PIL import Image
@@ -413,7 +412,6 @@ def optimize_model(config_path,
                                 (len(image_path) + max_batch_size - 1) / max_batch_size,
                                 np.mean(runtimes) * 1000))
 
-                    pdb.set_trace()
                     frozen_graph = trt.calib_graph_to_infer_graph(frozen_graph)
 
     # re-enable variable batch size, this was forced to max
