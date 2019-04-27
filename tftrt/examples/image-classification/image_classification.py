@@ -519,7 +519,7 @@ def get_frozen_graph(
     use_trt=False,
     engine_dir=None,
     use_dynamic_op=False,
-    precision='fp32',
+    precision='FP32',
     batch_size=8,
     minimum_segment_size=2,
     calib_files=None,
@@ -532,7 +532,7 @@ def get_frozen_graph(
 
     model: str, the model name (see NETS table in classification.py)
     use_trt: bool, if true, use TensorRT
-    precision: str, floating point precision (fp32, fp16, or int8)
+    precision: str, floating point precision (FP32, FP16, or INT8)
     batch_size: int, batch size for TensorRT optimizations
     returns: tensorflow.GraphDef, the TensorRT compatible frozen graph
     """
@@ -588,7 +588,7 @@ def get_frozen_graph(
                     with open(engine_path, "wb") as f:
                         f.write(engine)
 
-        if precision == 'int8':
+        if precision == 'INT8':
             calib_graph = frozen_graph
             graph_sizes['calib'] = len(calib_graph.SerializeToString())
             # INT8 calibration step
@@ -631,7 +631,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', type=str, default=None,
         help='Directory containing validation set TFRecord files.')
     parser.add_argument('--calib_data_dir', type=str,
-        help='Directory containing TFRecord files for calibrating int8.')
+        help='Directory containing TFRecord files for calibrating INT8.')
     parser.add_argument('--model_dir', type=str, default=None,
         help='Directory containing model checkpoint. If not provided, a ' \
              'checkpoint may be downloaded automatically and stored in ' \
@@ -673,10 +673,10 @@ if __name__ == '__main__':
         help='If set, script will run for specified number of seconds.')
     args = parser.parse_args()
 
-    if args.precision != 'fp32' and not args.use_trt:
-        raise ValueError('TensorRT must be enabled for fp16 or int8 modes (--use_trt).')
-    if args.precision == 'int8' and not args.calib_data_dir and not args.use_synthetic:
-        raise ValueError('--calib_data_dir is required for int8 mode')
+    if args.precision != 'FP32' and not args.use_trt:
+        raise ValueError('TensorRT must be enabled for FP16 or INT8 modes (--use_trt).')
+    if args.precision == 'INT8' and not args.calib_data_dir and not args.use_synthetic:
+        raise ValueError('--calib_data_dir is required for INT8 mode')
     if args.num_iterations is not None and args.num_iterations <= args.num_warmup_iterations:
         raise ValueError('--num_iterations must be larger than --num_warmup_iterations '
             '({} <= {})'.format(args.num_iterations, args.num_warmup_iterations))
