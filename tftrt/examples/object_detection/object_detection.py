@@ -534,7 +534,9 @@ def benchmark_model(frozen_graph,
         raise RuntimeError(
             'Fixed image shape must be provided for batch size > 1')
 
-    if not use_synthetic:
+    if use_synthetic:
+        image_ids = list(range(num_images))
+    else:
         coco = COCO(annotation_file=annotation_path)
 
 
@@ -579,7 +581,7 @@ def benchmark_model(frozen_graph,
                     if image_shape is None:
                         batch_images = np.random.randint(256, size=(batch_size, 600, 600, 3))
                     else:
-                        batch_images = np.random(256, size=(batch_size, image_shape[0], image_shape[1], 3))
+                        batch_images = np.random.randint(256, size=(batch_size, image_shape[0], image_shape[1], 3))
                 else:
                     batch_image_ids = image_ids[image_idx:image_idx + batch_size]
                     batch_images = []
