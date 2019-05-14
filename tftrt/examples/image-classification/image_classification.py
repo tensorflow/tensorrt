@@ -106,7 +106,7 @@ def run(frozen_graph, model, data_files, batch_size,
             return_elements=['logits:0', 'classes:0'],
             name='')
         if mode == tf.estimator.ModeKeys.PREDICT:
-            return tf.estimator.EstimatorSpec(mode=mode, 
+            return tf.estimator.EstimatorSpec(mode=mode,
                       predictions={'classes': classes_out})
         if mode == tf.estimator.ModeKeys.EVAL:
             loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits_out)
@@ -163,7 +163,7 @@ def run(frozen_graph, model, data_files, batch_size,
                     dtype=np.int32)
                 labels = tf.identity(tf.constant(labels))
             else:
-                raise ValueError("Mode must be either 'validation' or 'benchmark'") 
+                raise ValueError("Mode must be either 'validation' or 'benchmark'")
         return features, labels
 
     # Evaluate model
@@ -172,7 +172,7 @@ def run(frozen_graph, model, data_files, batch_size,
     elif mode == 'validation':
         num_records = get_tfrecords_count(data_files)
     elif mode == 'benchmark':
-        num_records = len(data_files) 
+        num_records = len(data_files)
     else:
         raise ValueError("Mode must be either 'validation' or 'benchmark'")
     logger = LoggerHook(
@@ -361,7 +361,7 @@ def get_preprocess_fn(model, mode='validation'):
         input_width, input_height = net_def.get_input_dims()
         image = net_def.preprocess(image, input_width, input_height, is_training=False)
         return image
-    
+
     if mode == 'validation':
         return validation_process
     elif mode == 'benchmark':
@@ -369,7 +369,7 @@ def get_preprocess_fn(model, mode='validation'):
     else:
         raise ValueError("Mode must be either 'validation' or 'benchmark'")
 
-    
+
 
 def build_classification_graph(model, model_dir=None, default_models_dir='./data'):
     """Builds an image classification model by name
@@ -501,10 +501,10 @@ def download_checkpoint(model, destination_path):
     archive_path = os.path.join(destination_path,
                                 os.path.basename(get_netdef(model).url))
     if not os.path.isfile(archive_path):
-        subprocess.call(['wget', '--no-check-certificate', '-q',
-                         get_netdef(model).url, '-O', archive_path])
+        subprocess.check_call(['wget', '--no-check-certificate', '-q',
+                               get_netdef(model).url, '-O', archive_path])
     # Extract.
-    subprocess.call(['tar', '-xzf', archive_path, '-C', destination_path])
+    subprocess.check_call(['tar', '-xzf', archive_path, '-C', destination_path])
     # Move checkpoints out of archive sub directories into destination_path
     if get_netdef(model).model_dir_in_archive:
         source_files = os.path.join(destination_path,
@@ -704,7 +704,7 @@ if __name__ == '__main__':
     if not args.use_synthetic:
         if args.mode == "validation":
             data_files = get_files(args.data_dir, 'validation*')
-        elif args.mode == "benchmark":    
+        elif args.mode == "benchmark":
             data_files = [os.path.join(path, name) for path, _, files in os.walk(args.data_dir) for name in files]
         else:
             raise ValueError("Mode must be either 'validation' or 'benchamark'")
