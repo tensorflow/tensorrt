@@ -140,7 +140,7 @@ def run(frozen_graph, model, data_files, batch_size,
                 size=(batch_size),
                 dtype=np.int32)
             with tf.device('/device:GPU:0'):
-                features = tf.identity(tf.constant(features))
+                features = tf.convert_to_tensor(tf.get_variable("features", dtype=tf.float32, initializer=tf.constant(features)))
                 labels = tf.identity(tf.constant(labels))
         else:
             if mode == 'validation':
