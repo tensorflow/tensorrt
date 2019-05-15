@@ -88,8 +88,7 @@ def test(test_config_path):
     print(json.dumps(print_statistics, sort_keys=True, indent=4))
 
     # run assertions
-    if 'assertions' in test_config and \
-            not test_config['benchmark_config'].get('use_synthetic', False):
+    if 'assertions' in test_config:
         for a in test_config['assertions']:
             if not eval(a):
                 raise AssertionError('ASSERTION FAILED: %s' % a)
