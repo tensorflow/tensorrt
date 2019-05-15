@@ -577,9 +577,9 @@ def benchmark_model(frozen_graph,
             for image_idx in range(0, num_images, batch_size):
                 if use_synthetic:
                     if image_shape is None:
-                        batch_images = np.random.randint(256, size=(batch_size, 600, 600, 3))
+                        batch_images = np.random.randint(0, 256, size=(batch_size, 600, 600, 3))
                     else:
-                        batch_images = np.random(256, size=(batch_size, image_shape[0], image_shape[1], 3))
+                        batch_images = np.random.randint(0, 256, size=(batch_size, image_shape[0], image_shape[1], 3))
                 else:
                     batch_image_ids = image_ids[image_idx:image_idx + batch_size]
                     batch_images = []
@@ -611,7 +611,7 @@ def benchmark_model(frozen_graph,
                     if len(runtimes) % display_every == 0:
                         print("    step %d/%d, iter_time(ms)=%.4f" % (
                             len(runtimes),
-                            (len(image_ids) + batch_size - 1) / batch_size,
+                            (num_images + batch_size - 1) / batch_size,
                             np.mean(runtimes) * 1000))
                     image_counts.append(len(batch_images))
                 
