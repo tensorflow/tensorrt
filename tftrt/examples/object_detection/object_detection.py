@@ -154,23 +154,25 @@ DATASETS = {
 }
 
 
-def download_model(model_name, output_dir='.'):
+def download_model(model_name, input_dir=None, output_dir='.'):
     """Downloads a model from the TensorFlow Object Detection API
 
     Downloads a model from the TensorFlow Object Detection API to a specific
-    output directory.  The download will be skipped if an existing directory
-    for the selected model already found under output_dir.
+    output directory.  If an existing directory for the selected model already
+    found under input_dir, the directory is copied to output_dir.
 
     Args
     ----
         model_name: A string representing the model to download.  This must be
             one of the keys in the module variable
             ``trt_samples.object_detection.MODELS``.
+        input_dir: A string representing the directory to download the model from.
+            If input_dir is None or if ``input_dir/<model_directory>`` already
+            exists, the directory is copied to ``output_dir/<model_directory>``.
+            Otherwise model is downloaded from Object Detection API repository.
         output_dir: A string representing the directory to download the model
             under.  A directory for the specified model will be created at
-            ``output_dir/<model_directory>``.  If output_dir/<model_directory>
-            already exists, then the download will be skipped.
-
+            ``output_dir/<model_directory>``.
     Returns
     -------
         config_path: A string representing the path to the object detection
@@ -194,10 +196,14 @@ def download_model(model_name, output_dir='.'):
     checkpoint_path = os.path.join(output_dir, model.extract_dir,
                                    CHECKPOINT_PREFIX)
 
-    extract_dir = os.path.join(output_dir, model.extract_dir)
-    if os.path.exists(extract_dir):
-        print('Using cached model found at: %s' % extract_dir)
+    if input_dir:
+        extract_dir = os.path.join(input_dir, model.extract_dir)
+    if input_dir and os.path.exists(extract_dir):
+        print('Found model at: %s' % extract_dir)
+        print('Copying model to: %s' % output_dir)
+        subprocess.call(['cp', '-r', extract_dir, output_dir])
     else:
+        print('Downloading model from: %s' % model.url)
         subprocess.call(['wget', '-q', model.url, '-O', tar_file])
         subprocess.call(['tar', '-xzf', tar_file, '-C', output_dir])
 
