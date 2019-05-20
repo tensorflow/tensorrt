@@ -489,7 +489,7 @@ def download_checkpoint(model, destination_path):
     def copy_files(source, destination):
         try:
             shutil.copy2(source, destination)
-        except OSError as e:
+        except (OSError, IOError) as e:
             pass
         except shutil.Error as e:
             pass
