@@ -122,47 +122,6 @@ def input_fn(model, data_files, batch_size, use_synthetic, mode='validation'):
             raise ValueError("Mode must be either 'validation' or 'benchmark'")
     return features, labels
 
-
-# Define the dataset input function for tf.estimator.Estimator
-def input_fn():
-    if use_synthetic:
-        input_width, input_height = get_netdef(model).get_input_dims()
-        features = np.random.normal(
-            loc=112, scale=70,
-            size=(batch_size, input_height, input_width, 3)).astype(np.float32)
-        features = np.clip(features, 0.0, 255.0)
-        labels = np.random.randint(
-            low=0,
-            high=get_netdef(model).get_num_classes(),
-            size=(batch_size),
-            dtype=np.int32)
-        with tf.device('/device:GPU:0'):
-            features = tf.convert_to_tensor(tf.get_variable("features", dtype=tf.float32, initializer=tf.constant(features)))
-            labels = tf.identity(tf.constant(labels))
-    else:
-        if mode == 'validation':
-            dataset = tf.data.TFRecordDataset(data_files)
-            dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
-            dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
-            dataset = dataset.repeat(count=1)
-            iterator = dataset.make_one_shot_iterator()
-            features, labels = iterator.get_next()
-        elif mode == 'benchmark':
-            dataset = tf.data.Dataset.from_tensor_slices(data_files)
-            dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
-            dataset = dataset.repeat(count=1)
-            iterator = dataset.make_one_shot_iterator()
-            features = iterator.get_next()
-            labels = np.random.randint(
-                low=0,
-                high=get_netdef(model).get_num_classes(),
-                size=(batch_size),
-                dtype=np.int32)
-            labels = tf.identity(tf.constant(labels))
-        else:
-            raise ValueError("Mode must be either 'validation' or 'benchmark'")
-    return features, labels
-
 def run(frozen_graph, model, data_files, batch_size,
     num_iterations, num_warmup_iterations, use_synthetic, display_every=100,
     mode='validation', target_duration=None):
@@ -640,7 +599,10 @@ def get_frozen_graph(
             # INT8 calibration step
             print('Calibrating INT8...')
             start_time = time.time()
-            frozen_graph = converter.calibrate(['logits', 'classes'], num_calib_inputs // batch_size, input_map_fn=input_map_fn)
+            frozen_graph = converter.calibrate(
+                fetch_names=['logits', 'classes'],
+                num_runs=num_calib_inputs // batch_size,
+                input_map_fn=input_map_fn)
             times['trt_calibration'] = time.time() - start_time
 
             # This is already set but overwriting it here to ensure the right size
