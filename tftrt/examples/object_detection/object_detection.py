@@ -19,7 +19,7 @@
 from __future__ import absolute_import
 
 import tensorflow as tf
-import tensorflow.contrib.tensorrt as trt
+from tensorflow.python.compiler.tensorrt import trt_convert as trt
 
 from collections import namedtuple
 from PIL import Image
@@ -356,69 +356,59 @@ def optimize_model(config_path,
 
     # optionally perform TensorRT optimization
     if use_trt:
-        runtimes = []
-        with tf.Graph().as_default() as tf_graph:
-            with tf.Session(config=tf_config) as tf_sess:
-                graph_size = len(frozen_graph.SerializeToString())
-                num_nodes = len(frozen_graph.node)
-                start_time = time.time()
-                frozen_graph = trt.create_inference_graph(
-                    input_graph_def=frozen_graph,
-                    outputs=output_names,
-                    max_batch_size=max_batch_size,
-                    max_workspace_size_bytes=max_workspace_size_bytes,
-                    precision_mode=precision_mode,
-                    minimum_segment_size=minimum_segment_size,
-                    is_dynamic_op=True,
-                    maximum_cached_engines=maximum_cached_engines)
-                end_time = time.time()
-                print("graph_size(MB)(native_tf): %.1f" % (float(graph_size)/(1<<20)))
-                print("graph_size(MB)(trt): %.1f" %
-                    (float(len(frozen_graph.SerializeToString()))/(1<<20)))
-                print("num_nodes(native_tf): %d" % num_nodes)
-                print("num_nodes(tftrt_total): %d" % len(frozen_graph.node))
-                print("num_nodes(trt_only): %d" % len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp']))                
-                print("time(s) (trt_conversion): %.4f" % (end_time - start_time))
+        graph_size = len(frozen_graph.SerializeToString())
+        num_nodes = len(frozen_graph.node)
+        start_time = time.time()
 
-                # perform calibration for int8 precision
-                if precision_mode == 'INT8':
+        converter = trt.TrtGraphConverter(
+            input_graph_def=frozen_graph,
+            nodes_blacklist=output_names,
+            max_batch_size=max_batch_size,
+            max_workspace_size_bytes=max_workspace_size_bytes,
+            precision_mode=precision_mode,
+            minimum_segment_size=minimum_segment_size,
+            is_dynamic_op=True,
+            maximum_cached_engines=maximum_cached_engines)
+        frozen_graph = converter.convert()
 
-                    if calib_images_dir is None:
-                        raise ValueError('calib_images_dir must be provided for int8 optimization.')
+        end_time = time.time()
+        print("graph_size(MB)(native_tf): %.1f" % (float(graph_size)/(1<<20)))
+        print("graph_size(MB)(trt): %.1f" %
+            (float(len(frozen_graph.SerializeToString()))/(1<<20)))
+        print("num_nodes(native_tf): %d" % num_nodes)
+        print("num_nodes(tftrt_total): %d" % len(frozen_graph.node))
+        print("num_nodes(trt_only): %d" % len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp']))                
+        print("time(s) (trt_conversion): %.4f" % (end_time - start_time))
 
-                    tf.import_graph_def(frozen_graph, name='')
-                    tf_input = tf_graph.get_tensor_by_name(INPUT_NAME + ':0')
-                    tf_boxes = tf_graph.get_tensor_by_name(BOXES_NAME + ':0')
-                    tf_classes = tf_graph.get_tensor_by_name(CLASSES_NAME + ':0')
-                    tf_scores = tf_graph.get_tensor_by_name(SCORES_NAME + ':0')
-                    tf_num_detections = tf_graph.get_tensor_by_name(
-                        NUM_DETECTIONS_NAME + ':0')
-                    
-                    image_paths = glob.glob(os.path.join(calib_images_dir, '*.jpg'))
-                    image_paths = image_paths[0:num_calib_images]
+        # perform calibration for int8 precision
+        if precision_mode == 'INT8':
+            # get calibration images
+            if calib_images_dir is None:
+                raise ValueError('calib_images_dir must be provided for INT8 optimization.')
+            image_paths = glob.glob(os.path.join(calib_images_dir, '*.jpg'))
+            if len(image_paths) == 0:
+                raise ValueError('No images were found in calib_images_dir for INT8 calibration.')
+            image_paths = image_paths[:num_calib_images]
+            num_batches = len(image_paths) // max_batch_size
 
-                    for image_idx in range(0, len(image_paths), max_batch_size):
+            def feed_dict_fn():
+                # read batch of images
+                batch_images = []
+                for image_path in image_paths[feed_dict_fn.index:feed_dict_fn.index+max_batch_size]:
+                    image = _read_image(image_path, calib_image_shape)           
+                    batch_images.append(image)
+                feed_dict_fn.index += max_batch_size
+                return {INPUT_NAME+':0': np.array(batch_images)}
+            feed_dict_fn.index = 0
 
-                        # read batch of images
-                        batch_images = []
-                        for image_path in image_paths[image_idx:image_idx+max_batch_size]:
-                            image = _read_image(image_path, calib_image_shape)           
-                            batch_images.append(image)
-
-                        t0 = time.time()
-                        # execute batch of images
-                        boxes, classes, scores, num_detections = tf_sess.run(
-                            [tf_boxes, tf_classes, tf_scores, tf_num_detections],
-                            feed_dict={tf_input: batch_images})
-                        t1 = time.time()
-                        runtimes.append(float(t1 - t0))
-                        if len(runtimes) % display_every == 0:
-                            print("    step %d/%d, iter_time(ms)=%.4f" % (
-                                len(runtimes),
-                                (len(image_path) + max_batch_size - 1) / max_batch_size,
-                                np.mean(runtimes) * 1000))
-
-                    frozen_graph = trt.calib_graph_to_infer_graph(frozen_graph)
+            print('Calibrating INT8...')
+            start_time = time.time()
+            frozen_graph = converter.calibrate(
+                fetch_names=[x + ':0' for x in output_names],
+                num_runs=num_batches,
+                feed_dict_fn=feed_dict_fn)
+            calibration_time = time.time() - start_time
+            print("time(s) (trt_calibration): %.4f" % calibration_time)
 
     # re-enable variable batch size, this was forced to max
     # batch size during export to enable TensorRT optimization
