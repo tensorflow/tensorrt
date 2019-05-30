@@ -408,7 +408,7 @@ def optimize_model(config_path,
                 num_runs=num_batches,
                 feed_dict_fn=feed_dict_fn)
             calibration_time = time.time() - start_time
-            print('Finished INT8 calibration in ', calibration_time, ' seconds.')
+            print("time(s) (trt_calibration): %.4f" % calibration_time)
 
     # re-enable variable batch size, this was forced to max
     # batch size during export to enable TensorRT optimization
