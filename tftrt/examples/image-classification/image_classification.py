@@ -16,9 +16,10 @@
 # =============================================================================
 
 import argparse
+import functools
 import os
 import tensorflow as tf
-import tensorflow.contrib.tensorrt as trt
+from tensorflow.python.compiler.tensorrt import trt_convert as trt
 import time
 import numpy as np
 import sys
@@ -79,6 +80,48 @@ class BenchmarkHook(tf.train.SessionRunHook):
             if self.current_iteration >= self.iteration_limit:
                 run_context.request_stop()
 
+# Define the dataset input function for tf.estimator.Estimator
+def input_fn(model, data_files, batch_size, use_synthetic, mode='validation'):
+    if use_synthetic:
+        input_width, input_height = get_netdef(model).get_input_dims()
+        features = np.random.normal(
+            loc=112, scale=70,
+            size=(batch_size, input_height, input_width, 3)).astype(np.float32)
+        features = np.clip(features, 0.0, 255.0)
+        features = tf.identity(tf.constant(features))
+        labels = np.random.randint(
+            low=0,
+            high=get_netdef(model).get_num_classes(),
+            size=(batch_size),
+            dtype=np.int32)
+        labels = tf.identity(tf.constant(labels))
+    else:
+        # preprocess function for input data
+        preprocess_fn = get_preprocess_fn(model, mode)
+
+        if mode == 'validation':
+            dataset = tf.data.TFRecordDataset(data_files)
+            dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
+            dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
+            dataset = dataset.repeat(count=1)
+            iterator = dataset.make_one_shot_iterator()
+            features, labels = iterator.get_next()
+        elif mode == 'benchmark':
+            dataset = tf.data.Dataset.from_tensor_slices(data_files)
+            dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
+            dataset = dataset.repeat(count=1)
+            iterator = dataset.make_one_shot_iterator()
+            features = iterator.get_next()
+            labels = np.random.randint(
+                low=0,
+                high=get_netdef(model).get_num_classes(),
+                size=(batch_size),
+                dtype=np.int32)
+            labels = tf.identity(tf.constant(labels))
+        else:
+            raise ValueError("Mode must be either 'validation' or 'benchmark'")
+    return features, labels
+
 def run(frozen_graph, model, data_files, batch_size,
     num_iterations, num_warmup_iterations, use_synthetic, display_every=100,
     mode='validation', target_duration=None):
@@ -116,55 +159,12 @@ def run(frozen_graph, model, data_files, batch_size,
                 loss=loss,
                 eval_metric_ops={'accuracy': accuracy})
 
-    # preprocess function for input data
-    preprocess_fn = get_preprocess_fn(model, mode)
-
     def get_tfrecords_count(files):
         num_records = 0
         for fn in files:
             for record in tf.python_io.tf_record_iterator(fn):
                 num_records += 1
         return num_records
-
-    # Define the dataset input function for tf.estimator.Estimator
-    def input_fn():
-        if use_synthetic:
-            input_width, input_height = get_netdef(model).get_input_dims()
-            features = np.random.normal(
-                loc=112, scale=70,
-                size=(batch_size, input_height, input_width, 3)).astype(np.float32)
-            features = np.clip(features, 0.0, 255.0)
-            labels = np.random.randint(
-                low=0,
-                high=get_netdef(model).get_num_classes(),
-                size=(batch_size),
-                dtype=np.int32)
-            with tf.device('/device:GPU:0'):
-                features = tf.convert_to_tensor(tf.get_variable("features", dtype=tf.float32, initializer=tf.constant(features)))
-                labels = tf.identity(tf.constant(labels))
-        else:
-            if mode == 'validation':
-                dataset = tf.data.TFRecordDataset(data_files)
-                dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
-                dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
-                dataset = dataset.repeat(count=1)
-                iterator = dataset.make_one_shot_iterator()
-                features, labels = iterator.get_next()
-            elif mode == 'benchmark':
-                dataset = tf.data.Dataset.from_tensor_slices(data_files)
-                dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=preprocess_fn, batch_size=batch_size, num_parallel_calls=8))
-                dataset = dataset.repeat(count=1)
-                iterator = dataset.make_one_shot_iterator()
-                features = iterator.get_next()
-                labels = np.random.randint(
-                    low=0,
-                    high=get_netdef(model).get_num_classes(),
-                    size=(batch_size),
-                    dtype=np.int32)
-                labels = tf.identity(tf.constant(labels))
-            else:
-                raise ValueError("Mode must be either 'validation' or 'benchmark'")
-        return features, labels
 
     # Evaluate model
     if use_synthetic:
@@ -186,11 +186,12 @@ def run(frozen_graph, model, data_files, batch_size,
         config=tf.estimator.RunConfig(session_config=tf_config),
         model_dir='model_dir')
     results = {}
+    estimator_input_fn = functools.partial(input_fn, model, data_files, batch_size, use_synthetic, mode)
     if mode == 'validation':
-        results = estimator.evaluate(input_fn, steps=num_iterations, hooks=[logger])
+        results = estimator.evaluate(estimator_input_fn, steps=num_iterations, hooks=[logger])
     elif mode == 'benchmark':
         benchmark_hook = BenchmarkHook(target_duration=target_duration, iteration_limit=num_iterations)
-        prediction_results = [p for p in estimator.predict(input_fn, predict_keys=["classes"],  hooks=[logger, benchmark_hook])]
+        prediction_results = [p for p in estimator.predict(estimator_input_fn, predict_keys=["classes"],  hooks=[logger, benchmark_hook])]
     else:
         raise ValueError("Mode must be either 'validation' or 'benchmark'")
     # Gather additional results
@@ -368,8 +369,6 @@ def get_preprocess_fn(model, mode='validation'):
         return benchmark_process
     else:
         raise ValueError("Mode must be either 'validation' or 'benchmark'")
-
-
 
 def build_classification_graph(model, model_dir=None, default_models_dir='./data'):
     """Builds an image classification model by name
@@ -564,15 +563,16 @@ def get_frozen_graph(
     # Convert to TensorRT graph
     if use_trt:
         start_time = time.time()
-        frozen_graph = trt.create_inference_graph(
+        converter = trt.TrtGraphConverter(
             input_graph_def=frozen_graph,
-            outputs=['logits', 'classes'],
+            nodes_blacklist=['logits', 'classes'],
             max_batch_size=batch_size,
             max_workspace_size_bytes=max_workspace_size,
             precision_mode=precision.upper(),
             minimum_segment_size=minimum_segment_size,
             is_dynamic_op=use_dynamic_op
         )
+        frozen_graph = converter.convert()
         times['trt_conversion'] = time.time() - start_time
         num_nodes['tftrt_total'] = len(frozen_graph.node)
         num_nodes['trt_only'] = len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp'])
@@ -591,16 +591,20 @@ def get_frozen_graph(
         if precision == 'INT8':
             calib_graph = frozen_graph
             graph_sizes['calib'] = len(calib_graph.SerializeToString())
+
+            def input_map_fn():
+                features, _ = input_fn(model, calib_files, batch_size, use_synthetic)
+                return {'input:0': features}
+
             # INT8 calibration step
             print('Calibrating INT8...')
             start_time = time.time()
-            run(calib_graph, model, calib_files, batch_size,
-                num_calib_inputs // batch_size, 0, use_synthetic=use_synthetic)
+            frozen_graph = converter.calibrate(
+                fetch_names=['logits', 'classes'],
+                num_runs=num_calib_inputs // batch_size,
+                input_map_fn=input_map_fn)
             times['trt_calibration'] = time.time() - start_time
 
-            start_time = time.time()
-            frozen_graph = trt.calib_graph_to_infer_graph(calib_graph)
-            times['trt_int8_conversion'] = time.time() - start_time
             # This is already set but overwriting it here to ensure the right size
             graph_sizes['trt'] = len(frozen_graph.SerializeToString())
 
