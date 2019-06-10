@@ -9,6 +9,7 @@ utilities for model construction and optimization.
 * [Optimize](#od_optimize)
 * [Benchmark](#od_benchmark)
 * [Test](#od_test)
+* [Verified Models](#od_verified_models)
 
 <a name="setup"></a>
 ## Setup
@@ -136,3 +137,17 @@ For the example configuration shown above, the following steps will be performed
 2. Optimizes with TensorRT and FP16 precision
 3. Benchmarks against the MSCOCO 2017 validation dataset
 4. Asserts that the MAP is greater than some reference value
+
+<a name="od_verified_models"></a>
+### Verified Models
+We have verified the accuracy and performance of the following models that are supported by the package:
+
+    'ssd_mobilenet_v1_coco'
+    'ssd_mobilenet_v1_fpn_coco'
+    'ssd_mobilenet_v2_coco'
+    'ssdlite_mobilenet_v2_coco'
+    'ssd_inception_v2_coco'
+    'ssd_resnet_50_fpn_coco'
+    'faster_rcnn_resnet50_coco'
+    'faster_rcnn_nas'
+    'mask_rcnn_resnet50_atrous_coco'
