@@ -221,13 +221,13 @@ def optimize_model(config_path,
                    remove_assert=True,
                    override_nms_score_threshold=None,
                    override_resizer_shape=None,
-                   max_batch_size=1,
                    precision_mode='FP32',
                    minimum_segment_size=2,
                    max_workspace_size_bytes=1 << 32,
                    maximum_cached_engines=100,
                    calib_images_dir=None,
                    num_calib_images=None,
+                   calib_batch_size=1,
                    calib_image_shape=None,
                    tmp_dir='.optimize_model_tmp_dir',
                    remove_tmp_dir=True,
@@ -261,8 +261,6 @@ def optimize_model(config_path,
         override_resizer_shape: An optional list/tuple of integers
             representing a fixed shape to override the default image resizer
             specified in the object detection configuration file.
-        max_batch_size: An integer representing the max batch size to use for
-            TensorRT optimization.
         precision_mode: A string representing the precision mode to use for
             TensorRT optimization.  Must be one of 'FP32', 'FP16', or 'INT8'.
         minimum_segment_size: An integer representing the minimum segment size
@@ -275,6 +273,7 @@ def optimize_model(config_path,
             use for int8 calibration. 
         num_calib_images: An integer representing the number of calibration 
             images to use.  If None, will use all images in directory.
+        calib_batch_size: An integer representing the batch size to use for calibration.
         calib_image_shape: A tuple of integers representing the height, 
             width that images will be resized to for calibration. 
         tmp_dir: A string representing a directory for temporary files.  This
@@ -291,9 +290,6 @@ def optimize_model(config_path,
     -------
         A GraphDef representing the optimized model.
     """
-    if max_batch_size > 1 and calib_image_shape is None:
-        raise RuntimeError(
-            'Fixed calibration image shape must be provided for max_batch_size > 1')
     if os.path.exists(tmp_dir):
         if not remove_tmp_dir:
             raise RuntimeError(
@@ -335,7 +331,7 @@ def optimize_model(config_path,
                 config,
                 checkpoint_path,
                 tmp_dir,
-                input_shape=[max_batch_size, None, None, 3])
+                input_shape=[None, None, None, 3])
 
     # read frozen graph from file
     frozen_graph_path = os.path.join(tmp_dir, FROZEN_GRAPH_NAME)
@@ -363,7 +359,6 @@ def optimize_model(config_path,
         converter = trt.TrtGraphConverter(
             input_graph_def=frozen_graph,
             nodes_blacklist=output_names,
-            max_batch_size=max_batch_size,
             max_workspace_size_bytes=max_workspace_size_bytes,
             precision_mode=precision_mode,
             minimum_segment_size=minimum_segment_size,
@@ -389,15 +384,15 @@ def optimize_model(config_path,
             if len(image_paths) == 0:
                 raise ValueError('No images were found in calib_images_dir for INT8 calibration.')
             image_paths = image_paths[:num_calib_images]
-            num_batches = len(image_paths) // max_batch_size
+            num_batches = len(image_paths) // calib_batch_size
 
             def feed_dict_fn():
                 # read batch of images
                 batch_images = []
-                for image_path in image_paths[feed_dict_fn.index:feed_dict_fn.index+max_batch_size]:
+                for image_path in image_paths[feed_dict_fn.index:feed_dict_fn.index+calib_batch_size]:
                     image = _read_image(image_path, calib_image_shape)           
                     batch_images.append(image)
-                feed_dict_fn.index += max_batch_size
+                feed_dict_fn.index += calib_batch_size
                 return {INPUT_NAME+':0': np.array(batch_images)}
             feed_dict_fn.index = 0
 
