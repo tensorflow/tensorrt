@@ -493,24 +493,25 @@ def download_checkpoint(model, destination_path):
         except shutil.Error as e:
             pass
 
-    # Make directories if they don't exist.
+    # Download and extract checkpoints if they don't exist.
     if not os.path.exists(destination_path):
+        # Make directories.
         os.makedirs(destination_path)
-    # Download archive.
-    archive_path = os.path.join(destination_path,
-                                os.path.basename(get_netdef(model).url))
-    if not os.path.isfile(archive_path):
+        # Download archive.
+        archive_path = os.path.join(destination_path,
+                                    os.path.basename(get_netdef(model).url))
         subprocess.check_call(['wget', '--no-check-certificate', '-q',
                                get_netdef(model).url, '-O', archive_path])
-    # Extract.
-    subprocess.check_call(['tar', '-xzf', archive_path, '-C', destination_path])
-    # Move checkpoints out of archive sub directories into destination_path
-    if get_netdef(model).model_dir_in_archive:
-        source_files = os.path.join(destination_path,
-                                    get_netdef(model).model_dir_in_archive,
-                                    '*')
-        for f in glob.glob(source_files):
-            copy_files(f, destination_path)
+        # Extract.
+        subprocess.check_call(['tar', '-xzf', archive_path, '-C',
+                               destination_path])
+        # Move checkpoints out of archive sub directories into destination_path
+        if get_netdef(model).model_dir_in_archive:
+            source_files = os.path.join(destination_path,
+                                        get_netdef(model).model_dir_in_archive,
+                                        '*')
+            for f in glob.glob(source_files):
+                copy_files(f, destination_path)
 
 def get_frozen_graph(
     model,
