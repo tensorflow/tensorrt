@@ -221,6 +221,7 @@ def optimize_model(config_path,
                    remove_assert=True,
                    override_nms_score_threshold=None,
                    override_resizer_shape=None,
+                   batch_size=1,
                    precision_mode='FP32',
                    minimum_segment_size=2,
                    max_workspace_size_bytes=1 << 32,
@@ -261,6 +262,7 @@ def optimize_model(config_path,
         override_resizer_shape: An optional list/tuple of integers
             representing a fixed shape to override the default image resizer
             specified in the object detection configuration file.
+        batch_size: An integer representing the batch size
         precision_mode: A string representing the precision mode to use for
             TensorRT optimization.  Must be one of 'FP32', 'FP16', or 'INT8'.
         minimum_segment_size: An integer representing the minimum segment size
@@ -331,7 +333,7 @@ def optimize_model(config_path,
                 config,
                 checkpoint_path,
                 tmp_dir,
-                input_shape=[None, None, None, 3])
+                input_shape=[batch_size, None, None, 3])
 
     # read frozen graph from file
     frozen_graph_path = os.path.join(tmp_dir, FROZEN_GRAPH_NAME)

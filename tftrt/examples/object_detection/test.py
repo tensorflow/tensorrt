@@ -74,7 +74,8 @@ def test(test_config_path):
     frozen_graph = optimize_model(
         config_path=config_path,
         checkpoint_path=checkpoint_path,
-        **test_config['optimization_config'])
+        **test_config['optimization_config'],
+        batch_size=test_config['benchmark_config']['batch_size'])
 
     # benchmark optimized model
     statistics = benchmark_model(
