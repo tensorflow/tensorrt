@@ -213,70 +213,33 @@ def download_model(model_name, input_dir=None, output_dir='.'):
     return config_path, checkpoint_path
 
 
-def optimize_model(config_path,
-                   checkpoint_path,
-                   use_trt=True,
-                   force_nms_cpu=True,
-                   replace_relu6=True,
-                   remove_assert=True,
-                   override_nms_score_threshold=None,
-                   override_resizer_shape=None,
-                   max_batch_size=1,
-                   precision_mode='FP32',
-                   minimum_segment_size=2,
-                   max_workspace_size_bytes=1 << 32,
-                   maximum_cached_engines=100,
-                   calib_images_dir=None,
-                   num_calib_images=None,
-                   calib_image_shape=None,
-                   tmp_dir='.optimize_model_tmp_dir',
-                   remove_tmp_dir=True,
-                   output_path=None,
-                   display_every=100):
-    """Optimizes an object detection model using TensorRT
+def build_model(model_name,
+                input_dir=None,
+                output_dir='.',
+                override_nms_score_threshold=None,
+                override_resizer_shape=None,
+                batch_size=1,
+                tmp_dir='.optimize_model_tmp_dir',
+                remove_tmp_dir=True,
+                output_path=None):
+    """Downloads and builds a model from the TensorFlow Object Detection API
 
-    Optimizes an object detection model using TensorRT.  This method also
-    performs pre-tensorrt optimizations specific to the TensorFlow object
+    It performs pre-tensorrt optimizations specific to the TensorFlow object
     detection API models.  Please see the list of arguments for other
     optimization parameters.
 
     Args
     ----
-        config_path: A string representing the path of the object detection
-            pipeline config file.
-        checkpoint_path: A string representing the path of the object
-            detection model checkpoint.
-        use_trt: A boolean representing whether to optimize with TensorRT. If
-            False, regular TensorFlow will be used but other optimizations
-            (like NMS device placement) will still be applied.
-        force_nms_cpu: A boolean indicating whether to place NMS operations on
-            the CPU.
-        replace_relu6: A boolean indicating whether to replace relu6(x)
-            operations with relu(x) - relu(x-6).
-        remove_assert: A boolean indicating whether to remove Assert
-            operations from the graph.
+        model_name: check download_model
+        input_dir: check download_model
+        output_dir: check download_model
         override_nms_score_threshold: An optional float representing
             a NMS score threshold to override that specified in the object
             detection configuration file.
         override_resizer_shape: An optional list/tuple of integers
             representing a fixed shape to override the default image resizer
             specified in the object detection configuration file.
-        max_batch_size: An integer representing the max batch size to use for
-            TensorRT optimization.
-        precision_mode: A string representing the precision mode to use for
-            TensorRT optimization.  Must be one of 'FP32', 'FP16', or 'INT8'.
-        minimum_segment_size: An integer representing the minimum segment size
-            to use for TensorRT graph segmentation.
-        max_workspace_size_bytes: An integer representing the max workspace
-            size for TensorRT optimization.
-        maximum_cached_engines: An integer represenging the number of TRT engines
-            that can be stored in the cache.
-        calib_images_dir: A string representing a directory containing images to
-            use for int8 calibration. 
-        num_calib_images: An integer representing the number of calibration 
-            images to use.  If None, will use all images in directory.
-        calib_image_shape: A tuple of integers representing the height, 
-            width that images will be resized to for calibration. 
+        batch_size: An integer representing the batch size
         tmp_dir: A string representing a directory for temporary files.  This
             directory will be created and removed by this function and should
             not already exist.  If the directory exists, an error will be
@@ -285,15 +248,18 @@ def optimize_model(config_path,
             tmp_dir or throw error.
         output_path: An optional string representing the path to save the
             optimized GraphDef to.
-        display_every: print log for calibration every display_every iteration
 
     Returns
     -------
         A GraphDef representing the optimized model.
     """
-    if max_batch_size > 1 and calib_image_shape is None:
-        raise RuntimeError(
-            'Fixed calibration image shape must be provided for max_batch_size > 1')
+
+    # download model or use cached
+    config_path, checkpoint_path = download_model(
+        model_name=model_name,
+        input_dir=input_dir,
+        output_dir=output_dir)
+
     if os.path.exists(tmp_dir):
         if not remove_tmp_dir:
             raise RuntimeError(
@@ -335,7 +301,7 @@ def optimize_model(config_path,
                 config,
                 checkpoint_path,
                 tmp_dir,
-                input_shape=[max_batch_size, None, None, 3])
+                input_shape=[batch_size, None, None, 3])
 
     # read frozen graph from file
     frozen_graph_path = os.path.join(tmp_dir, FROZEN_GRAPH_NAME)
@@ -343,6 +309,82 @@ def optimize_model(config_path,
     with open(frozen_graph_path, 'rb') as f:
         frozen_graph.ParseFromString(f.read())
 
+    # write optimized model to disk
+    if output_path is not None:
+        with open(output_path, 'wb') as f:
+            f.write(frozen_graph.SerializeToString())
+
+    # remove temporary directory
+    subprocess.call(['rm', '-rf', tmp_dir])
+
+    return frozen_graph
+
+def optimize_model(frozen_graph,
+                   use_trt=True,
+                   force_nms_cpu=True,
+                   replace_relu6=True,
+                   remove_assert=True,
+                   precision_mode='FP32',
+                   minimum_segment_size=2,
+                   max_workspace_size_bytes=1 << 32,
+                   maximum_cached_engines=100,
+                   calib_images_dir=None,
+                   num_calib_images=None,
+                   calib_batch_size=1,
+                   calib_image_shape=None,
+                   output_path=None):
+    """Optimizes an object detection model using TensorRT
+
+    Optimizes an object detection model using TensorRT.  This method also
+    performs pre-tensorrt optimizations specific to the TensorFlow object
+    detection API models.  Please see the list of arguments for other
+    optimization parameters.
+
+    Args
+    ----
+        config_path: A string representing the path of the object detection
+            pipeline config file.
+        checkpoint_path: A string representing the path of the object
+            detection model checkpoint.
+        use_trt: A boolean representing whether to optimize with TensorRT. If
+            False, regular TensorFlow will be used but other optimizations
+            (like NMS device placement) will still be applied.
+        force_nms_cpu: A boolean indicating whether to place NMS operations on
+            the CPU.
+        replace_relu6: A boolean indicating whether to replace relu6(x)
+            operations with relu(x) - relu(x-6).
+        remove_assert: A boolean indicating whether to remove Assert
+            operations from the graph.
+        override_nms_score_threshold: An optional float representing
+            a NMS score threshold to override that specified in the object
+            detection configuration file.
+        override_resizer_shape: An optional list/tuple of integers
+            representing a fixed shape to override the default image resizer
+            specified in the object detection configuration file.
+        batch_size: An integer representing the batch size
+        precision_mode: A string representing the precision mode to use for
+            TensorRT optimization.  Must be one of 'FP32', 'FP16', or 'INT8'.
+        minimum_segment_size: An integer representing the minimum segment size
+            to use for TensorRT graph segmentation.
+        max_workspace_size_bytes: An integer representing the max workspace
+            size for TensorRT optimization.
+        maximum_cached_engines: An integer represenging the number of TRT engines
+            that can be stored in the cache.
+        calib_images_dir: A string representing a directory containing images to
+            use for int8 calibration.
+        num_calib_images: An integer representing the number of calibration
+            images to use.  If None, will use all images in directory.
+        calib_batch_size: An integer representing the batch size to use for calibration.
+        calib_image_shape: A tuple of integers representing the height,
+            width that images will be resized to for calibration.
+        output_path: An optional string representing the path to save the
+            optimized GraphDef to.
+        display_every: print log for calibration every display_every iteration
+
+    Returns
+    -------
+        A GraphDef representing the optimized model.
+    """
     # apply graph modifications
     if force_nms_cpu:
         frozen_graph = f_force_nms_cpu(frozen_graph)
@@ -363,7 +405,6 @@ def optimize_model(config_path,
         converter = trt.TrtGraphConverter(
             input_graph_def=frozen_graph,
             nodes_blacklist=output_names,
-            max_batch_size=max_batch_size,
             max_workspace_size_bytes=max_workspace_size_bytes,
             precision_mode=precision_mode,
             minimum_segment_size=minimum_segment_size,
@@ -377,7 +418,7 @@ def optimize_model(config_path,
             (float(len(frozen_graph.SerializeToString()))/(1<<20)))
         print("num_nodes(native_tf): %d" % num_nodes)
         print("num_nodes(tftrt_total): %d" % len(frozen_graph.node))
-        print("num_nodes(trt_only): %d" % len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp']))                
+        print("num_nodes(trt_only): %d" % len([1 for n in frozen_graph.node if str(n.op)=='TRTEngineOp']))
         print("time(s) (trt_conversion): %.4f" % (end_time - start_time))
 
         # perform calibration for int8 precision
@@ -389,15 +430,15 @@ def optimize_model(config_path,
             if len(image_paths) == 0:
                 raise ValueError('No images were found in calib_images_dir for INT8 calibration.')
             image_paths = image_paths[:num_calib_images]
-            num_batches = len(image_paths) // max_batch_size
+            num_batches = len(image_paths) // calib_batch_size
 
             def feed_dict_fn():
                 # read batch of images
                 batch_images = []
-                for image_path in image_paths[feed_dict_fn.index:feed_dict_fn.index+max_batch_size]:
-                    image = _read_image(image_path, calib_image_shape)           
+                for image_path in image_paths[feed_dict_fn.index:feed_dict_fn.index+calib_batch_size]:
+                    image = _read_image(image_path, calib_image_shape)
                     batch_images.append(image)
-                feed_dict_fn.index += max_batch_size
+                feed_dict_fn.index += calib_batch_size
                 return {INPUT_NAME+':0': np.array(batch_images)}
             feed_dict_fn.index = 0
 
@@ -410,19 +451,10 @@ def optimize_model(config_path,
             calibration_time = time.time() - start_time
             print("time(s) (trt_calibration): %.4f" % calibration_time)
 
-    # re-enable variable batch size, this was forced to max
-    # batch size during export to enable TensorRT optimization
-    for node in frozen_graph.node:
-        if INPUT_NAME == node.name:
-            node.attr['shape'].shape.dim[0].size = -1
-
     # write optimized model to disk
     if output_path is not None:
         with open(output_path, 'wb') as f:
             f.write(frozen_graph.SerializeToString())
-
-    # remove temporary directory
-    subprocess.call(['rm', '-rf', tmp_dir])
 
     return frozen_graph
 
@@ -507,7 +539,7 @@ def benchmark_model(frozen_graph,
             images to the model.
         image_shape: An optional tuple of integers representing a fixed shape
             to resize all images before testing. For synthetic data the default
-            image_shape is [600, 600, 3] 
+            image_shape is [600, 600, 3]
         num_images: An integer representing the number of images in the
             dataset to evaluate with.
         tmp_dir: A string representing the path where the function may create
@@ -586,7 +618,7 @@ def benchmark_model(frozen_graph,
                         batch_coco_images.append(coco_img)
                         image_path = os.path.join(images_dir,
                                                   coco_img['file_name'])
-                        image = _read_image(image_path, image_shape)           
+                        image = _read_image(image_path, image_shape)
                         batch_images.append(image)
 
                 # run num_warmup_iterations outside of timing
@@ -610,7 +642,7 @@ def benchmark_model(frozen_graph,
                             (num_images + batch_size - 1) / batch_size,
                             np.mean(runtimes) * 1000))
                     image_counts.append(len(batch_images))
-                
+
                 if not use_synthetic:
                     # add coco detections for this batch to running list
                     batch_coco_detections = []
