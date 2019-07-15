@@ -88,14 +88,15 @@ def input_fn(model, data_files, batch_size, use_synthetic, mode='validation'):
             loc=112, scale=70,
             size=(batch_size, input_height, input_width, 3)).astype(np.float32)
         features = np.clip(features, 0.0, 255.0)
-        features = tf.convert_to_tensor(tf.get_variable(
-            "features", dtype=tf.float32, initializer=tf.constant(features)))
         labels = np.random.randint(
             low=0,
             high=get_netdef(model).get_num_classes(),
             size=(batch_size),
             dtype=np.int32)
-        labels = tf.identity(tf.constant(labels))
+        with tf.device('/device:GPU:0'):
+            features = tf.convert_to_tensor(tf.get_variable(
+                "features", dtype=tf.float32, initializer=tf.constant(features)))
+            labels = tf.identity(tf.constant(labels))
     else:
         # preprocess function for input data
         preprocess_fn = get_preprocess_fn(model, mode)
