@@ -41,7 +41,7 @@ frozen_graph = build_model(
     batch_size=8,
     override_nms_score_threshold=0.3,
 )
-# help(download_model) for more
+# help(build_model) for more
 ```
 
 <a name="od_optimize"></a>
