@@ -35,7 +35,12 @@ python setup.py install --user
 ```python
 from tftrt.examples.object_detection import download_model
 
-config_path, checkpoint_path = download_model('ssd_mobilenet_v1_coco', output_dir='models')
+frozen_graph = build_model(
+    model_name="ssd_resnet_50_fpn_coco",
+    input_dir="/models/object_detection/combined_nms_enabled",
+    batch_size=8,
+    override_nms_score_threshold=0.3,
+)
 # help(download_model) for more
 ```
 
@@ -46,10 +51,14 @@ config_path, checkpoint_path = download_model('ssd_mobilenet_v1_coco', output_di
 from tftrt.examples.object_detection import optimize_model
 
 frozen_graph = optimize_model(
-    config_path=config_path, 
-    checkpoint_path=checkpoint_path,
+    frozen_graph,
     use_trt=True,
-    precision_mode='FP16'
+    precision_mode="INT8",
+    calib_images_dir="/data/coco-2017/train2017",
+    num_calib_images=8,
+    calib_batch_size=8,
+    calib_image_shape=[640, 640],
+    max_workspace_size_bytes=17179869184,
 )
 # help(optimize_model) for other parameters
 ```
@@ -73,8 +82,12 @@ from tftrt.examples.object_detection import benchmark_model
 
 statistics = benchmark_model(
     frozen_graph=frozen_graph, 
-    images_dir=images_dir, 
-    annotation_path=annotation_path
+    images_dir="/data/coco2017/val2017",
+    annotation_path="/data/coco2017/annotations/instances_val2017.json",
+    batch_size=8,
+    image_shape=[640, 640],
+    num_images=4096,
+    output_path="stats/ssd_resnet_50_fpn_coco_trt_int8.json"
 )
 # help(benchmark_model) for more parameters
 ```
@@ -88,29 +101,31 @@ example JSON file, call it ``my_test.json``
 
 ```json
 {
-  "source_model": {
-    "model_name": "ssd_inception_v2_coco",
-    "output_dir": "models"
+  "model_config": {
+    "model_name": "ssd_resnet_50_fpn_coco",
+    "input_dir": "/models/object_detection/combined_nms_enabled",
+    "batch_size": 8,
+    "override_nms_score_threshold": 0.3
   },
   "optimization_config": {
     "use_trt": true,
-    "precision_mode": "FP16",
-    "force_nms_cpu": true,
-    "replace_relu6": true,
-    "remove_assert": true,
-    "override_nms_score_threshold": 0.3,
-    "max_batch_size": 1
+    "precision_mode": "INT8",
+    "calib_images_dir": "/data/coco2017/train2017",
+    "num_calib_images": 8,
+    "calib_batch_size": 8,
+    "calib_image_shape": [640, 640],
+    "max_workspace_size_bytes": 17179869184
   },
   "benchmark_config": {
-    "images_dir": "coco/val2017",
-    "annotation_path": "coco/annotations/instances_val2017.json",
-    "batch_size": 1,
-    "image_shape": [600, 600],
+    "images_dir": "/data/coco2017/val2017",
+    "annotation_path": "/data/coco2017/annotations/instances_val2017.json",
+    "batch_size": 8,
+    "image_shape": [640, 640],
     "num_images": 4096,
-    "output_path": "stats/ssd_inception_v2_coco_trt_fp16.json"
+    "output_path": "stats/ssd_resnet_50_fpn_coco_trt_int8.json"
   },
   "assertions": [
-    "statistics['map'] > (0.268 - 0.005)"
+    "statistics['map'] > (0.277 - 0.01)"
   ]
 }
 ```
