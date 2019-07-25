@@ -82,6 +82,8 @@ class BenchmarkHook(tf.train.SessionRunHook):
 
 # Define the dataset input function for tf.estimator.Estimator
 def input_fn(model, data_files, batch_size, use_synthetic, mode='validation', return_numpy=False):
+    """mode is not used when use_synthetic is True"""
+
     if use_synthetic:
         input_width, input_height = get_netdef(model).get_input_dims()
         features = np.random.normal(
@@ -99,6 +101,7 @@ def input_fn(model, data_files, batch_size, use_synthetic, mode='validation', re
                     "features", dtype=tf.float32, initializer=tf.constant(features)))
                 labels = tf.identity(tf.constant(labels))
     else:
+        assert not return_numpy, 'return_numpy canot be used when use_synthetic is False'
         # preprocess function for input data
         preprocess_fn = get_preprocess_fn(model, mode)
 
@@ -599,7 +602,7 @@ def get_frozen_graph(
             def input_data():
                 features, _ = input_fn(model, calib_files, batch_size,
                                        use_synthetic,
-                                       return_numpy=(precision=='INT8'))
+                                       return_numpy=(precision=='INT8') and use_synthetic)
                 return {'input:0': features}
 
             # INT8 calibration step
