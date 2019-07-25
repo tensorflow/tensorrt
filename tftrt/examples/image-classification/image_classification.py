@@ -81,7 +81,9 @@ class BenchmarkHook(tf.train.SessionRunHook):
                 run_context.request_stop()
 
 # Define the dataset input function for tf.estimator.Estimator
-def input_fn(model, data_files, batch_size, use_synthetic, mode='validation'):
+def input_fn(model, data_files, batch_size, use_synthetic, mode='validation', return_numpy=False):
+    """mode is not used when use_synthetic is True"""
+
     if use_synthetic:
         input_width, input_height = get_netdef(model).get_input_dims()
         features = np.random.normal(
@@ -93,11 +95,13 @@ def input_fn(model, data_files, batch_size, use_synthetic, mode='validation'):
             high=get_netdef(model).get_num_classes(),
             size=(batch_size),
             dtype=np.int32)
-        with tf.device('/device:GPU:0'):
-            features = tf.convert_to_tensor(tf.get_variable(
-                "features", dtype=tf.float32, initializer=tf.constant(features)))
-            labels = tf.identity(tf.constant(labels))
+        if not return_numpy:
+            with tf.device('/device:GPU:0'):
+                features = tf.convert_to_tensor(tf.get_variable(
+                    "features", dtype=tf.float32, initializer=tf.constant(features)))
+                labels = tf.identity(tf.constant(labels))
     else:
+        assert not return_numpy, 'return_numpy canot be used when use_synthetic is False'
         # preprocess function for input data
         preprocess_fn = get_preprocess_fn(model, mode)
 
@@ -595,8 +599,10 @@ def get_frozen_graph(
             calib_graph = frozen_graph
             graph_sizes['calib'] = len(calib_graph.SerializeToString())
 
-            def input_map_fn():
-                features, _ = input_fn(model, calib_files, batch_size, use_synthetic)
+            def input_data():
+                features, _ = input_fn(model, calib_files, batch_size,
+                                       use_synthetic,
+                                       return_numpy=(precision=='INT8') and use_synthetic)
                 return {'input:0': features}
 
             # INT8 calibration step
@@ -605,7 +611,8 @@ def get_frozen_graph(
             frozen_graph = converter.calibrate(
                 fetch_names=['logits', 'classes'],
                 num_runs=num_calib_inputs // batch_size,
-                input_map_fn=input_map_fn)
+                feed_dict_fn=input_data if use_synthetic else None,
+                input_map_fn=input_data if not use_synthetic else None)
             times['trt_calibration'] = time.time() - start_time
 
             # This is already set but overwriting it here to ensure the right size
