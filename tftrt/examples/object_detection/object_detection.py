@@ -196,20 +196,23 @@ def download_model(model_name, input_dir=None, output_dir='.'):
     checkpoint_path = os.path.join(output_dir, model.extract_dir,
                                    CHECKPOINT_PREFIX)
 
-    if input_dir:
-        extract_dir = os.path.join(input_dir, model.extract_dir)
-    if input_dir and os.path.exists(extract_dir):
-        print('Found model at: %s' % extract_dir)
-        print('Copying model to: %s' % output_dir)
-        subprocess.call(['cp', '-r', extract_dir, output_dir])
-    else:
+    extract_dir = None
+    if not input_dir:
         print('Downloading model from: %s' % model.url)
         subprocess.call(['wget', '-q', model.url, '-O', tar_file])
         subprocess.call(['tar', '-xzf', tar_file, '-C', output_dir])
 
         # hack fix to handle mobilenet_v2 config bug
         subprocess.call(['sed', '-i', '/batch_norm_trainable/d', config_path])
-
+    else:
+        extract_dir = os.path.join(input_dir, model.extract_dir)
+        if os.path.exists(extract_dir):
+            print('Found model at: %s' % extract_dir)
+            print('Copying model to: %s' % output_dir)
+            subprocess.call(['cp', '-r', extract_dir, output_dir])
+        else:
+            raise RuntimeError(
+                'Cannot find model under {}'.format(extract_dir))
     return config_path, checkpoint_path
 
 
