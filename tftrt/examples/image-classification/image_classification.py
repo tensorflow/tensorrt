@@ -211,9 +211,9 @@ def get_frozen_func(model,
             converter.save(saved_model_path)
             loaded = tf.saved_model.load(saved_model_path)
             infer = loaded.signatures['serving_default']
-            def wrap_func(*args, **kwargs):
+            def wrap_func_calibrated(*args, **kwargs):
                 return infer(*args, **kwargs)['logits']
-            return wrap_func, num_nodes, times, graph_sizes
+            return wrap_func_calibrated, num_nodes, times, graph_sizes
 
         return wrap_func, num_nodes, times, graph_sizes
     else:
