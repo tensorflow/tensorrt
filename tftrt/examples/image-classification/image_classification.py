@@ -262,8 +262,8 @@ def run(graph_func, model, data_files, batch_size,
 
     if mode == 'validation':
         for batch_feats, batch_labels in dataset:
-			if i > num_iterations:
-				break
+            if i > num_iterations:
+                break
             start_time = time.time()
             batch_preds = graph_func(batch_feats)
             iter_times.append(time.time() - start_time)
