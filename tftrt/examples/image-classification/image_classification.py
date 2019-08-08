@@ -207,9 +207,12 @@ def get_frozen_func(model,
         def wrap_func(*args, **kwargs):
             return converted_func(*args, **kwargs)['logits']
         if conversion_params.precision_mode == 'INT8':
+            print('Calibrating INT8')
             run(wrap_func, model, calib_files, batch_size, 10, 10, False, mode='validation') 
+            print('Done calibrating INT8')
             converter.save(saved_model_path)
             loaded = tf.saved_model.load(saved_model_path)
+            print('Loaded calibrated SavedModel')
             infer = loaded.signatures['serving_default']
             def wrap_func_calibrated(*args, **kwargs):
                 return infer(*args, **kwargs)['logits']
@@ -259,10 +262,12 @@ def run(graph_func, model, data_files, batch_size,
 
     if mode == 'validation':
         for batch_feats, batch_labels in dataset:
+			if i > num_iterations:
+				break
             start_time = time.time()
             batch_preds = graph_func(batch_feats)
             iter_times.append(time.time() - start_time)
-            if i % 100 == 0:
+            if i % display_every == 0:
                 print("Iteration {}, Images processed {}".format(i, i * batch_size))
             corrects += eval_fn(model, batch_preds, batch_labels, adjust)
             i += 1
