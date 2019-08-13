@@ -46,9 +46,9 @@ def get_model_func(saved_model_dir,
     num_nodes = {}
     graph_sizes = {}
     cache_dir = os.path.join(tmp_dir, 'saved_model')
-    #if cache and os.path.exists(cache_dir):
-    #    loaded = tf.saved_model.load(cache_dir)
-    #    return loaded.signatures['serving_default']
+    if cache and os.path.exists(cache_dir):
+        loaded = tf.saved_model.load(cache_dir)
+        return loaded.signatures['serving_default']
     if use_trt:
         print("Converting graph with TRT")
         start_time = time.time()
@@ -60,8 +60,8 @@ def get_model_func(saved_model_dir,
         )
         graph_func = converter.convert()
         if conversion_params.precision_mode == 'INT8':
-            print(dir(converter))
-            print('calibrate' in dir(converter))
+            # TODO Object Detection Calibration when API is stable
+            pass
         if cache:
             converter.save(os.path.join(tmp_dir, 'saved_model'))
         converted_graph_def = converter._converted_graph_def
@@ -93,7 +93,6 @@ def get_dataset(images_dir,
             image = tf.image.resize(image, size=image_shape)
             image = tf.cast(image, tf.uint8)
         return image
-
     dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=8)
     dataset = dataset.batch(batch_size)
     dataset = dataset.repeat(count=1)
@@ -110,9 +109,6 @@ def benchmark_model(graph_func,
                     use_synthetic=False,
                     num_warmup_iterations=50,
                     model=None):
-    #TODO(Me) docstring
-    assert num_warmup_iterations * batch_size < num_images
-
     if not use_synthetic:
         coco = COCO(annotation_file=annotation_path)
         image_ids = coco.getImgIds()
@@ -129,7 +125,6 @@ def benchmark_model(graph_func,
 
     dataset = get_dataset(images_dir, annotation_path, batch_size, image_ids,
                           coco=coco, image_shape=image_shape, from_bytes=False)
-    print("got dataset")
     iter_times = []
     statistics = {}
     predictions = {}
@@ -144,15 +139,15 @@ def benchmark_model(graph_func,
             else:
                 predictions[key].append(batch_preds[key])
         if i % display_every == 1:
-            print("Step {}/{}, iter_time={}".format(i-1, num_images//batch_size, iter_time))
+            print("Step {}/{}, iter_time={}".format(i - 1, num_images//batch_size, iter_time))
     iter_times = iter_times[num_warmup_iterations:]
     statistics['throughput'] = batch_size / np.mean(np.array(iter_times))
     statistics['throughput median'] = batch_size / np.median(np.array(iter_times))
     return statistics, predictions, image_ids
 
 def eval_model(predictions, image_ids, annotation_path, tmp_dir):
+
     for old_key in list(predictions.keys()):
-        print(old_key)
         if old_key in NAME_MAP:
             new_key = NAME_MAP[old_key]
             predictions[new_key] = predictions[old_key]

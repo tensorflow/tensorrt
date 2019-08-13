@@ -112,7 +112,7 @@ def get_preprocess_fn(model, mode='validation'):
     else:
         raise ValueError("Mode must be either 'validation' or 'benchmark'")
 
-def input_fn(model, data_files, batch_size, use_synthetic, mode='validation'):
+def get_dataset(model, data_files, batch_size, use_synthetic, mode='validation'):
     if use_synthetic:
         input_size = get_input_size(model)
         features = np.random.normal(
@@ -174,12 +174,11 @@ def get_frozen_func(model,
     num_nodes = {}
     times = {}
     graph_sizes ={}
-    print(params.precision_mode)
     
     saved_model_path = "converted/saved_model_%s_%d_%s_%d/" % (model, int(use_trt), conversion_params.precision_mode, conversion_params.max_batch_size)
     if cache and use_trt:
         if os.path.isdir(saved_model_path):
-            print("---------loading from {}".format(saved_model_path))
+            print("Loading SavedModel from {}".format(saved_model_path))
             loaded = tf.saved_model.load(saved_model_path)
 
             infer = loaded.signatures["serving_default"]
@@ -187,13 +186,18 @@ def get_frozen_func(model,
                 print(infer(*args, **kwargs).keys())
                 return infer(*args, **kwargs)['output_0']
             return wrap_func, num_nodes, times, graph_sizes
-        else:
-            print("-----------Compiling new function")
     
     if use_trt:
         start_time = time.time()
+        loaded = tf.saved_model.load(os.path.join(default_models_dir, model))
+        infer = loaded.signatures['serving_default']
+        ops = infer.graph.get_operations()
+        num_nodes['native_tf'] = len(ops)
+        del loaded
+        del infer
+        del ops
         converter = trt.TrtGraphConverterV2(
-            input_saved_model_dir=os.path.join(default_models_dir, model+'VCCB'),
+            input_saved_model_dir=os.path.join(default_models_dir, model),
             input_saved_model_tags=None,
             input_saved_model_signature_key=None,
             conversion_params=conversion_params,
@@ -203,12 +207,14 @@ def get_frozen_func(model,
         times['trt_conversion'] = time.time() - start_time
         num_nodes['tftrt_total'] = len(converted_graph_def.node)
         num_nodes['trt_only'] = len([1 for n in converted_graph_def.node if str(n.op)=='TRTEngineOp'])
-        graph_sizes['trt'] = len(converted_graph_def.SerializeToString())
+        graph_sizes['trt'] = len(converted_graph_def.SerializeToString())/(1<<20)
         def wrap_func(*args, **kwargs):
             return converted_func(*args, **kwargs)['logits']
         if conversion_params.precision_mode == 'INT8':
             print('Calibrating INT8')
-            run(wrap_func, model, calib_files, batch_size, 10, 10, False, mode='validation') 
+            num_iters = num_calib_inputs//batch_size
+            run(wrap_func, model, calib_files, batch_size, num_iters,
+                num_iters, False, mode='validation') 
             print('Done calibrating INT8')
             converter.save(saved_model_path)
             loaded = tf.saved_model.load(saved_model_path)
@@ -217,16 +223,14 @@ def get_frozen_func(model,
             def wrap_func_calibrated(*args, **kwargs):
                 return infer(*args, **kwargs)['logits']
             return wrap_func_calibrated, num_nodes, times, graph_sizes
-
-        return wrap_func, num_nodes, times, graph_sizes
+        else:
+            return wrap_func, num_nodes, times, graph_sizes
     else:
-        loaded = tf.saved_model.load(os.path.join(default_models_dir, model+'VCCB'))
+        loaded = tf.saved_model.load(os.path.join(default_models_dir, model))
         infer = loaded.signatures['serving_default']
         def wrap_func(*args, **kwargs):
             return infer(*args, **kwargs)['logits']
         return wrap_func, num_nodes, times, graph_sizes
-
-    #calibration
 
     if cache and use_trt:
         if not os.path.exists(os.path.dirname(saved_model_path)):
@@ -241,25 +245,19 @@ def get_frozen_func(model,
     return converted_func, num_nodes, times, graph_sizes
 
 def eval_fn(model, preds, labels, adjust):
-    preds = np.array(preds.numpy())
-    preds = np.argmax(preds.reshape(-1))
-    preds -= adjust
+    preds = np.argmax(preds.numpy().reshape(-1)) - adjust
     return np.sum((np.array(labels).reshape(-1) == preds).astype(np.float32))
 
 def run(graph_func, model, data_files, batch_size,
     num_iterations, num_warmup_iterations, use_synthetic, display_every=100,
     mode='validation', target_duration=None):
-
     results = {}
-    print(batch_size)
-
-    dataset = input_fn(model, data_files, batch_size, use_synthetic, mode)
     i = 0
     corrects = 0
     iter_times = []
     adjust = 1 if get_num_classes(model) == 1001 else 0
-    print("Model {} adj is {}".format(model, adjust))
 
+    dataset = get_dataset(model, data_files, batch_size, use_synthetic, mode)
     if mode == 'validation':
         for batch_feats, batch_labels in dataset:
             if i > num_iterations:
@@ -272,11 +270,12 @@ def run(graph_func, model, data_files, batch_size,
             corrects += eval_fn(model, batch_preds, batch_labels, adjust)
             i += 1
         accuracy = corrects / (batch_size * i)
-        print("accuracy:")
-        print(accuracy)
+        print("Accuracy: {}", accuracy)
 
     elif mode == 'benchmark':
         for i, batch_feats in enumerate(dataset):
+            if i == 1:
+                total = time.time()
             outs = graph_func(batch_feats)
             if i == num_warmup_iterations:
                 start_time = time.time()
@@ -289,9 +288,7 @@ def run(graph_func, model, data_files, batch_size,
                 break
     
     iter_times = np.array(iter_times)
-    print("---stats---")
-    #iter_times = iter_times[num_warmup_iterations:]
-    print(len(iter_times))
+    iter_times = iter_times[num_warmup_iterations:]
     results['total_time'] = np.sum(iter_times)
     results['images_per_sec'] = np.mean(batch_size / iter_times)
     results['99th_percentile'] = np.percentile(iter_times, q=99, interpolation='lower') * 1000
@@ -302,12 +299,11 @@ def run(graph_func, model, data_files, batch_size,
     
     
 
-def get_trt_conversion_params(
-    max_workspace_size_bytes,
-    precision_mode,
-    minimum_segment_size,
-    is_dynamic_op,
-    max_batch_size):
+def get_trt_conversion_params(max_workspace_size_bytes,
+                              precision_mode,
+                              minimum_segment_size,
+                              is_dynamic_op,
+                              max_batch_size):
     conversion_params = trt.DEFAULT_TRT_CONVERSION_PARAMS
     conversion_params = conversion_params._replace(
         max_workspace_size_bytes=max_workspace_size_bytes)
@@ -319,6 +315,21 @@ def get_trt_conversion_params(
     print(conversion_params)
     return conversion_params
 
+def setup(gpu_mem_cap):
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                if not gpu_mem_cap:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                else:
+                    tf.config.experimental.set_virtual_device_configuration(
+                        gpus[0],
+                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=gpu_mem_cap)])
+
+            print(len(gpus), "Physical GPU's")
+        except RuntimeError as e:
+            print(e)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Evaluate model')
@@ -362,7 +373,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_calib_inputs', type=int, default=500,
         help='Number of inputs (e.g. images) used for calibration '
         '(last batch is skipped in case it is not full)')
-    parser.add_argument('--max_workspace_size', type=int, default=(1<<32),
+    parser.add_argument('--max_workspace_size', type=int, default=(1<<30),
         help='workspace size in bytes')
     parser.add_argument('--cache', action='store_true',
         help='If set, graphs will be saved to disk after conversion. If a converted graph is present on disk, it will be loaded instead of building the graph again.')
@@ -370,6 +381,8 @@ if __name__ == '__main__':
         help='Which mode to use (validation or benchmark)')
     parser.add_argument('--target_duration', type=int, default=None,
         help='If set, script will run for specified number of seconds.')
+    parser.add_argument('--gpu_mem_cap', type=int, default=0,
+        help='Set the maximum GPU memory cap in MB. If 0, allow growth will be used.')
     args = parser.parse_args()
 
     if args.precision != 'FP32' and not args.use_trt:
@@ -388,6 +401,7 @@ if __name__ == '__main__':
         raise ValueError("--data_dir required if you are not using synthetic data")
     if args.use_synthetic and args.num_iterations is None:
         raise ValueError("--num_iterations is required for --use_synthetic")
+    setup(args.gpu_mem_cap)
 
     def get_files(data_dir, filename_pattern):
         if data_dir == None:
@@ -409,14 +423,8 @@ if __name__ == '__main__':
             raise ValueError("Mode must be either 'validation' or 'benchamark'")
         calib_files = get_files(args.calib_data_dir, 'train*')
 
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if gpus:
-        try:
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-            print(len(gpus), "Physical GPU's")
-        except RuntimeError as e:
-            print(e)
+    #tf.config.optimizer.set_experimental_options({'disable_model_pruning':True,
+    #                                              'disable_meta_optimizer':False,})
 
     params = get_trt_conversion_params(
         args.max_workspace_size,

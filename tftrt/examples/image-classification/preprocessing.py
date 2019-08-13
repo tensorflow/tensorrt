@@ -37,7 +37,7 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
           tf.greater_equal(original_shape[1], crop_width)),
       ['Crop size greater than the image size.'])
 
-  offsets = tf.to_int32(tf.stack([offset_height, offset_width, 0]))
+  offsets = tf.cast(tf.stack([offset_height, offset_width, 0]), tf.int32)
 
   # Use tf.slice instead of crop_to_bounding box as it accepts tensors to
   # define the crop size.
@@ -95,6 +95,55 @@ def _mean_image_subtraction(image, means):
     channels[i] -= means[i]
   return tf.concat(axis=2, values=channels)
 
+def _aspect_preserving_resize(image, smallest_side):
+  """Resize images preserving the original aspect ratio.
+  Args:
+    image: A 3-D image `Tensor`.
+    smallest_side: A python integer or scalar `Tensor` indicating the size of
+      the smallest side after resize.
+  Returns:
+    resized_image: A 3-D tensor containing the resized image.
+  """
+  smallest_side = tf.convert_to_tensor(smallest_side, dtype=tf.int32)
+
+  shape = tf.shape(image)
+  height = shape[0]
+  width = shape[1]
+  new_height, new_width = _smallest_size_at_least(height, width, smallest_side)
+  image = tf.expand_dims(image, 0)
+  resized_image = tf.image.resize(image, [new_height, new_width])
+  resized_image = tf.squeeze(resized_image)
+  resized_image.set_shape([None, None, 3])
+  return resized_image
+
+def _smallest_size_at_least(height, width, smallest_side):
+  """Computes new shape with the smallest side equal to `smallest_side`.
+  Computes new shape with the smallest side equal to `smallest_side` while
+  preserving the original aspect ratio.
+  Args:
+    height: an int32 scalar tensor indicating the current height.
+    width: an int32 scalar tensor indicating the current width.
+    smallest_side: A python integer or scalar `Tensor` indicating the size of
+      the smallest side after resize.
+  Returns:
+    new_height: an int32 scalar tensor indicating the new height.
+    new_width: and int32 scalar tensor indicating the new width.
+  """
+  smallest_side = tf.convert_to_tensor(smallest_side, dtype=tf.int32)
+
+  height = tf.cast(height, tf.float32)
+  width = tf.cast(width, tf.float32)
+  smallest_side = tf.cast(smallest_side, tf.float32)
+
+  scale = tf.cond(tf.greater(height, width),
+                  lambda: smallest_side / width,
+                  lambda: smallest_side / height)
+  new_height = tf.cast(tf.math.rint(height * scale), tf.int32)
+  new_width = tf.cast(tf.math.rint(width * scale), tf.int32)
+  return new_height, new_width
+
+
+
 def inception_preprocess(image,
                         height,
                         width,
@@ -135,8 +184,8 @@ def inception_preprocess(image,
     return image
 
 def vgg_preprocess(image, output_height, output_width):
-	image = _aspect_preserving_resize(image, RESIZE_SIDE_MIN)
+	image = _aspect_preserving_resize(image, _RESIZE_SIDE_MIN)
 	image = _central_crop([image], output_height, output_width)[0]
 	image.set_shape([output_height, output_width, 3])
-	image = tf.to_float(image)
+	image = tf.cast(image, tf.float32)
 	return _mean_image_subtraction(image, [_R_MEAN, _G_MEAN, _B_MEAN]) 
