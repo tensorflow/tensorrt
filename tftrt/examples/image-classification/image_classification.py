@@ -188,7 +188,6 @@ def get_frozen_func(model,
             return wrap_func, num_nodes, times, graph_sizes
     
     if use_trt:
-        start_time = time.time()
         loaded = tf.saved_model.load(os.path.join(default_models_dir, model))
         infer = loaded.signatures['serving_default']
         ops = infer.graph.get_operations()
@@ -196,6 +195,7 @@ def get_frozen_func(model,
         del loaded
         del infer
         del ops
+        start_time = time.time()
         converter = trt.TrtGraphConverterV2(
             input_saved_model_dir=os.path.join(default_models_dir, model),
             input_saved_model_tags=None,
@@ -251,6 +251,9 @@ def eval_fn(model, preds, labels, adjust):
 def run(graph_func, model, data_files, batch_size,
     num_iterations, num_warmup_iterations, use_synthetic, display_every=100,
     mode='validation', target_duration=None):
+    '''Run the given graph_func on the data files provided. In validation mode,
+    it consumes TFRecords with labels and reports accuracy. In benchmark mode, it
+    times inference on real data (.jpgs).'''
     results = {}
     i = 0
     corrects = 0
@@ -362,7 +365,7 @@ if __name__ == '__main__':
         help='Number of images per batch.')
     parser.add_argument('--minimum_segment_size', type=int, default=2,
         help='Minimum number of TF ops in a TRT engine.')
-    parser.add_argument('--num_iterations', type=int, default=None,
+    parser.add_argument('--num_iterations', type=int, default=2048,
         help='How many iterations(batches) to evaluate. If not supplied, the whole set will be evaluated.')
     parser.add_argument('--display_every', type=int, default=100,
         help='Number of iterations executed between two consecutive display of metrics')

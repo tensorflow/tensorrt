@@ -79,8 +79,7 @@ def get_dataset(images_dir,
                 batch_size,
                 image_ids,
                 coco,
-                image_shape=(640,640),
-                from_bytes=False):
+                image_shape=(640,640),):
     image_paths = []
     for image_id in image_ids:
         coco_img = coco.imgs[image_id]
@@ -124,7 +123,7 @@ def benchmark_model(graph_func,
     image_counts = []  # list of number of images in each batch
 
     dataset = get_dataset(images_dir, annotation_path, batch_size, image_ids,
-                          coco=coco, image_shape=image_shape, from_bytes=False)
+                          coco=coco, image_shape=image_shape)
     iter_times = []
     statistics = {}
     predictions = {}
