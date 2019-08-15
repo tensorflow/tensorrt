@@ -45,7 +45,7 @@ def get_model_func(saved_model_dir,
     times = {}
     num_nodes = {}
     graph_sizes = {}
-    cache_dir = os.path.join(tmp_dir, 'saved_model')
+    cache_dir = os.path.join(tmp_dir, saved_model_dir)
     if cache and os.path.exists(cache_dir):
         loaded = tf.saved_model.load(cache_dir)
         return loaded.signatures['serving_default']
@@ -54,16 +54,14 @@ def get_model_func(saved_model_dir,
         start_time = time.time()
         converter = trt.TrtGraphConverterV2(
             input_saved_model_dir=saved_model_dir,
-            input_saved_model_tags=None,
-            input_saved_model_signature_key=None,
             conversion_params=conversion_params,
         )
         graph_func = converter.convert()
         if conversion_params.precision_mode == 'INT8':
             # TODO Object Detection Calibration when API is stable
-            pass
+            raise ValueError('INT8 not available. Please use tf1.14 for INT8 inference')
         if cache:
-            converter.save(os.path.join(tmp_dir, 'saved_model'))
+            converter.save(cache_dir)
         converted_graph_def = converter._converted_graph_def
         times['trt_conversion'] = time.time() - start_time
         num_nodes['tftrt_total'] = len(converted_graph_def.node)
@@ -79,22 +77,33 @@ def get_dataset(images_dir,
                 batch_size,
                 image_ids,
                 coco,
+                use_synthetic,
                 image_shape=(640,640),):
-    image_paths = []
-    for image_id in image_ids:
-        coco_img = coco.imgs[image_id]
-        image_paths.append(os.path.join(images_dir, coco_img['file_name']))
-    dataset = tf.data.Dataset.from_tensor_slices(image_paths)
-    def preprocess_fn(path):
-        image = tf.io.read_file(path)
-        image = tf.image.decode_jpeg(image, channels=3)
-        if image_shape is not None:
-            image = tf.image.resize(image, size=image_shape)
-            image = tf.cast(image, tf.uint8)
-        return image
-    dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=8)
-    dataset = dataset.batch(batch_size)
-    dataset = dataset.repeat(count=1)
+    if use_synthetic:
+        features = np.random.normal(
+            loc=112, scale=70,
+            size=(batch_size, *image_shape, 3)).astype(np.float32)
+        features = np.clip(features, 0.0, 255.0)
+        features = tf.convert_to_tensor(value=tf.compat.v1.get_variable(
+            "features", dtype=tf.float32, initializer=tf.constant(features)))
+        dataset = tf.data.Dataset.from_tensor_slices([features])
+        dataset = dataset.repeat()
+    else:
+        image_paths = []
+        for image_id in image_ids:
+            coco_img = coco.imgs[image_id]
+            image_paths.append(os.path.join(images_dir, coco_img['file_name']))
+        dataset = tf.data.Dataset.from_tensor_slices(image_paths)
+        def preprocess_fn(path):
+            image = tf.io.read_file(path)
+            image = tf.image.decode_jpeg(image, channels=3)
+            if image_shape is not None:
+                image = tf.image.resize(image, size=image_shape)
+                image = tf.cast(image, tf.uint8)
+            return image
+        dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=8)
+        dataset = dataset.batch(batch_size)
+        dataset = dataset.repeat(count=1)
     return dataset
 
 def benchmark_model(graph_func,
@@ -123,7 +132,7 @@ def benchmark_model(graph_func,
     image_counts = []  # list of number of images in each batch
 
     dataset = get_dataset(images_dir, annotation_path, batch_size, image_ids,
-                          coco=coco, image_shape=image_shape)
+                          use_synthetic=use_synthetic, coco=coco, image_shape=image_shape)
     iter_times = []
     statistics = {}
     predictions = {}
@@ -174,7 +183,6 @@ def eval_model(predictions, image_ids, annotation_path, tmp_dir):
                 (x2 - x1) * image_width,  # width
                 (y2 - y1) * image_height,  # height
             ]
-
             coco_detection = {
                 'image_id': image_id,
                 'category_id': int(preds['classes'][i][j]),
@@ -199,7 +207,6 @@ def eval_model(predictions, image_ids, annotation_path, tmp_dir):
     eval.summarize()
 
     return {'map': eval.stats[0]}
-    
 
 def setup(gpu_mem_cap):
     gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -217,7 +224,6 @@ def setup(gpu_mem_cap):
         except RuntimeError as e:
             print(e)
     
-
 def get_trt_conversion_params(use_trt,
                               max_workspace_size_bytes,
                               precision_mode,
@@ -264,14 +270,14 @@ if __name__ == '__main__':
         help='Size of a single side of the input image size.')
     parser.add_argument('--cache', action='store_true',
         help='If set, a previously generated saved model will be used if available')
-    #parser.add_argument('--use_synthetic', action='store_true',
-    #    help='Whether to use synthetic data as opposed to real data.')
+    parser.add_argument('--use_synthetic', action='store_true',
+        help='Whether to use synthetic data as opposed to real data.')
     parser.add_argument('--batch_size', type=int, default=1,
         help='Number of images per batch.')
     args = parser.parse_args()
 
-    #if args.precision == 'INT8':
-    #    raise NotImplementedError('INT8 is not yet implemented for tensorflow 2.0')
+    if args.precision == 'INT8':
+        raise NotImplementedError('INT8 is not yet implemented for tensorflow 2.0')
 
     conversion_params = get_trt_conversion_params(args.use_trt,
                                                   max_workspace_size_bytes=1<<30,
@@ -292,6 +298,7 @@ if __name__ == '__main__':
     if not args.cache:
         if os.path.exists(tmp_dir):
             subprocess.call(['rm', '-rf', tmp_dir])
+
     stats, preds, image_ids = benchmark_model(graph_func,
                                               args.data_dir,
                                               batch_size=args.batch_size,
@@ -307,6 +314,7 @@ if __name__ == '__main__':
     print('Model: ', args.saved_model_dir)
     print('Batch size: ', args.batch_size)
     pprint.pprint(stats)
-    map_ = eval_model(preds, image_ids, args.annotation_path, tmp_dir=tmp_dir)
-    print(map_)
+    if not args.use_synthetic:
+        map_ = eval_model(preds, image_ids, args.annotation_path, tmp_dir=tmp_dir)
+        print(map_)
 
