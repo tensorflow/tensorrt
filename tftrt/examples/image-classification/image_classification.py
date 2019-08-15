@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 import preprocessing
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
+from tensorflow.python.saved_model import signature_constants
 
 NETS = {
     'mobilenet_v1': {
@@ -121,12 +122,8 @@ def get_dataset(model, data_files, batch_size, use_synthetic, mode='validation')
         features = np.clip(features, 0.0, 255.0)
         features = tf.convert_to_tensor(value=tf.compat.v1.get_variable(
             "features", dtype=tf.float32, initializer=tf.constant(features)))
-        labels = np.random.randint(
-            low=0,
-            high=get_num_classes(model),
-            size=(batch_size),
-            dtype=np.int32)
-        labels = tf.identity(tf.constant(labels))
+        dataset = tf.data.Dataset.from_tensor_slices([features])
+        dataset = dataset.repeat()
     else:
         # preprocess function for input data
         preprocess_fn = get_preprocess_fn(model, mode)
@@ -142,15 +139,32 @@ def get_dataset(model, data_files, batch_size, use_synthetic, mode='validation')
             dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=8)
             dataset = dataset.batch(batch_size=batch_size)
             dataset = dataset.repeat(count=1)
-            labels = np.random.randint(
-                low=0,
-                high=num_classes,
-                size=(batch_size),
-                dtype=np.int32)
-            labels = tf.identity(tf.constant(labels))
         else:
             raise ValueError("Mode must be either 'validation' or 'benchmark'")
     return dataset
+
+def calibrate(graph_func,
+              model,
+              calib_files,
+              num_calib_inputs,
+              batch_size):
+    dataset = get_dataset(model, calib_files, batch_size, False, 'validation')
+    num_iterations = num_calib_inputs//batch_size
+    for i, (batch_feats, _) in enumerate(dataset):
+        if i > num_iterations:
+            break
+        start_time = time.time()
+        batch_preds = graph_func(batch_feats)
+        print("Calibration Iteration {}/{}".format(i, num_iterations))
+        i += 1
+     
+def func_from_saved_model(saved_model_dir):
+    loaded = tf.saved_model.load(saved_model_dir)
+    infer = loaded.signatures["serving_default"]
+    def wrap_func(*args, **kwargs):
+        return infer(*args, **kwargs)['logits']
+    return wrap_func
+    
 
 def get_frozen_func(model,
                     conversion_params=trt.DEFAULT_TRT_CONVERSION_PARAMS,
@@ -161,9 +175,9 @@ def get_frozen_func(model,
                     calib_files=None,
                     num_calib_inputs=None,
                     use_synthetic=False,
-                    cache=False,
                     batch_size=None,
-                    default_models_dir='./saved_models'):
+                    saved_model_dir=None,
+                    root_saved_model_dir='./saved_models'):
     """Retreives a frozen SavedModel and applies TF-TRT
     model: str, the model name
     use_trt: bool, if true use TensorRT
@@ -171,24 +185,23 @@ def get_frozen_func(model,
     batch_size: int, batch size for TensorRT optimizations
     returns: tensorflow.SavedModel, the TensorRT compatible frozen graph.
     """
+    saved_model_dir = saved_model_dir or os.path.join(root_saved_model_dir, model)
+    cache = engine_dir is not None
     num_nodes = {}
     times = {}
     graph_sizes ={}
-    
-    saved_model_path = "converted/saved_model_%s_%d_%s_%d/" % (model, int(use_trt), conversion_params.precision_mode, conversion_params.max_batch_size)
-    if cache and use_trt:
-        if os.path.isdir(saved_model_path):
-            print("Loading SavedModel from {}".format(saved_model_path))
-            loaded = tf.saved_model.load(saved_model_path)
 
-            infer = loaded.signatures["serving_default"]
-            def wrap_func(*args, **kwargs):
-                print(infer(*args, **kwargs).keys())
-                return infer(*args, **kwargs)['output_0']
-            return wrap_func, num_nodes, times, graph_sizes
+    if cache and use_trt:
+        trt_saved_model_dir = "{}/saved_model_{}_{}_{}_{}/".format(
+            engine_dir, model, int(use_trt), conversion_params.precision_mode,
+            conversion_params.max_batch_size)
+        if os.path.isdir(trt_saved_model_dir):
+            print("Loading SavedModel from {}".format(trt_saved_model_dir))
+            func = func_from_saved_model(trt_saved_model_dir)
+            return func, num_nodes, times, graph_sizes
     
     if use_trt:
-        loaded = tf.saved_model.load(os.path.join(default_models_dir, model))
+        loaded = tf.saved_model.load(saved_model_dir)
         infer = loaded.signatures['serving_default']
         ops = infer.graph.get_operations()
         num_nodes['native_tf'] = len(ops)
@@ -197,9 +210,7 @@ def get_frozen_func(model,
         del ops
         start_time = time.time()
         converter = trt.TrtGraphConverterV2(
-            input_saved_model_dir=os.path.join(default_models_dir, model),
-            input_saved_model_tags=None,
-            input_saved_model_signature_key=None,
+            input_saved_model_dir=saved_model_dir,
             conversion_params=conversion_params,
         )
         converted_func = converter.convert()
@@ -210,42 +221,38 @@ def get_frozen_func(model,
         graph_sizes['trt'] = len(converted_graph_def.SerializeToString())/(1<<20)
         def wrap_func(*args, **kwargs):
             return converted_func(*args, **kwargs)['logits']
+
         if conversion_params.precision_mode == 'INT8':
             print('Calibrating INT8')
-            num_iters = num_calib_inputs//batch_size
-            run(wrap_func, model, calib_files, batch_size, num_iters,
-                num_iters, False, mode='validation') 
+            calibrate(converted_func, model, calib_files, num_calib_inputs,
+                      batch_size)
             print('Done calibrating INT8')
-            converter.save(saved_model_path)
-            loaded = tf.saved_model.load(saved_model_path)
-            print('Loaded calibrated SavedModel')
-            infer = loaded.signatures['serving_default']
-            def wrap_func_calibrated(*args, **kwargs):
-                return infer(*args, **kwargs)['logits']
-            return wrap_func_calibrated, num_nodes, times, graph_sizes
+            calib_dir = 'calibrated/{}'.format(model)
+            converter.save(calib_dir)
+            calibrated_func = func_from_saved_model(calib_dir)
+            return calibrated_func, num_nodes, times, graph_sizes
         else:
+            if cache:
+                converter.save(trt_saved_model_dir)
             return wrap_func, num_nodes, times, graph_sizes
     else:
-        loaded = tf.saved_model.load(os.path.join(default_models_dir, model))
-        infer = loaded.signatures['serving_default']
-        def wrap_func(*args, **kwargs):
-            return infer(*args, **kwargs)['logits']
-        return wrap_func, num_nodes, times, graph_sizes
+        func = func_from_saved_model(saved_model_dir)
+        return func, num_nodes, times, graph_sizes
 
     if cache and use_trt:
-        if not os.path.exists(os.path.dirname(saved_model_path)):
+        if not os.path.exists(os.path.dirname(trt_saved_model_dir)):
             try:
-                os.makedirs(os.path.dirname(saved_model_path))
+                os.makedirs(os.path.dirname(trt_saved_model_dir))
             except Exception as e:
                 raise e
         start_time = time.time()
-        converter.save(saved_model_path)
+        converter.save(trt_saved_model_dir)
         times['saving_frozen_graph'] = time.time() - start_time
 
     return converted_func, num_nodes, times, graph_sizes
 
 def eval_fn(model, preds, labels, adjust):
-    preds = np.argmax(preds.numpy().reshape(-1)) - adjust
+    preds = np.argmax(preds.numpy(), axis=1).reshape(-1) - adjust
     return np.sum((np.array(labels).reshape(-1) == preds).astype(np.float32))
 
 def run(graph_func, model, data_files, batch_size,
@@ -255,41 +262,43 @@ def run(graph_func, model, data_files, batch_size,
     it consumes TFRecords with labels and reports accuracy. In benchmark mode, it
     times inference on real data (.jpgs).'''
     results = {}
-    i = 0
     corrects = 0
     iter_times = []
     adjust = 1 if get_num_classes(model) == 1001 else 0
-
+    initial_time = time.time()
     dataset = get_dataset(model, data_files, batch_size, use_synthetic, mode)
     if mode == 'validation':
-        for batch_feats, batch_labels in dataset:
-            if i > num_iterations:
-                break
+        for i, (batch_feats, batch_labels) in enumerate(dataset):
             start_time = time.time()
             batch_preds = graph_func(batch_feats)
             iter_times.append(time.time() - start_time)
-            if i % display_every == 0:
-                print("Iteration {}, Images processed {}".format(i, i * batch_size))
+            if i % display_every == 1:
+                print("Iteration {}/{}".format(i - 1, 50000//batch_size))
             corrects += eval_fn(model, batch_preds, batch_labels, adjust)
-            i += 1
+            if i > 1 and target_duration is not None and \
+                time.time() - initial_time > target_duration:
+                break
         accuracy = corrects / (batch_size * i)
-        print("Accuracy: {}", accuracy)
+        results['accuracy'] = accuracy
 
     elif mode == 'benchmark':
         for i, batch_feats in enumerate(dataset):
-            if i == 1:
-                total = time.time()
-            outs = graph_func(batch_feats)
-            if i == num_warmup_iterations:
-                start_time = time.time()
             if i > num_warmup_iterations:
-                iter_times.append(time.time() - start_time)
                 start_time = time.time()
-            if i % 100 == 0:
-                print("Iteration {}, Images processed {}".format(i, i * batch_size))
+                outs = graph_func(batch_feats)
+                iter_times.append(time.time() - start_time)
+            else:
+                outs = graph_func(batch_feats)
+            if i % display_every == 1:
+                print("Iteration {}/{}".format(i-1, num_iterations))
+            if i > 1 and target_duration is not None and \
+                time.time() - initial_time > target_duration:
+                break
             if num_iterations is not None and i > num_iterations:
                 break
-    
+
+    if not iter_times:
+        return results
     iter_times = np.array(iter_times)
     iter_times = iter_times[num_warmup_iterations:]
     results['total_time'] = np.sum(iter_times)
@@ -315,10 +324,9 @@ def get_trt_conversion_params(max_workspace_size_bytes,
     conversion_params = conversion_params._replace(is_dynamic_op=is_dynamic_op)
     conversion_params = conversion_params._replace(use_calibration=precision_mode=='INT8')
     conversion_params = conversion_params._replace(max_batch_size=max_batch_size)
-    print(conversion_params)
     return conversion_params
 
-def setup(gpu_mem_cap):
+def setup_gpu_mem(gpu_mem_cap):
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
         try:
@@ -336,22 +344,17 @@ def setup(gpu_mem_cap):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Evaluate model')
-    parser.add_argument('--model', type=str, default='inception_v4',
-        choices=['mobilenet_v1', 'mobilenet_v2', 'nasnet_mobile', 'nasnet_large',
-                 'resnet_v1_50', 'resnet_v2_50', 'resnet_v2_152', 'vgg_16', 'vgg_19',
-                 'inception_v3', 'inception_v4'],
+    parser.add_argument('--model', type=str, default='resnet_v1_50',
+        choices=list(NETS.keys()),
         help='Which model to use.')
     parser.add_argument('--data_dir', type=str, default=None,
         help='Directory containing validation set TFRecord files.')
     parser.add_argument('--calib_data_dir', type=str,
         help='Directory containing TFRecord files for calibrating INT8.')
-    parser.add_argument('--model_dir', type=str, default=None,
-        help='Directory containing model checkpoint. If not provided, a ' \
-             'checkpoint may be downloaded automatically and stored in ' \
-             '"{--default_models_dir}/{--model}" for future use.')
-    parser.add_argument('--default_models_dir', type=str, default='./data',
-        help='Directory where downloaded model checkpoints will be stored and ' \
-             'loaded from if --model_dir is not provided.')
+    parser.add_argument('--root_saved_model_dir', type=str, default=None,
+        help='Directory containing saved models.')
+    parser.add_argument('--saved_model_dir', type=str, default=None,
+        help='Directory containing a particular saved model.')
     parser.add_argument('--use_trt', action='store_true',
         help='If set, the graph will be converted to a TensorRT graph.')
     parser.add_argument('--engine_dir', type=str, default=None,
@@ -378,8 +381,6 @@ if __name__ == '__main__':
         '(last batch is skipped in case it is not full)')
     parser.add_argument('--max_workspace_size', type=int, default=(1<<30),
         help='workspace size in bytes')
-    parser.add_argument('--cache', action='store_true',
-        help='If set, graphs will be saved to disk after conversion. If a converted graph is present on disk, it will be loaded instead of building the graph again.')
     parser.add_argument('--mode', choices=['validation', 'benchmark'], default='validation',
         help='Which mode to use (validation or benchmark)')
     parser.add_argument('--target_duration', type=int, default=None,
@@ -388,6 +389,9 @@ if __name__ == '__main__':
         help='Set the maximum GPU memory cap in MB. If 0, allow growth will be used.')
     args = parser.parse_args()
 
+    if args.precision == 'INT8':
+        raise ValueError('INT8 is broken at this point, and is undergoing API '
+        'changes. Please use 1.14 scripts for INT8 inference.')
     if args.precision != 'FP32' and not args.use_trt:
         raise ValueError('TensorRT must be enabled for FP16 or INT8 modes (--use_trt).')
     if args.precision == 'INT8' and not args.calib_data_dir and not args.use_synthetic:
@@ -404,7 +408,13 @@ if __name__ == '__main__':
         raise ValueError("--data_dir required if you are not using synthetic data")
     if args.use_synthetic and args.num_iterations is None:
         raise ValueError("--num_iterations is required for --use_synthetic")
-    setup(args.gpu_mem_cap)
+    if args.root_saved_model_dir is None and args.saved_model_dir is None:
+        raise ValueError("Please set one of --root_saved_model_dir or --saved_model_dir")
+    if args.root_saved_model_dir is not None and args.saved_model_dir is not None:
+        print("Both --root_saved_model_dir and --saved_model_dir are set.\n \
+               Using saved_model_dir:{}".format(args.saved_model_dir))
+
+    setup_gpu_mem(args.gpu_mem_cap)
 
     def get_files(data_dir, filename_pattern):
         if data_dir == None:
@@ -426,9 +436,6 @@ if __name__ == '__main__':
             raise ValueError("Mode must be either 'validation' or 'benchamark'")
         calib_files = get_files(args.calib_data_dir, 'train*')
 
-    #tf.config.optimizer.set_experimental_options({'disable_model_pruning':True,
-    #                                              'disable_meta_optimizer':False,})
-
     params = get_trt_conversion_params(
         args.max_workspace_size,
         args.precision,
@@ -446,8 +453,9 @@ if __name__ == '__main__':
         batch_size=args.batch_size,
         num_calib_inputs=args.num_calib_inputs,
         use_synthetic=args.use_synthetic,
-        cache=args.cache,
-        default_models_dir='./saved_models',)
+        saved_model_dir=args.saved_model_dir,
+        root_saved_model_dir=args.root_saved_model_dir)
+
     pprint.pprint(num_nodes)    
     pprint.pprint(times)    
     pprint.pprint(graph_sizes)
@@ -463,4 +471,18 @@ if __name__ == '__main__':
         display_every=args.display_every,
         mode=args.mode,
         target_duration=args.target_duration)
-    pprint.pprint(results)
+    print('Results of {}'.format(args.model))
+    def print_dict(input_dict, str=''):
+        for k, v in sorted(input_dict.items()):
+            headline = '{}({}): '.format(str, k) if str else '{}: '.format(k)
+            print('{}{}'.format(headline, '%.1f'%v if type(v)==float else v))
+    print_dict(vars(args)) 
+    print_dict(num_nodes, str='num_nodes')
+    if args.mode == 'validation':
+        print('    accuracy: %.2f' % (results['accuracy'] * 100))
+    print('    images/sec: %d' % results['images_per_sec'])
+    print('    99th_percentile(ms): %.2f' % results['99th_percentile'])
+    print('    total_time(s): %.1f' % results['total_time'])
+    print('    latency_mean(ms): %.2f' % results['latency_mean'])
+    print('    latency_median(ms): %.2f' % results['latency_median'])
+    print('    latency_min(ms): %.2f' % results['latency_min']) 
