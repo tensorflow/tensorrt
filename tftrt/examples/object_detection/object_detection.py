@@ -49,6 +49,7 @@ def get_model_func(saved_model_dir,
     if cache and os.path.exists(cache_dir):
         loaded = tf.saved_model.load(cache_dir)
         return loaded.signatures['serving_default']
+
     if use_trt:
         print("Converting graph with TRT")
         start_time = time.time()
