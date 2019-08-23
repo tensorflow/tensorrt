@@ -637,7 +637,7 @@ def get_frozen_graph(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Evaluate model')
-    parser.add_argument('--model', type=str, default='inception_v4',
+    parser.add_argument('--model', type=str.lower, default='inception_v4',
         choices=['mobilenet_v1', 'mobilenet_v2', 'nasnet_mobile', 'nasnet_large',
                  'resnet_v1_50', 'resnet_v2_50', 'resnet_v2_152', 'vgg_16', 'vgg_19',
                  'inception_v3', 'inception_v4'],
@@ -660,7 +660,7 @@ if __name__ == '__main__':
              'is provided. This option is ignored when not using tf_trt.')
     parser.add_argument('--use_trt_dynamic_op', action='store_true',
         help='If set, TRT conversion will be done using dynamic op instead of statically.')
-    parser.add_argument('--precision', type=str, choices=['FP32', 'FP16', 'INT8'], default='FP32',
+    parser.add_argument('--precision', type=str.upper, choices=['FP32', 'FP16', 'INT8'], default='FP32',
         help='Precision mode to use. FP16 and INT8 only work in conjunction with --use_trt')
     parser.add_argument('--batch_size', type=int, default=8,
         help='Number of images per batch.')
@@ -681,7 +681,7 @@ if __name__ == '__main__':
         help='workspace size in bytes')
     parser.add_argument('--cache', action='store_true',
         help='If set, graphs will be saved to disk after conversion. If a converted graph is present on disk, it will be loaded instead of building the graph again.')
-    parser.add_argument('--mode', choices=['validation', 'benchmark'], default='validation',
+    parser.add_argument('--mode', type=str.lower, choices=['validation', 'benchmark'], default='validation',
         help='Which mode to use (validation or benchmark)')
     parser.add_argument('--target_duration', type=int, default=None,
         help='If set, script will run for specified number of seconds.')
