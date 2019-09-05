@@ -154,7 +154,7 @@ DATASETS = {
 }
 
 
-def download_model(model_name, input_dir=None, output_dir='.'):
+def download_model(model_name, input_dir=None, config_path=None, output_dir='.'):
     """Downloads a model from the TensorFlow Object Detection API
 
     Downloads a model from the TensorFlow Object Detection API to a specific
@@ -191,8 +191,9 @@ def download_model(model_name, input_dir=None, output_dir='.'):
 
     tar_file = os.path.join(output_dir, os.path.basename(model.url))
 
-    config_path = os.path.join(output_dir, model.extract_dir,
-                               PIPELINE_CONFIG_NAME)
+    if not config_path:
+        config_path = os.path.join(output_dir, model.extract_dir,
+                                   PIPELINE_CONFIG_NAME)
     checkpoint_path = os.path.join(output_dir, model.extract_dir,
                                    CHECKPOINT_PREFIX)
 
@@ -218,6 +219,7 @@ def download_model(model_name, input_dir=None, output_dir='.'):
 
 def build_model(model_name,
                 input_dir=None,
+                config_path=None,
                 output_dir='.',
                 override_nms_score_threshold=None,
                 override_resizer_shape=None,
@@ -261,6 +263,7 @@ def build_model(model_name,
     config_path, checkpoint_path = download_model(
         model_name=model_name,
         input_dir=input_dir,
+        config_path=config_path,
         output_dir=output_dir)
 
     if os.path.exists(tmp_dir):
