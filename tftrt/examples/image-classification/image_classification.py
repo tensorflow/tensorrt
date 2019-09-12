@@ -143,21 +143,7 @@ def get_dataset(model, data_files, batch_size, use_synthetic, mode='validation')
             raise ValueError("Mode must be either 'validation' or 'benchmark'")
     return dataset
 
-def calibrate(graph_func,
-              model,
-              calib_files,
-              num_calib_inputs,
-              batch_size):
-    dataset = get_dataset(model, calib_files, batch_size, False, 'validation')
-    num_iterations = num_calib_inputs//batch_size
-    for i, (batch_feats, _) in enumerate(dataset):
-        if i > num_iterations:
-            break
-        start_time = time.time()
-        batch_preds = graph_func(batch_feats)
-        print("Calibration Iteration {}/{}".format(i, num_iterations))
-        i += 1
-     
+    
 def func_from_saved_model(saved_model_dir):
     loaded = tf.saved_model.load(saved_model_dir)
     infer = loaded.signatures["serving_default"]
@@ -213,28 +199,42 @@ def get_frozen_func(model,
             input_saved_model_dir=saved_model_dir,
             conversion_params=conversion_params,
         )
-        converted_func = converter.convert()
+
+
+        if conversion_params.precision_mode != 'INT8':
+            converter.convert()
+            saved_model_dir = 'saved_model_dir/{}'.format(model)
+            converter.save(saved_model_dir)
+            converted_func = func_from_saved_model(saved_model_dir)
+        else:
+            def input_fn():
+                dataset = get_dataset(model, calib_files, batch_size, False, 'validation')
+                num_iterations = num_calib_inputs//batch_size
+                print('dataset', dataset)
+                for i, (batch_feats, _) in enumerate(dataset):
+                    if i > num_iterations:
+                        break
+                    start_time = time.time()
+                    yield (batch_feats,)
+                    print("Calibration Iteration {}/{}".format(i, num_iterations))
+                    i += 1
+            print('Calibrating INT8')
+            converter.convert(calibration_input_fn=input_fn)
+            print('Done calibrating INT8')
+            calib_dir = 'calibrated/{}'.format(model)
+            converter.save(calib_dir)
+            converted_func = func_from_saved_model(calib_dir)
+
         converted_graph_def = converter._converted_graph_def
         times['trt_conversion'] = time.time() - start_time
         num_nodes['tftrt_total'] = len(converted_graph_def.node)
         num_nodes['trt_only'] = len([1 for n in converted_graph_def.node if str(n.op)=='TRTEngineOp'])
         graph_sizes['trt'] = len(converted_graph_def.SerializeToString())/(1<<20)
-        def wrap_func(*args, **kwargs):
-            return converted_func(*args, **kwargs)['logits']
-
-        if conversion_params.precision_mode == 'INT8':
-            print('Calibrating INT8')
-            calibrate(converted_func, model, calib_files, num_calib_inputs,
-                      batch_size)
-            print('Done calibrating INT8')
-            calib_dir = 'calibrated/{}'.format(model)
-            converter.save(calib_dir)
-            calibrated_func = func_from_saved_model(calib_dir)
-            return calibrated_func, num_nodes, times, graph_sizes
-        else:
-            if cache:
-                converter.save(trt_saved_model_dir)
-            return wrap_func, num_nodes, times, graph_sizes
+        return converted_func, num_nodes, times, graph_sizes
+#        else:
+#            if cache:
+#                converter.save(trt_saved_model_dir)
+#            return wrap_func, num_nodes, times, graph_sizes
     else:
         func = func_from_saved_model(saved_model_dir)
         return func, num_nodes, times, graph_sizes
@@ -389,9 +389,6 @@ if __name__ == '__main__':
         help='Set the maximum GPU memory cap in MB. If 0, allow growth will be used.')
     args = parser.parse_args()
 
-    if args.precision == 'INT8':
-        raise ValueError('INT8 is broken at this point, and is undergoing API '
-        'changes. Please use 1.14 scripts for INT8 inference.')
     if args.precision != 'FP32' and not args.use_trt:
         raise ValueError('TensorRT must be enabled for FP16 or INT8 modes (--use_trt).')
     if args.precision == 'INT8' and not args.calib_data_dir and not args.use_synthetic:
