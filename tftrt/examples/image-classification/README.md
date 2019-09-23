@@ -21,19 +21,7 @@ also must specificy the directory in which the calibration dataset is stored
 with `--calib_data_dir /imagenet_validation_data`.  You can use the same data
 for both calibration and validation.
 
-## Setup
-
-### Setup for running standalone
-
-If you are running these examples within your own TensorFlow environment,
-perform the following steps:
-
-```
-# Clone this repository (tensorflow/tensorrt) if you haven't already.
-git clone https://github.com/tensorflow/tensorrt.git
-```
-
-### Data
+## Data
 
 The example script supports either using a dataset (for validation 
 mode - TFRecord format, for benchmark mode - jpeg format) or using
