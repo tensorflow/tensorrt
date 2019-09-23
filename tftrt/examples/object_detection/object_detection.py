@@ -36,8 +36,12 @@ def get_model_func(saved_model_dir,
                    use_trt,
                    tmp_dir,
                    cache,
+                   annotation_path=None,
+                   num_calib_images=None,
+                   calib_batch_size=None,
+                   images_dir=None,
+                   image_shape=None,
                    conversion_params=None):
-
     if use_trt and conversion_params is None:
         raise ValueError("Provide conversion params if you're using TRT")
     loaded = tf.saved_model.load(saved_model_dir)
@@ -57,12 +61,28 @@ def get_model_func(saved_model_dir,
             input_saved_model_dir=saved_model_dir,
             conversion_params=conversion_params,
         )
-        graph_func = converter.convert()
-        if conversion_params.precision_mode == 'INT8':
-            # TODO Object Detection Calibration when API is stable
-            raise ValueError('INT8 not available. Please use tf1.14 for INT8 inference')
-        if cache:
-            converter.save(cache_dir)
+        if conversion_params.precision_mode != 'INT8':
+            converter.convert()
+        else:
+            def input_fn():
+                coco = COCO(annotation_file=annotation_path)
+                image_ids = coco.getImgIds()
+                num_images = num_calib_images
+                if num_images > len(image_ids):
+                    print(
+                        'Num images provided %d exceeds number in dataset %d, using %d images instead'
+                        % (num_images, len(image_ids), len(image_ids)))
+                    num_images = len(image_ids)
+                image_ids = image_ids[0:num_images]
+                dataset = get_dataset(images_dir, annotation_path, calib_batch_size, image_ids,
+                                      use_synthetic=False, coco=coco, image_shape=image_shape)
+                for i, batch_feats in enumerate(dataset):
+                    yield (batch_feats,)
+            converter.convert(calibration_input_fn=input_fn)
+        converter.save(cache_dir)
+        loaded = tf.saved_model.load(cache_dir)
+        graph_func = loaded.signatures['serving_default']
+
         converted_graph_def = converter._converted_graph_def
         times['trt_conversion'] = time.time() - start_time
         num_nodes['tftrt_total'] = len(converted_graph_def.node)
@@ -277,9 +297,6 @@ if __name__ == '__main__':
         help='Number of images per batch.')
     args = parser.parse_args()
 
-    if args.precision == 'INT8':
-        raise NotImplementedError('INT8 is not yet implemented for tensorflow 2.0')
-
     conversion_params = get_trt_conversion_params(args.use_trt,
                                                   max_workspace_size_bytes=1<<30,
                                                   precision_mode=args.precision,
@@ -295,6 +312,11 @@ if __name__ == '__main__':
                                 use_trt=args.use_trt,
                                 tmp_dir=tmp_dir,
                                 cache=args.cache,
+                                annotation_path=args.annotation_path,
+                                num_calib_images=args.num_calib_images,
+                                calib_batch_size=1,
+                                images_dir=args.data_dir,
+                                image_shape=(args.input_size,args.input_size),
                                 conversion_params=conversion_params)
     if not args.cache:
         if os.path.exists(tmp_dir):
