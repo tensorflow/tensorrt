@@ -5,7 +5,7 @@ It includes utilities for accuracy and performance benchmarking, along with
 utilities for model construction and optimization.
 
 * [Setup](#setup)
-* [Download](#od_download)
+* [Download and build](#od_download)
 * [Optimize](#od_optimize)
 * [Benchmark](#od_benchmark)
 * [Test](#od_test)
@@ -31,9 +31,9 @@ python setup.py install --user
 ## Object Detection
 
 <a name="od_download"></a>
-### Download
+### Download and build
 ```python
-from tftrt.examples.object_detection import download_model
+from tftrt.examples.object_detection import build_model
 
 frozen_graph = build_model(
     model_name="ssd_resnet_50_fpn_coco",
