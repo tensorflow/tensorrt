@@ -5,12 +5,12 @@ import glob
 import pprint
 import numpy as np
 from functools import partial
-import preprocessing
 import tensorflow as tf
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
 from tensorflow.python.framework import convert_to_constants
+import preprocessing
 
 NETS = {
     'mobilenet_v1': {
