@@ -134,16 +134,6 @@ def get_func_from_saved_model(saved_model_dir):
   return graph_func, frozen_func
 
 
-def get_num_ops(func, trt=False):
-  """Returns number of ops in func.
-  If trt is set, returns only the number of TRTEngineOp in func.
-  """
-  if trt:
-    return len([1 for n in func.graph.as_graph_def().node
-                if str(n.op) == 'TRTEngineOp'])
-  return len(func.graph.as_graph_def().node)
-
-
 def get_graph_func(saved_model_dir,
                    preprocess_method,
                    input_size,
@@ -160,10 +150,8 @@ def get_graph_func(saved_model_dir,
   batch_size: int, batch size for TensorRT optimizations
   returns: tensorflow.SavedModel, the TensorRT compatible frozen graph.
   """
-  num_nodes = {}
   start_time = time.time()
   graph_func, frozen_func = get_func_from_saved_model(saved_model_dir)
-  num_nodes['native_tf'] = get_num_ops(graph_func)
   if use_trt:
     converter = trt.TrtGraphConverterV2(
         input_saved_model_dir=saved_model_dir,
@@ -183,23 +171,25 @@ def get_graph_func(saved_model_dir,
         print("  step %d/%d" % (i+1, num_iterations))
         i += 1
     if conversion_params.precision_mode != 'INT8':
+      print('Graph convertion...')
       converter.convert()
       converted_saved_model_dir = 'converted_saved_model'
       if optimize_offline:
+        print('Building TensorRT engines...')
         converter.build(input_fn=partial(input_fn, data_files, 1))
       converter.save(converted_saved_model_dir)
       graph_func, frozen_graph = get_func_from_saved_model(converted_saved_model_dir)
     else:
+      print('Graph convertion and INT8 calibration...')
       converter.convert(calibration_input_fn=partial(
           input_fn, calib_files, num_calib_inputs//batch_size))
       if optimize_offline:
+        print('Building TensorRT engines...')
         converter.build(input_fn=partial(input_fn, data_files, 1))
       converted_saved_model_dir = 'converted_savd_model'
       converter.save(converted_saved_model_dir)
       graph_func, frozen_graph = get_func_from_saved_model(converted_saved_model_dir)
-    num_nodes['tftrt_total'] = get_num_ops(graph_func)
-    num_nodes['trt_only'] = get_num_ops(graph_func, trt=True)
-  return frozen_func, num_nodes, {'conversion': time.time() - start_time}
+  return frozen_func, {'conversion': time.time() - start_time}
 
 def eval_fn(preds, labels, adjust):
   """Measures number of correct predicted labels in a batch.
@@ -410,7 +400,7 @@ if __name__ == '__main__':
       args.precision,
       args.minimum_segment_size,
       args.batch_size,)
-  frozen_func, num_nodes, times = get_graph_func(
+  frozen_func, times = get_graph_func(
       saved_model_dir=args.saved_model_dir,
       preprocess_method=args.preprocess_method,
       input_size=args.input_size,
@@ -429,8 +419,6 @@ if __name__ == '__main__':
   print_dict(vars(args))
   print('TensorRT Conversion Params:')
   print_dict(dict(params._asdict()))
-  print('Number of nodes:')
-  print_dict(num_nodes)
   print('Conversion times:')
   print_dict(times, postfix='s')
 
