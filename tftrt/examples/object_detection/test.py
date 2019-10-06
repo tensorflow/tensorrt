@@ -17,7 +17,7 @@
 
 import argparse
 import json
-from .object_detection import download_model, download_dataset, optimize_model, benchmark_model
+from .object_detection import build_model, download_dataset, optimize_model, benchmark_model
 
 
 def test(test_config_path):
@@ -25,8 +25,8 @@ def test(test_config_path):
     
     This runs an object detection test configuration.  This involves
     
-    1. Download a model architecture (or use cached).
-    2. Optimize the downloaded model architecrue
+    1. Download and build a model architecture (or use cached).
+    2. Optimize the model architecrue
     3. Benchmark the optimized model against a dataset
     4. (optional) Run assertions to check the benchmark output
 
@@ -36,15 +36,15 @@ def test(test_config_path):
     example_test_config.json:
 
         {
-            "source_model": { ... },
+            "model_config": { ... },
             "optimization_config": { ... },
             "benchmark_config": { ... },
             "assertions": [ ... ]
         }
 
-    source_model: A dictionary of arguments passed to download_model, which
-        specify the pre-optimized model architure.  The model downloaded (or
-        the cached model if found) will be passed to optimize_model.
+    model_config: A dictionary of arguments passed to build_model, which
+        specify the pre-optimized model architure.  The model will be passed
+        to optimize_model.
     optimization_config: A dictionary of arguments passed to optimize_model.
         Please see help(optimize_model) for more details.
     benchmark_config: A dictionary of arguments passed to benchmark_model.
@@ -67,13 +67,12 @@ def test(test_config_path):
         test_config = json.load(f)
         print(json.dumps(test_config, sort_keys=True, indent=4))
 
-    # download model or use cached
-    config_path, checkpoint_path = download_model(**test_config['source_model'])
+    frozen_graph = build_model(
+        **test_config['model_config'])
 
     # optimize model using source model
     frozen_graph = optimize_model(
-        config_path=config_path,
-        checkpoint_path=checkpoint_path,
+        frozen_graph,
         **test_config['optimization_config'])
 
     # benchmark optimized model

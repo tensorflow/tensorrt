@@ -22,7 +22,7 @@ RESEARCH_DIR=$TF_MODELS_DIR/research
 SLIM_DIR=$RESEARCH_DIR/slim
 COCO_API_DIR=../third_party/cocoapi
 PYCOCO_DIR=$COCO_API_DIR/PythonAPI
-PROTO_BASE_URL="https://github.com/google/protobuf/releases/download/v3.5.1/"
+PROTO_BASE_URL="https://github.com/google/protobuf/releases/download/v3.7.1/"
 PROTOC_DIR=$PWD/protoc
 
 #echo Install python-tk ...
@@ -38,9 +38,11 @@ mkdir -p $PROTOC_DIR
 pushd $PROTOC_DIR
 ARCH=$(uname -m)
 if [ "$ARCH" == "aarch64" ] ; then
-  filename="protoc-3.5.1-linux-aarch_64.zip"
+  filename="protoc-3.7.1-linux-aarch_64.zip"
 elif [ "$ARCH" == "x86_64" ] ; then
-  filename="protoc-3.5.1-linux-x86_64.zip"
+  filename="protoc-3.7.1-linux-x86_64.zip"
+elif [ "$ARCH" == "ppc64le" ] ; then
+  filename="protoc-3.7.1-linux-ppcle_64.zip"
 else
   echo ERROR: $ARCH not supported.
   exit 1;
