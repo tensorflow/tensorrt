@@ -5,10 +5,11 @@ It includes utilities for accuracy and performance benchmarking, along with
 utilities for model construction and optimization.
 
 * [Setup](#setup)
-* [Download](#od_download)
+* [Download and build](#od_download)
 * [Optimize](#od_optimize)
 * [Benchmark](#od_benchmark)
 * [Test](#od_test)
+* [Verified Models](#od_verified_models)
 
 <a name="setup"></a>
 ## Setup
@@ -30,12 +31,17 @@ python setup.py install --user
 ## Object Detection
 
 <a name="od_download"></a>
-### Download
+### Download and build
 ```python
-from tftrt.examples.object_detection import download_model
+from tftrt.examples.object_detection import build_model
 
-config_path, checkpoint_path = download_model('ssd_mobilenet_v1_coco', output_dir='models')
-# help(download_model) for more
+frozen_graph = build_model(
+    model_name="ssd_resnet_50_fpn_coco",
+    input_dir="/models/object_detection/combined_nms_enabled",
+    batch_size=8,
+    override_nms_score_threshold=0.3,
+)
+# help(build_model) for more
 ```
 
 <a name="od_optimize"></a>
@@ -45,10 +51,14 @@ config_path, checkpoint_path = download_model('ssd_mobilenet_v1_coco', output_di
 from tftrt.examples.object_detection import optimize_model
 
 frozen_graph = optimize_model(
-    config_path=config_path, 
-    checkpoint_path=checkpoint_path,
+    frozen_graph,
     use_trt=True,
-    precision_mode='FP16'
+    precision_mode="INT8",
+    calib_images_dir="/data/coco-2017/train2017",
+    num_calib_images=8,
+    calib_batch_size=8,
+    calib_image_shape=[640, 640],
+    max_workspace_size_bytes=17179869184,
 )
 # help(optimize_model) for other parameters
 ```
@@ -72,8 +82,12 @@ from tftrt.examples.object_detection import benchmark_model
 
 statistics = benchmark_model(
     frozen_graph=frozen_graph, 
-    images_dir=images_dir, 
-    annotation_path=annotation_path
+    images_dir="/data/coco2017/val2017",
+    annotation_path="/data/coco2017/annotations/instances_val2017.json",
+    batch_size=8,
+    image_shape=[640, 640],
+    num_images=4096,
+    output_path="stats/ssd_resnet_50_fpn_coco_trt_int8.json"
 )
 # help(benchmark_model) for more parameters
 ```
@@ -87,29 +101,31 @@ example JSON file, call it ``my_test.json``
 
 ```json
 {
-  "source_model": {
-    "model_name": "ssd_inception_v2_coco",
-    "output_dir": "models"
+  "model_config": {
+    "model_name": "ssd_resnet_50_fpn_coco",
+    "input_dir": "/models/object_detection/combined_nms_enabled",
+    "batch_size": 8,
+    "override_nms_score_threshold": 0.3
   },
   "optimization_config": {
     "use_trt": true,
-    "precision_mode": "FP16",
-    "force_nms_cpu": true,
-    "replace_relu6": true,
-    "remove_assert": true,
-    "override_nms_score_threshold": 0.3,
-    "max_batch_size": 1
+    "precision_mode": "INT8",
+    "calib_images_dir": "/data/coco2017/train2017",
+    "num_calib_images": 8,
+    "calib_batch_size": 8,
+    "calib_image_shape": [640, 640],
+    "max_workspace_size_bytes": 17179869184
   },
   "benchmark_config": {
-    "images_dir": "coco/val2017",
-    "annotation_path": "coco/annotations/instances_val2017.json",
-    "batch_size": 1,
-    "image_shape": [600, 600],
+    "images_dir": "/data/coco2017/val2017",
+    "annotation_path": "/data/coco2017/annotations/instances_val2017.json",
+    "batch_size": 8,
+    "image_shape": [640, 640],
     "num_images": 4096,
-    "output_path": "stats/ssd_inception_v2_coco_trt_fp16.json"
+    "output_path": "stats/ssd_resnet_50_fpn_coco_trt_int8.json"
   },
   "assertions": [
-    "statistics['map'] > (0.268 - 0.005)"
+    "statistics['map'] > (0.277 - 0.01)"
   ]
 }
 ```
@@ -136,3 +152,17 @@ For the example configuration shown above, the following steps will be performed
 2. Optimizes with TensorRT and FP16 precision
 3. Benchmarks against the MSCOCO 2017 validation dataset
 4. Asserts that the MAP is greater than some reference value
+
+<a name="od_verified_models"></a>
+### Verified Models
+We have verified the accuracy and performance of the following models that are supported by the package:
+
+    'ssd_mobilenet_v1_coco'
+    'ssd_mobilenet_v1_fpn_coco'
+    'ssd_mobilenet_v2_coco'
+    'ssdlite_mobilenet_v2_coco'
+    'ssd_inception_v2_coco'
+    'ssd_resnet_50_fpn_coco'
+    'faster_rcnn_resnet50_coco'
+    'faster_rcnn_nas'
+    'mask_rcnn_resnet50_atrous_coco'
