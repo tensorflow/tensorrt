@@ -348,10 +348,7 @@ def optimize_model(frozen_graph,
 
     Args
     ----
-        config_path: A string representing the path of the object detection
-            pipeline config file.
-        checkpoint_path: A string representing the path of the object
-            detection model checkpoint.
+        frozen_graph: A GraphDef representing the optimized model.
         use_trt: A boolean representing whether to optimize with TensorRT. If
             False, regular TensorFlow will be used but other optimizations
             (like NMS device placement) will still be applied.
@@ -361,13 +358,6 @@ def optimize_model(frozen_graph,
             operations with relu(x) - relu(x-6).
         remove_assert: A boolean indicating whether to remove Assert
             operations from the graph.
-        override_nms_score_threshold: An optional float representing
-            a NMS score threshold to override that specified in the object
-            detection configuration file.
-        override_resizer_shape: An optional list/tuple of integers
-            representing a fixed shape to override the default image resizer
-            specified in the object detection configuration file.
-        batch_size: An integer representing the batch size
         precision_mode: A string representing the precision mode to use for
             TensorRT optimization.  Must be one of 'FP32', 'FP16', or 'INT8'.
         minimum_segment_size: An integer representing the minimum segment size
@@ -385,7 +375,6 @@ def optimize_model(frozen_graph,
             width that images will be resized to for calibration.
         output_path: An optional string representing the path to save the
             optimized GraphDef to.
-        display_every: print log for calibration every display_every iteration
 
     Returns
     -------
