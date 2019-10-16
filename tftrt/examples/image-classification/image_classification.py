@@ -28,7 +28,7 @@ import shutil
 import subprocess
 import nets.nets_factory
 import tensorflow.contrib.slim as slim
-import official.resnet.imagenet_main
+import official.resnet.ctl.ctl_imagenet_main
 from preprocessing import inception_preprocessing, vgg_preprocessing
 
 class LoggerHook(tf.train.SessionRunHook):
