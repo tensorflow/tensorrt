@@ -18,19 +18,14 @@
 import argparse
 import os
 import time
-import pprint
 from functools import partial
-import numpy as np
 import json
 import numpy as np
-import tensorflow as tf
-import argparse
 import subprocess
 import tensorflow as tf
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
-from tensorflow.python.framework import convert_to_constants
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
@@ -364,22 +359,6 @@ if __name__ == '__main__':
   if args.use_synthetic and args.num_iterations is None:
     raise ValueError("--num_iterations is required for --use_synthetic")
 
-#  calib_files = []
-#  data_files = []
-#  def get_files(data_dir, filename_pattern=None):
-#    if data_dir is None:
-#      return []
-#    files = tf.io.gfile.glob(os.path.join(
-#        data_dir, filename_pattern) if filename_pattern else data_dir)
-#    if files == []:
-#      raise ValueError('Can not find any files in {} with '
-#                       'pattern "{}"'.format(data_dir, filename_pattern))
-#    return files
-#  if not args.use_synthetic:
-#    data_files = get_files(args.data_dir)
-#    if args.precision == 'INT8':
-#      calib_files = get_files(args.calib_data_dir)
-
   params = get_trt_conversion_params(
       args.max_workspace_size,
       args.precision,
@@ -419,6 +398,7 @@ if __name__ == '__main__':
                 display_every=args.display_every,
                 mode=args.mode,
                 target_duration=args.target_duration)
+  print('Results:')
   if args.mode == 'validation':
     mAP = eval_model(predictions, image_ids, args.annotation_path)
     print('  mAP: %f' % mAP)
