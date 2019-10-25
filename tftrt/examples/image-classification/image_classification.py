@@ -130,8 +130,7 @@ def get_func_from_saved_model(saved_model_dir):
       saved_model_dir, tags=[tag_constants.SERVING])
   graph_func = saved_model_loaded.signatures[
       signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
-  frozen_func = convert_to_constants.convert_variables_to_constants_v2(graph_func)
-  return graph_func, frozen_func
+  return graph_func
 
 
 def get_graph_func(saved_model_dir,
@@ -148,10 +147,10 @@ def get_graph_func(saved_model_dir,
   use_trt: bool, if true use TensorRT
   precision: str, floating point precision (FP32, FP16, or INT8)
   batch_size: int, batch size for TensorRT optimizations
-  returns: tensorflow.SavedModel, the TensorRT compatible frozen graph.
+  returns: TF function that is ready to run for inference
   """
   start_time = time.time()
-  graph_func, frozen_func = get_func_from_saved_model(saved_model_dir)
+  graph_func = get_func_from_saved_model(saved_model_dir)
   if use_trt:
     converter = trt.TrtGraphConverterV2(
         input_saved_model_dir=saved_model_dir,
@@ -177,8 +176,8 @@ def get_graph_func(saved_model_dir,
       if optimize_offline:
         print('Building TensorRT engines...')
         converter.build(input_fn=partial(input_fn, data_files, 1))
-      converter.save(converted_saved_model_dir)
-      graph_func, frozen_graph = get_func_from_saved_model(converted_saved_model_dir)
+      converter.save(output_saved_model_dir=converted_saved_model_dir)
+      graph_func = get_func_from_saved_model(converted_saved_model_dir)
     else:
       print('Graph convertion and INT8 calibration...')
       converter.convert(calibration_input_fn=partial(
@@ -187,9 +186,9 @@ def get_graph_func(saved_model_dir,
         print('Building TensorRT engines...')
         converter.build(input_fn=partial(input_fn, data_files, 1))
       converted_saved_model_dir = 'converted_savd_model'
-      converter.save(converted_saved_model_dir)
-      graph_func, frozen_graph = get_func_from_saved_model(converted_saved_model_dir)
-  return frozen_func, {'conversion': time.time() - start_time}
+      converter.save(output_saved_model_dir=converted_saved_model_dir)
+      graph_func = get_func_from_saved_model(converted_saved_model_dir)
+  return graph_func, {'conversion': time.time() - start_time}
 
 def eval_fn(preds, labels, adjust):
   """Measures number of correct predicted labels in a batch.
@@ -198,7 +197,7 @@ def eval_fn(preds, labels, adjust):
   preds = np.argmax(preds, axis=1).reshape(-1) - adjust
   return np.sum((labels.reshape(-1) == preds).astype(np.float32))
 
-def run_inference(frozen_func,
+def run_inference(graph_func,
                   data_files,
                   batch_size,
                   preprocess_method,
@@ -210,15 +209,10 @@ def run_inference(frozen_func,
                   display_every=100,
                   mode='validation',
                   target_duration=None):
-  """Run the given frozen_func on the data files provided. In validation mode,
+  """Run the given graph_func on the data files provided. In validation mode,
   it consumes TFRecords with labels and reports accuracy. In benchmark mode, it
   times inference on real data (.jpgs).
   """
-  def wrap_func(*args, **kwargs):
-    # Assumes frozen_func has one output tensor
-    return frozen_func(*args, **kwargs)[0]
-  frozen_func_wrapped = wrap_func
-
   results = {}
   corrects = 0
   iter_times = []
@@ -234,7 +228,7 @@ def run_inference(frozen_func,
   if mode == 'validation':
     for i, (batch_feats, batch_labels) in enumerate(dataset):
       start_time = time.time()
-      batch_preds = frozen_func_wrapped(batch_feats).numpy()
+      batch_preds = graph_func(batch_feats).numpy()
       end_time = time.time()
       iter_times.append(end_time - start_time)
       if i % display_every == 0:
@@ -252,13 +246,13 @@ def run_inference(frozen_func,
     for i, batch_feats in enumerate(dataset):
       if i >= num_warmup_iterations:
         start_time = time.time()
-        frozen_func_wrapped(batch_feats)
+        graph_func(batch_feats)
         iter_times.append(time.time() - start_time)
         if i % display_every == 0:
           print("  step %d/%d, iter_time(ms)=%.0f" %
                 (i+1, num_iterations, iter_times[-1]*1000))
       else:
-        frozen_func_wrapped(batch_feats)
+        graph_func(batch_feats)
       if i > 0 and target_duration is not None and \
         time.time() - initial_time > target_duration:
         break
@@ -400,7 +394,7 @@ if __name__ == '__main__':
       args.precision,
       args.minimum_segment_size,
       args.batch_size,)
-  frozen_func, times = get_graph_func(
+  graph_func, times = get_graph_func(
       saved_model_dir=args.saved_model_dir,
       preprocess_method=args.preprocess_method,
       input_size=args.input_size,
@@ -422,7 +416,7 @@ if __name__ == '__main__':
   print('Conversion times:')
   print_dict(times, postfix='s')
 
-  results = run_inference(frozen_func,
+  results = run_inference(graph_func,
                 data_files=data_files,
                 batch_size=args.batch_size,
                 num_iterations=args.num_iterations,
