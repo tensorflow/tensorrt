@@ -16,57 +16,11 @@
 # limitations under the License.
 # =============================================================================
 
-echo Setup local variables...
-TF_MODELS_DIR=../third_party/models
-RESEARCH_DIR=$TF_MODELS_DIR/research
-SLIM_DIR=$RESEARCH_DIR/slim
-COCO_API_DIR=../third_party/cocoapi
-PYCOCO_DIR=$COCO_API_DIR/PythonAPI
-PROTO_BASE_URL="https://github.com/google/protobuf/releases/download/v3.7.1/"
-PROTOC_DIR=$PWD/protoc
-
-#echo Install python-tk ...
-#python -V 2>&1 | grep "Python 3" || \
-#  ( export DEBIAN_FRONTEND=noninteractive && \
-#    apt-get update && \
-#    apt-get install -y --no-install-recommends python-tk )
-
 set -v
 
-echo Download protobuf...
-mkdir -p $PROTOC_DIR
-pushd $PROTOC_DIR
-ARCH=$(uname -m)
-if [ "$ARCH" == "aarch64" ] ; then
-  filename="protoc-3.7.1-linux-aarch_64.zip"
-elif [ "$ARCH" == "x86_64" ] ; then
-  filename="protoc-3.7.1-linux-x86_64.zip"
-elif [ "$ARCH" == "ppc64le" ] ; then
-  filename="protoc-3.7.1-linux-ppcle_64.zip"
-else
-  echo ERROR: $ARCH not supported.
-  exit 1;
-fi
-wget --no-check-certificate ${PROTO_BASE_URL}${filename}
-unzip -o ${filename}
-popd
-
-echo Compile object detection protobuf files...
-pushd $RESEARCH_DIR
-$PROTOC_DIR/bin/protoc object_detection/protos/*.proto --python_out=.
-popd
-
-echo Install tensorflow/models/research...
-pushd $RESEARCH_DIR
-pip install .
-popd
-
-echo Install tensorflow/models/research/slim...
-pushd $SLIM_DIR
-pip install .
-popd
-
 echo Install cocodataset/cocoapi/PythonAPI...
+COCO_API_DIR=../third_party/cocoapi
+PYCOCO_DIR=$COCO_API_DIR/PythonAPI
 pushd $PYCOCO_DIR
 python setup.py build_ext --inplace
 make
