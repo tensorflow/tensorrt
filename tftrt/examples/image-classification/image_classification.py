@@ -226,9 +226,9 @@ def run_inference(graph_func,
                         mode=mode)
 
   if mode == 'validation':
-    for i, (batch_feats, batch_labels) in enumerate(dataset):
+    for i, (batch_images, batch_labels) in enumerate(dataset):
       start_time = time.time()
-      batch_preds = graph_func(batch_feats).numpy()
+      batch_preds = list(graph_func(batch_images).values())[0].numpy()
       end_time = time.time()
       iter_times.append(end_time - start_time)
       if i % display_every == 0:
@@ -243,16 +243,16 @@ def run_inference(graph_func,
     results['accuracy'] = accuracy
 
   elif mode == 'benchmark':
-    for i, batch_feats in enumerate(dataset):
+    for i, batch_images in enumerate(dataset):
       if i >= num_warmup_iterations:
         start_time = time.time()
-        graph_func(batch_feats)
+        batch_preds = list(graph_func(batch_images).values())[0].numpy()
         iter_times.append(time.time() - start_time)
         if i % display_every == 0:
           print("  step %d/%d, iter_time(ms)=%.0f" %
                 (i+1, num_iterations, iter_times[-1]*1000))
       else:
-        graph_func(batch_feats)
+        batch_preds = list(graph_func(batch_images).values())[0].numpy()
       if i > 0 and target_duration is not None and \
         time.time() - initial_time > target_duration:
         break
