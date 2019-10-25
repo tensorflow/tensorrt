@@ -185,7 +185,7 @@ def get_graph_func(saved_model_dir,
       if optimize_offline:
         print('Building TensorRT engines...')
         converter.build(input_fn=partial(input_fn, data_files, 1))
-      converted_saved_model_dir = 'converted_savd_model'
+      converted_saved_model_dir = 'converted_saved_model'
       converter.save(output_saved_model_dir=converted_saved_model_dir)
       graph_func = get_func_from_saved_model(converted_saved_model_dir)
   return graph_func, {'conversion': time.time() - start_time}
