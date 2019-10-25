@@ -117,7 +117,7 @@ def get_graph_func(saved_model_dir,
       converted_saved_model_dir = 'converted_saved_model'
       if optimize_offline:
         print('Building TensorRT engines...')
-        converter.build(input_fn=partial(input_fn, data_files, 1))
+        converter.build(input_fn=partial(input_fn, data_dir, 1))
       converter.save(output_saved_model_dir=converted_saved_model_dir)
       graph_func = get_func_from_saved_model(converted_saved_model_dir)
     else:
@@ -126,7 +126,7 @@ def get_graph_func(saved_model_dir,
           input_fn, calib_data_dir, num_calib_inputs//batch_size))
       if optimize_offline:
         print('Building TensorRT engines...')
-        converter.build(input_fn=partial(input_fn, data_files, 1))
+        converter.build(input_fn=partial(input_fn, data_dir, 1))
       converted_saved_model_dir = 'converted_saved_model'
       converter.save(output_saved_model_dir=converted_saved_model_dir)
       graph_func = get_func_from_saved_model(converted_saved_model_dir)
