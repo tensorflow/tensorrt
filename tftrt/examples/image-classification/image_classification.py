@@ -130,6 +130,7 @@ def get_func_from_saved_model(saved_model_dir):
       saved_model_dir, tags=[tag_constants.SERVING])
   graph_func = saved_model_loaded.signatures[
       signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+  graph_func = convert_to_constants.convert_variables_to_constants_v2(graph_func)
   return graph_func
 
 
@@ -228,7 +229,7 @@ def run_inference(graph_func,
   if mode == 'validation':
     for i, (batch_images, batch_labels) in enumerate(dataset):
       start_time = time.time()
-      batch_preds = list(graph_func(batch_images).values())[0].numpy()
+      batch_preds = graph_func(batch_images)[0].numpy()
       end_time = time.time()
       iter_times.append(end_time - start_time)
       if i % display_every == 0:
