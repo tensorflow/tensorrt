@@ -74,11 +74,12 @@ def get_func_from_saved_model(saved_model_dir):
   return graph_func
 
 
-def get_graph_func(saved_model_dir,
+def get_graph_func(input_saved_model_dir,
                    data_dir,
                    calib_data_dir,
                    annotation_path,
                    input_size,
+                   output_saved_model_dir=None,
                    conversion_params=trt.DEFAULT_TRT_CONVERSION_PARAMS,
                    use_trt=False,
                    num_calib_inputs=None,
@@ -92,10 +93,10 @@ def get_graph_func(saved_model_dir,
   returns: TF function that is ready to run for inference
   """
   start_time = time.time()
-  graph_func = get_func_from_saved_model(saved_model_dir)
+  graph_func = get_func_from_saved_model(input_saved_model_dir)
   if use_trt:
     converter = trt.TrtGraphConverterV2(
-        input_saved_model_dir=saved_model_dir,
+        input_saved_model_dir=input_saved_model_dir,
         conversion_params=conversion_params,
     )
     def input_fn(input_data_dir, num_iterations):
@@ -114,12 +115,11 @@ def get_graph_func(saved_model_dir,
     if conversion_params.precision_mode != 'INT8':
       print('Graph convertion...')
       converter.convert()
-      converted_saved_model_dir = 'converted_saved_model'
       if optimize_offline:
         print('Building TensorRT engines...')
         converter.build(input_fn=partial(input_fn, data_dir, 1))
-      converter.save(output_saved_model_dir=converted_saved_model_dir)
-      graph_func = get_func_from_saved_model(converted_saved_model_dir)
+      converter.save(output_saved_model_dir=output_saved_model_dir)
+      graph_func = get_func_from_saved_model(output_saved_model_dir)
     else:
       print('Graph convertion and INT8 calibration...')
       converter.convert(calibration_input_fn=partial(
@@ -127,9 +127,8 @@ def get_graph_func(saved_model_dir,
       if optimize_offline:
         print('Building TensorRT engines...')
         converter.build(input_fn=partial(input_fn, data_dir, 1))
-      converted_saved_model_dir = 'converted_saved_model'
-      converter.save(output_saved_model_dir=converted_saved_model_dir)
-      graph_func = get_func_from_saved_model(converted_saved_model_dir)
+      converter.save(output_saved_model_dir=output_saved_model_dir)
+      graph_func = get_func_from_saved_model(output_saved_model_dir)
   return graph_func, {'conversion': time.time() - start_time}
 
 
@@ -286,8 +285,10 @@ def get_trt_conversion_params(max_workspace_size_bytes,
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Evaluate model')
-  parser.add_argument('--saved_model_dir', type=str, default=None,
-                      help='Directory containing a particular saved model.')
+  parser.add_argument('--input_saved_model_dir', type=str, default=None,
+                      help='Directory containing the input saved model.')
+  parser.add_argument('--output_saved_model_dir', type=str, default=None,
+                      help='Directory in which the converted model is saved')
   parser.add_argument('--input_size', type=int, default=640,
                       help='Size of input images expected by the model')
   parser.add_argument('--data_dir', type=str, default=None,
@@ -358,6 +359,8 @@ if __name__ == '__main__':
     raise ValueError("--data_dir required if you are not using synthetic data")
   if args.use_synthetic and args.num_iterations is None:
     raise ValueError("--num_iterations is required for --use_synthetic")
+  if args.use_trt and not args.output_saved_model_dir:
+    raise ValueError("--output_saved_model_dir must be set if use_trt=True")
 
   params = get_trt_conversion_params(
       args.max_workspace_size,
@@ -365,7 +368,8 @@ if __name__ == '__main__':
       args.minimum_segment_size,
       args.batch_size,)
   graph_func, times = get_graph_func(
-      saved_model_dir=args.saved_model_dir,
+      input_saved_model_dir=args.input_saved_model_dir,
+      output_saved_model_dir=args.output_saved_model_dir,
       data_dir=args.data_dir,
       calib_data_dir=args.calib_data_dir,
       annotation_path=args.annotation_path,
