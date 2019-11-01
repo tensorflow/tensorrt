@@ -18,6 +18,9 @@
 
 set -v
 
+echo Install Cython...
+pip install Cython
+
 echo Install cocodataset/cocoapi/PythonAPI...
 COCO_API_DIR=../third_party/cocoapi
 PYCOCO_DIR=$COCO_API_DIR/PythonAPI
