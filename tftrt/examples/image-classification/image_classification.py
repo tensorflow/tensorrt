@@ -17,6 +17,7 @@
 
 import argparse
 import os
+import logging
 import time
 import pprint
 from functools import partial
@@ -291,6 +292,8 @@ def get_trt_conversion_params(max_workspace_size_bytes,
 
 
 if __name__ == '__main__':
+  logging.getLogger("tensorflow").setLevel(logging.INFO)
+
   parser = argparse.ArgumentParser(description='Evaluate model')
   parser.add_argument('--input_saved_model_dir', type=str, default=None,
                       help='Directory containing the input saved model.')
