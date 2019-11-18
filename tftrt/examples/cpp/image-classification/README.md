@@ -22,6 +22,8 @@
 
 This example shows how you can load a native TensorFlow model (saved as a frozen graph), convert it to a TF-TRT optimizaed model (via the TF-TRT Python API), then load and serve the model in C++.
 
+This example is built based upon Google TensorFlow C++ image classificaition example at https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/label_image.
+
 ## Docker environment
 Docker images provide a convinient and repeatable environment for experimentation. This workflow was tested in the NVIDIA NGC TensorFlow 19.09 docker container that comes with a TensorFlow 1.14 build. Tools required for building this example, such as Bazel, NVIDIA CUDA, CUDNN, NCCL libraries are all readily setup.
 
@@ -37,16 +39,19 @@ Then start the container with nvidia-docker:
 nvidia-docker run --rm -it -p 8888:8888 --name TFTRT_CPP nvcr.io/nvidia/tensorflow:19.09-py3
 ```
 
-Within the docker container, clone the TF-TRT example repository:
+You will land at `workspace` within the docker container. Clone the TF-TRT example repository with:
 
 ```
-git clone https://github.com/tensorflow/tensorrt
+git clone https://github.com/vinhngx/tensorrt
+cd tensorrt 
+git checkout vinhn-tf-cpp-1.14
+
 ```
 
 Then copy the content of this C++ example directory to the TensorFlow example source directory:
 
 ```
-cp -r tensorrt/tftrt/example/cpp/image-classification /opt/tensorflow/tensorflow-source/tensorflow/examples
+cp -r ./tftrt/examples/cpp/image-classification/ /opt/tensorflow/tensorflow-source/tensorflow/examples/
 cd /opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification
 ```
 
@@ -59,8 +64,9 @@ file to the `data` directory in the source tree:
 <!-- #endregion -->
 
 ```bash
-$ curl -L "https://storage.googleapis.com/download.tensorflow.org/models/inception_v3_2016_08_28_frozen.pb.tar.gz" |
-  tar -C tensorflow/examples/image-classification/data -xz
+mkdir data
+curl -L "https://storage.googleapis.com/download.tensorflow.org/models/inception_v3_2016_08_28_frozen.pb.tar.gz" |
+  tar -C ./data -xz
 ```
 
 <!-- #region -->
@@ -70,6 +76,7 @@ A TF-TRT conversion script is provided in `tf-trt-conversion.py`. Execute this s
 
 ``` 
 cd /opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification
+cp ../label_image/data/grace_hopper.jpg ./data
 python tf-trt-conversion.py
 ```
 
@@ -95,13 +102,14 @@ Then from `/opt/tensorflow`, run this command with `--noclean` option on the fir
 <!-- #endregion -->
 
 ```bash
-$ cd /opt/tensorflow & ./image_classification_nvbuild.sh  --python3.6 --noclean
+cd /opt/tensorflow 
+bash ./image_classification_nvbuild.sh  --python3.6 --noclean
 ```
 
 That should build a binary executable `tftrt_label_image` that you can then run like this:
 
 ```bash
-$ bazel-bin/tensorflow/examples/image-classification/tftrt_label_image
+tensorflow-source/bazel-bin/tensorflow/examples/image-classification/tftrt_label_image
 ```
 
 This uses the default image example image that ships with the framework at `/opt/tensorflow/tensorflow-source/tensorflow/examples/label_image/data/grace_hopper.jpg` using the converted TF-TRT FP32 model at `/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/inception_v3_2016_08_28_frozen_tftrt_fp32.pb`, and should
@@ -122,8 +130,12 @@ score of 0.8.
 Next, try it out on your own images by supplying the --image= argument, e.g.
 
 ```bash
-$ bazel-bin/tensorflow/examples/label_image/tftrt_label_image --image=my_image.png
+tensorflow-source/bazel-bin/tensorflow/examples/label_image/tftrt_label_image --image=my_image.png
 ```
+
+## What's next
+
+Try to build TF-TRT FP16 and INT8 models and test on your own data, and serve them with C++.
 
 ```bash
 
