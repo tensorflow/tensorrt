@@ -37,6 +37,7 @@ limitations under the License.
 #include <fstream>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 #include "tensorflow/cc/ops/const_op.h"
 #include "tensorflow/cc/ops/image_ops.h"
@@ -282,11 +283,20 @@ int main(int argc, char* argv[]) {
   // They define where the graph and input data is located, and what kind of
   // input the model expects. If you train your own model, or use something
   // other than inception_v3, then you'll need to update these.
-  string image = "/opt/tensorflow/tensorflow-source/tensorflow/examples/label_image/data/grace_hopper.jpg";
-  string graph =
-      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/inception_v3_2016_08_28_frozen_tftrt_fp32.pb";
-  string labels =
-      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/imagenet_slim_labels.txt";
+  
+  //string image = "/opt/tensorflow/tensorflow-source/tensorflow/examples/label_image/data/grace_hopper.jpg";
+  //string graph =
+  //    "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/inception_v3_2016_08_28_frozen_tftrt_fp32.pb";
+  //string labels =
+  //    "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/imagenet_slim_labels.txt";
+  
+    string image = "/data/tensorflow-cpp-tf1.14/tensorflow-source/tensorflow/examples/label_image/data/grace_hopper.jpg";
+    string graph =
+      "/data/tensorflow-cpp-tf1.14/tensorflow-source/tensorflow/examples/image-classification/data/inception_v3_2016_08_28_frozen_tftrt_fp32.pb";
+    string labels =
+      "/data/tensorflow-cpp-tf1.14/tensorflow-source/tensorflow/examples/image-classification/data/imagenet_slim_labels.txt";
+  
+    
   int32 input_width = 299;
   int32 input_height = 299;
   float input_mean = 0;
@@ -378,5 +388,32 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
+  // Run benchmarking
+  int N_warmup_run = 50;
+  int N_run = 1000;
+  int BATCH_SIZE = 1;
+  std::vector<double> elapsed_time;
+
+  for (int i=0; i<N_warmup_run; i++){
+      Status run_status = session->Run({{input_layer, resized_tensor}},
+                                   {output_layer}, {}, &outputs);
+  }
+  
+  std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+
+  for (int i=0; i<N_run; i++){
+      start_time = std::chrono::steady_clock::now();
+      Status run_status = session->Run({{input_layer, resized_tensor}},
+                                   {output_layer}, {}, &outputs);
+      end_time = std::chrono::steady_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+      elapsed_time.push_back(double(duration));
+      if (i % 50 == 0){
+        LOG(INFO) << "Step " << i << ": " << accumulate( elapsed_time.begin(), elapsed_time.end(), 0.0)/elapsed_time.size() << " ms";
+      }
+  }
+  LOG(INFO) << "Throughput: " << 1000 * N_run * BATCH_SIZE / accumulate(elapsed_time.begin(), elapsed_time.end(), 0.0) << " images/s";
+    
   return 0;
 }

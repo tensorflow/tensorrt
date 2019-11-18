@@ -20,7 +20,7 @@
 
 # TensorFlow-TensorRT (TF-TRT) C++ Image Recognition Demo
 
-This example shows how you can load a native TensorFlow model (saved as a frozen graph), convert it to a TF-TRT optimizaed model (via the TF-TRT Python API), then load and serve the model in C++.
+This example shows how you can load a native TensorFlow model (saved as a frozen graph), convert it to a TF-TRT optimized model (via the TF-TRT Python API), then load and serve the model in C++.
 
 This example is built based upon Google TensorFlow C++ image classificaition example at https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/label_image.
 
@@ -39,7 +39,7 @@ Then start the container with nvidia-docker:
 nvidia-docker run --rm -it -p 8888:8888 --name TFTRT_CPP nvcr.io/nvidia/tensorflow:19.09-py3
 ```
 
-You will land at `workspace` within the docker container. Clone the TF-TRT example repository with:
+You will land at `/workspace` within the docker container. Clone the TF-TRT example repository with:
 
 ```
 git clone https://github.com/vinhngx/tensorrt
@@ -80,7 +80,7 @@ cp ../label_image/data/grace_hopper.jpg ./data
 python tf-trt-conversion.py
 ```
 
-This script will load the native TensorFlow model downloaded above and convert it, by default, to an FP32 TF-TRT model. As part of the conversion, the script will also carry out benchmarking and print out the statistics. 
+This script will load the native TensorFlow model downloaded above and convert it, by default, to an FP32 TF-TRT model. As part of the conversion, the script will also carry out benchmarking and print out the throughput statistics. 
 
 A Jupyter notebook version is provided in `tf-trt-conversion.ipynb` for your own experimentation. 
 
@@ -126,6 +126,8 @@ I tensorflow/examples/label_image/main.cc:206] bulletproof vest (466): 0.0053508
 In this case, we're using the default image of Admiral Grace Hopper, and you can
 see the network correctly spots she's wearing a military uniform, with a high
 score of 0.8.
+
+The program will also benchmark and output the throughput. Observe the improved throughput offered by moving from Python to C++ serving.
 
 Next, try it out on your own images by supplying the --image= argument, e.g.
 
