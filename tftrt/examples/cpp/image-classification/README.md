@@ -98,12 +98,18 @@ cp image_classification_bazel_build.sh /opt/tensorflow
 cp image_classification_nvbuild.sh /opt/tensorflow
 ```
 
-Then from `/opt/tensorflow`, run this command with `--noclean` option on the first build, and `--noclean --noconfig` for subsequent builds.
+Then from `/opt/tensorflow`, run this command with `--noclean` option on the first build:
 <!-- #endregion -->
 
 ```bash
 cd /opt/tensorflow 
 bash ./image_classification_nvbuild.sh  --python3.6 --noclean
+```
+
+For subsequent build, add the `--noconfig` option to speed up the build process:
+
+```bash
+bash ./image_classification_nvbuild.sh  --python3.6 --noclean --noconfig
 ```
 
 That should build a binary executable `tftrt_label_image` that you can then run like this:
