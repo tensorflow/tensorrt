@@ -284,18 +284,11 @@ int main(int argc, char* argv[]) {
   // input the model expects. If you train your own model, or use something
   // other than inception_v3, then you'll need to update these.
   
-  //string image = "/opt/tensorflow/tensorflow-source/tensorflow/examples/label_image/data/grace_hopper.jpg";
-  //string graph =
-  //    "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/inception_v3_2016_08_28_frozen_tftrt_fp32.pb";
-  //string labels =
-  //    "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/imagenet_slim_labels.txt";
-  
-    string image = "/data/tensorflow-cpp-tf1.14/tensorflow-source/tensorflow/examples/label_image/data/grace_hopper.jpg";
-    string graph =
-      "/data/tensorflow-cpp-tf1.14/tensorflow-source/tensorflow/examples/image-classification/data/inception_v3_2016_08_28_frozen_tftrt_fp32.pb";
-    string labels =
-      "/data/tensorflow-cpp-tf1.14/tensorflow-source/tensorflow/examples/image-classification/data/imagenet_slim_labels.txt";
-  
+  string image = "/opt/tensorflow/tensorflow-source/tensorflow/examples/label_image/data/grace_hopper.jpg";
+  string graph =
+      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/inception_v3_2016_08_28_frozen_tftrt_fp32.pb";
+  string labels =
+      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/imagenet_slim_labels.txt";
     
   int32 input_width = 299;
   int32 input_height = 299;

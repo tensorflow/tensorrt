@@ -98,7 +98,7 @@ cp image_classification_bazel_build.sh /opt/tensorflow
 cp image_classification_nvbuild.sh /opt/tensorflow
 ```
 
-Then from `/opt/tensorflow`, run this command with `--noclean` option on the first build:
+Then from `/opt/tensorflow`, run the build command with `--noclean` option on the first build:
 <!-- #endregion -->
 
 ```bash
