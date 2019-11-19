@@ -274,6 +274,25 @@ def run_inference(graph_func,
   return results
 
 
+def config_gpu_memory(gpu_mem_cap):
+  gpus=tf.config.experimental.list_physical_devices('GPU')
+  if not gpus:
+    return
+  print('Found the following GPUs:')
+  for gpu in gpus:
+    print(' ', gpu)
+  for gpu in gpus:
+    try:
+      if not gpu_mem_cap:
+        tf.config.experimental.set_memory_growth(gpu, True)
+      else:
+        tf.config.experimental.set_virstual_device_configuration(
+            gpu,
+            [tf.config.experimental.ViertualDeviceConfiguration(
+               memory_limit=gpu_mem_cap)])
+    except RuntimeError as e:
+      print('Can not set GPU memory config', e)
+
 def get_trt_conversion_params(max_workspace_size_bytes,
                               precision_mode,
                               minimum_segment_size,
@@ -341,6 +360,9 @@ if __name__ == '__main__':
                       help='Number of inputs (e.g. images) used for'
                       'calibration (last batch is skipped in case'
                       'it is not full)')
+  parser.add_argument('--gpu_mem_cap', type=int, default=0,
+                      help='Upper bound for GPU memory in MB.'
+                      'Default is 0 which means allow_growth will be used.')
   parser.add_argument('--max_workspace_size', type=int, default=(1<<30),
                       help='workspace size in bytes')
   parser.add_argument('--mode', choices=['validation', 'benchmark'],
@@ -395,6 +417,8 @@ if __name__ == '__main__':
       raise ValueError("Mode must be either 'validation' or 'benchamark'")
     if args.precision == 'INT8':
       calib_files = get_files(args.calib_data_dir, 'train*')
+
+  config_gpu_memory(args.gpu_mem_cap)
 
   params = get_trt_conversion_params(
       args.max_workspace_size,
