@@ -25,27 +25,26 @@ This example shows how you can load a native TensorFlow model (saved as a frozen
 This example is built based upon Google TensorFlow C++ image classificaition example at https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/label_image.
 
 ## Docker environment
-Docker images provide a convinient and repeatable environment for experimentation. This workflow was tested in the NVIDIA NGC TensorFlow 19.09 docker container that comes with a TensorFlow 1.14 build. Tools required for building this example, such as Bazel, NVIDIA CUDA, CUDNN, NCCL libraries are all readily setup.
+Docker images provide a convinient and repeatable environment for experimentation. This workflow was tested in the NVIDIA NGC TensorFlow 19.10 docker container that comes with a TensorFlow 1.14 build. Tools required for building this example, such as Bazel, NVIDIA CUDA, CUDNN, NCCL libraries are all readily setup.
 
 To replecate the below steps, start by pulling the NGC TF container:
 
 ```
-docker pull nvcr.io/nvidia/tensorflow:19.09-py3
+docker pull nvcr.io/nvidia/tensorflow:19.10-py3
 ```
 
 Then start the container with nvidia-docker:
 
 ```
-nvidia-docker run --rm -it -p 8888:8888 --name TFTRT_CPP nvcr.io/nvidia/tensorflow:19.09-py3
+nvidia-docker run --rm -it -p 8888:8888 --name TFTRT_CPP nvcr.io/nvidia/tensorflow:19.10-py3
 ```
 
 You will land at `/workspace` within the docker container. Clone the TF-TRT example repository with:
 
 ```
-git clone https://github.com/vinhngx/tensorrt
+git clone https://github.com/tensorflow/tensorrt
 cd tensorrt 
-git checkout vinhn-tf-cpp-1.14
-
+git checkout r1.14+
 ```
 
 Then copy the content of this C++ example directory to the TensorFlow example source directory:
@@ -94,22 +93,15 @@ The NVIDIA NGC container should have everything you need to run this example ins
 To build it, first, you need to copy the two build scripts `image_classification_bazel_build.sh` and `image_classification_nvbuild.sh` to `/opt/tensorflow`:
 
 ```
-cp image_classification_bazel_build.sh /opt/tensorflow
-cp image_classification_nvbuild.sh /opt/tensorflow
+cp image_classification_build.sh /opt/tensorflow
 ```
 
-Then from `/opt/tensorflow`, run the build command with `--noclean` option on the first build:
+Then from `/opt/tensorflow`, run the build command:
 <!-- #endregion -->
 
 ```bash
 cd /opt/tensorflow 
-bash ./image_classification_nvbuild.sh  --python3.6 --noclean
-```
-
-For subsequent build, add the `--noconfig` option to speed up the build process:
-
-```bash
-bash ./image_classification_nvbuild.sh  --python3.6 --noclean --noconfig
+bash ./image_classification_build.sh
 ```
 
 That should build a binary executable `tftrt_label_image` that you can then run like this:
