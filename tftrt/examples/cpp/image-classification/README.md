@@ -107,7 +107,7 @@ bash ./image_classification_build.sh
 That should build a binary executable `tftrt_label_image` that you can then run like this:
 
 ```bash
-tensorflow-source/bazel-bin/tensorflow/examples/image-classification/tftrt_label_image
+/opt/tensorflow/tensorflow-source/bazel-bin/tensorflow/examples/image-classification/tftrt_label_image
 ```
 
 This uses the default image example image that ships with the framework at `/opt/tensorflow/tensorflow-source/tensorflow/examples/label_image/data/grace_hopper.jpg` using the converted TF-TRT FP32 model at `/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/inception_v3_2016_08_28_frozen_tftrt_fp32.pb`, and should
@@ -130,7 +130,7 @@ The program will also benchmark and output the throughput. Observe the improved 
 Next, try it out on your own images by supplying the --image= argument, e.g.
 
 ```bash
-tensorflow-source/bazel-bin/tensorflow/examples/label_image/tftrt_label_image --image=my_image.png
+/opt/tensorflow/tensorflow-source/bazel-bin/tensorflow/examples/label_image/tftrt_label_image --image=my_image.png
 ```
 
 ## What's next
