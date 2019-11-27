@@ -189,12 +189,28 @@ with tf.compat.v1.Session(graph=graph) as sess:
 BATCH_SIZE = 1
 
 graph_def = load_graph_def(model_file)
-    
+
+# TF 1.13 API
+"""
 trt_fp32_graph = trt.create_inference_graph(
     input_graph_def=graph_def,
     outputs=['InceptionV3/Predictions/Reshape_1'],
     max_batch_size=BATCH_SIZE,
     precision_mode="FP32")
+"""
+
+# TF 1.14 - 1.15 API
+from tensorflow.python.compiler.tensorrt import trt_convert
+converter = trt_convert.TrtGraphConverter(
+    input_graph_def=graph_def,
+    nodes_blacklist=['InceptionV3/Predictions/Reshape_1'],
+    max_workspace_size_bytes=1<<32,
+    precision_mode="FP32",
+    minimum_segment_size=1,
+    is_dynamic_op=True,
+    maximum_cached_engines=8)
+
+trt_fp32_graph = converter.convert()
 
 
 # %%
