@@ -173,7 +173,7 @@ def get_graph_func(input_saved_model_dir,
         print("  step %d/%d" % (i+1, num_iterations))
         i += 1
     if conversion_params.precision_mode != 'INT8':
-      print('Graph convertion...')
+      print('Graph conversion...')
       converter.convert()
       if optimize_offline:
         print('Building TensorRT engines...')
@@ -181,7 +181,7 @@ def get_graph_func(input_saved_model_dir,
       converter.save(output_saved_model_dir=output_saved_model_dir)
       graph_func = get_func_from_saved_model(output_saved_model_dir)
     else:
-      print('Graph convertion and INT8 calibration...')
+      print('Graph conversion and INT8 calibration...')
       converter.convert(calibration_input_fn=partial(
           input_fn, calib_files, num_calib_inputs//batch_size))
       if optimize_offline:
