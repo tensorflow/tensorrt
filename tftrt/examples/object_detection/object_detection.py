@@ -291,15 +291,11 @@ def get_trt_conversion_params(max_workspace_size_bytes,
                               precision_mode,
                               minimum_segment_size,
                               max_batch_size):
-  conversion_params = trt.DEFAULT_TRT_CONVERSION_PARAMS
-  conversion_params = conversion_params._replace(
-      max_workspace_size_bytes=max_workspace_size_bytes)
-  conversion_params = conversion_params._replace(precision_mode=precision_mode)
-  conversion_params = conversion_params._replace(
-      minimum_segment_size=minimum_segment_size)
-  conversion_params = conversion_params._replace(
-      use_calibration=precision_mode == 'INT8')
-  conversion_params = conversion_params._replace(
+  conversion_params = trt.TrtConversionParams(
+      max_workspace_size_bytes=max_workspace_size_bytes,
+      precision_mode=precision_mode,
+      minimum_segment_size=minimum_segment_size,
+      use_calibration=precision_mode == 'INT8',
       max_batch_size=max_batch_size)
   return conversion_params
 
@@ -415,7 +411,7 @@ if __name__ == '__main__':
   print('Benchmark arguments:')
   print_dict(vars(args))
   print('TensorRT Conversion Params:')
-  print_dict(dict(params._asdict()))
+  print_dict({key:value for key, value in params.__dict__.items() if not callable(key)})
   print('Conversion times:')
   print_dict(times, postfix='s')
 
