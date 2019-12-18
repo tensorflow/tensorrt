@@ -48,6 +48,9 @@ Also see [Obtaining The ImageNet Data
 ](https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html#image-class-data)
 for more information.
 
+If the above procedure fails in TF2.x, build the dataset with TF1.x (or a container that
+comes with TF1.x), and then use that dataset in TFv2.x.
+
 ## Usage
 
 The main Python script is `image_classification.py`.  Assuming that the ImageNet
