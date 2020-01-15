@@ -139,7 +139,7 @@ def get_graph_func(input_saved_model_dir,
                    preprocess_method,
                    input_size,
                    output_saved_model_dir=None,
-                   conversion_params=trt.DEFAULT_TRT_CONVERSION_PARAMS,
+                   conversion_params=tf.experimental.tensorrt.ConversionParams(),
                    use_trt=False,
                    calib_files=None,
                    num_calib_inputs=None,
@@ -155,7 +155,7 @@ def get_graph_func(input_saved_model_dir,
   start_time = time.time()
   graph_func = get_func_from_saved_model(input_saved_model_dir)
   if use_trt:
-    converter = trt.TrtGraphConverterV2(
+    converter = tf.experimental.tensorrt.Converter(
         input_saved_model_dir=input_saved_model_dir,
         conversion_params=conversion_params,
     )
@@ -297,7 +297,7 @@ def get_trt_conversion_params(max_workspace_size_bytes,
                               precision_mode,
                               minimum_segment_size,
                               max_batch_size):
-  conversion_params = trt.TrtConversionParams(
+  conversion_params = tf.experimental.tensorrt.ConversionParams(
       max_workspace_size_bytes=max_workspace_size_bytes,
       precision_mode=precision_mode,
       minimum_segment_size=minimum_segment_size,
