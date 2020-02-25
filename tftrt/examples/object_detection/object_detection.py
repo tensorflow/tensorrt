@@ -35,15 +35,16 @@ def get_dataset(images_dir,
                 annotation_path,
                 batch_size,
                 use_synthetic,
-                input_size):
+                input_size,
+                dtype=tf.float32):
   image_ids = None
   if use_synthetic:
     features = np.random.normal(
       loc=112, scale=70,
       size=(batch_size, input_size, input_size, 3)).astype(np.float32)
-    features = np.clip(features, 0.0, 255.0)
+    features = np.clip(features, 0.0, 255.0).astype(dtype.as_numpy_dtype)
     features = tf.convert_to_tensor(value=tf.compat.v1.get_variable(
-      "features", dtype=tf.float32, initializer=tf.constant(features)))
+      "features", initializer=tf.constant(features)))
     dataset = tf.data.Dataset.from_tensor_slices([features])
     dataset = dataset.repeat()
   else:
@@ -64,7 +65,7 @@ def get_dataset(images_dir,
     dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=8)
     dataset = dataset.batch(batch_size)
     dataset = dataset.repeat(count=1)
-    return dataset, image_ids
+  return dataset, image_ids
 
 
 def get_func_from_saved_model(saved_model_dir):
@@ -153,11 +154,13 @@ def run_inference(graph_func,
   iter_times = []
   initial_time = time.time()
 
+  input_dtype = graph_func.inputs[0].dtype
   dataset, image_ids = get_dataset(images_dir=data_dir,
                         annotation_path=annotation_path,
                         batch_size=batch_size,
                         use_synthetic=use_synthetic,
-                        input_size=input_size)
+                        input_size=input_size,
+                        dtype=input_dtype)
   if mode == 'validation':
     for i, batch_images in enumerate(dataset):
       start_time = time.time()
