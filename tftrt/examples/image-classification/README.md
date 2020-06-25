@@ -62,8 +62,8 @@ model as follows:
 python image_classification.py \
     --data_dir /data/imagenet/train-val-tfrecord \
     --calib_data_dir /data/imagenet/train-val-tfrecord \
-    --saved_model_dir /models/resnet_v1.5_50_saved_model/ \
-    --model resnet_v1.5_50_tfv2 \
+    --input_saved_model_dir /models/resnet_v1.5_50_saved_model/ \
+    --output_saved_model_dir resnet_v1.5_50_tfv2 \
     --mode validation \
     --num_warmup_iterations 50 \
     --num_calib_inputs 128
@@ -77,9 +77,9 @@ python image_classification.py \
 
 Where:
 
-`--saved_model_dir`: Input model to optimize with TF-TRT
+`--input_saved_model_dir`: Input model to optimize with TF-TRT
 
-`--model`: Name of the model (only used to get the right preprocessing)
+`--output_saved_model_dir`: Name of the model (only used to get the right preprocessing)
 
 `--data_dir`: Path to the ImageNet TFRecord validation files.
 
