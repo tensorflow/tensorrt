@@ -1,5 +1,5 @@
 # Introduction
-A collections of sample models to run with TF/TRT and capture potential
+A collection of sample models to run with TF/TRT and capture potential
 performance and numerical regressions.
 
 # Usage
@@ -7,6 +7,7 @@ Use `tensorflow/python/compiler/tensorrt/model_tests/run_models` as the driver
 of the model tests.
 
 Options:
+```bash
 $(TENSORFLOW_REPO_PATH)/tensorflow/python/compiler/tensorrt/model_tests/run_models --help
   --batch_size: The batch size used to run the testing model with.
     (default: '128')
@@ -33,11 +34,14 @@ $(TENSORFLOW_REPO_PATH)/tensorflow/python/compiler/tensorrt/model_tests/run_mode
     (a number)
   --[no]use_tf2: Whether to test with TF2 behavior or not (TF1).
     (default: 'true')
+```
 
 Example:
+```bash
 $(TENSORFLOW_REPO_PATH)/tensorflow/python/compiler/tensorrt/model_tests/run_models \
 --saved_model_dir=$(TENSORFLOW_TENSORRT_REPO_PATH)/tftrt/tests/reset50v2 \
 --saved_model_signature_key=resnet50v2 --batch_size=1  --use_tf2=false --numerics_baseline=GPU
+```
 
 # Models
 | Architecture | SavedModel | Signature  | Format       |
