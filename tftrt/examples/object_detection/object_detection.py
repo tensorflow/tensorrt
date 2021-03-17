@@ -30,6 +30,8 @@ from tensorflow.python.saved_model import tag_constants
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
+logging.disable(logging.WARNING)
+
 
 def get_dataset(images_dir,
                 annotation_path,
@@ -38,6 +40,7 @@ def get_dataset(images_dir,
                 input_size,
                 dtype=tf.float32):
   image_ids = None
+  num_steps = None
   if use_synthetic:
     features = np.random.normal(
       loc=112, scale=70,
@@ -51,6 +54,9 @@ def get_dataset(images_dir,
     coco = COCO(annotation_file=annotation_path)
     image_ids = coco.getImgIds()
     image_paths = []
+
+    num_steps = len(image_ids)//batch_size
+
     for image_id in image_ids:
       coco_img = coco.imgs[image_id]
       image_paths.append(os.path.join(images_dir, coco_img['file_name']))
@@ -65,7 +71,7 @@ def get_dataset(images_dir,
     dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=8)
     dataset = dataset.batch(batch_size)
     dataset = dataset.repeat(count=1)
-  return dataset, image_ids
+  return dataset, image_ids, num_steps
 
 
 def get_func_from_saved_model(saved_model_dir):
@@ -101,8 +107,8 @@ def get_graph_func(input_saved_model_dir,
         input_saved_model_dir=input_saved_model_dir,
         conversion_params=conversion_params,
     )
-    def input_fn(input_data_dir, num_iterations):
-      dataset, image_ids = get_dataset(
+    def input_fn(input_data_dir, num_iterations, model_phase):
+      dataset, image_ids, _ = get_dataset(
           images_dir=input_data_dir,
           annotation_path=annotation_path,
           batch_size=batch_size,
@@ -112,23 +118,23 @@ def get_graph_func(input_saved_model_dir,
         if i >= num_iterations:
           break
         yield (batch_images,)
-        print("  step %d/%d" % (i+1, num_iterations))
+        print("* [%s] - step %02d/%02d" % (model_phase, i+1, num_iterations))
         i += 1
     if conversion_params.precision_mode != 'INT8':
       print('Graph conversion...')
       converter.convert()
       if optimize_offline:
         print('Building TensorRT engines...')
-        converter.build(input_fn=partial(input_fn, data_dir, 1))
+        converter.build(input_fn=partial(input_fn, data_dir, 1, "Building"))
       converter.save(output_saved_model_dir=output_saved_model_dir)
       graph_func = get_func_from_saved_model(output_saved_model_dir)
     else:
       print('Graph conversion and INT8 calibration...')
       converter.convert(calibration_input_fn=partial(
-          input_fn, calib_data_dir, num_calib_inputs//batch_size))
+          input_fn, calib_data_dir, num_calib_inputs//batch_size, "Calibration"))
       if optimize_offline:
         print('Building TensorRT engines...')
-        converter.build(input_fn=partial(input_fn, data_dir, 1))
+        converter.build(input_fn=partial(input_fn, data_dir, 1, "Building"))
       converter.save(output_saved_model_dir=output_saved_model_dir)
       graph_func = get_func_from_saved_model(output_saved_model_dir)
   return graph_func, {'conversion': time.time() - start_time}
@@ -155,12 +161,12 @@ def run_inference(graph_func,
   initial_time = time.time()
 
   input_dtype = graph_func.inputs[0].dtype
-  dataset, image_ids = get_dataset(images_dir=data_dir,
-                        annotation_path=annotation_path,
-                        batch_size=batch_size,
-                        use_synthetic=use_synthetic,
-                        input_size=input_size,
-                        dtype=input_dtype)
+  dataset, image_ids, num_steps = get_dataset(images_dir=data_dir,
+                                              annotation_path=annotation_path,
+                                              batch_size=batch_size,
+                                              use_synthetic=use_synthetic,
+                                              input_size=input_size,
+                                              dtype=input_dtype)
   if mode == 'validation':
     for i, batch_images in enumerate(dataset):
       start_time = time.time()
@@ -172,9 +178,9 @@ def run_inference(graph_func,
           predictions[key] = [batch_preds[key]]
         else:
           predictions[key].append(batch_preds[key])
-      if i % display_every == 0:
-        print("  step %d/%d, iter_time(ms)=%.0f" %
-              (i+1, 4096//batch_size, iter_times[-1]*1000))
+      if (i + 1) % display_every == 0:
+        print("  step %03d/%03d, iter_time(ms)=%.0f" %
+              (i+1, num_steps, iter_times[-1]*1000))
       if i > 1 and target_duration is not None and \
         time.time() - initial_time > target_duration:
         break
@@ -184,8 +190,8 @@ def run_inference(graph_func,
         start_time = time.time()
         batch_preds = list(graph_func(batch_images).values())[0].numpy()
         iter_times.append(time.time() - start_time)
-        if i % display_every == 0:
-          print("  step %d/%d, iter_time(ms)=%.0f" %
+        if (i + 1) % display_every == 0:
+          print("  step %03d/%03d, iter_time(ms)=%.0f" %
                 (i+1, num_iterations, iter_times[-1]*1000))
       else:
         batch_preds = list(graph_func(batch_images).values())[0].numpy()
@@ -209,7 +215,7 @@ def run_inference(graph_func,
   return results, predictions, image_ids
 
 
-def eval_model(predictions, image_ids, annotation_path):
+def eval_model(predictions, image_ids, annotation_path, output_saved_model_dir):
   name_map = {
       'output_0':'boxes',
       'output_1':'classes',
@@ -250,13 +256,16 @@ def eval_model(predictions, image_ids, annotation_path):
         'score': float(predictions['scores'][i][j])
       }
       coco_detections.append(coco_detection)
+
   # write coco detections to file
-  tmp_dir = 'tmp_detection_results'
-  subprocess.call(['mkdir', '-p', tmp_dir])
+  tmp_dir = os.path.join(output_saved_model_dir, 'tmp_detection_results')
+  os.makedirs(tmp_dir)
+
   coco_detections_path = os.path.join(tmp_dir, 'coco_detections.json')
   with open(coco_detections_path, 'w') as f:
     json.dump(coco_detections, f)
   cocoDt = coco.loadRes(coco_detections_path)
+
   subprocess.call(['rm', '-r', tmp_dir])
 
   # compute coco metrics
@@ -435,7 +444,7 @@ if __name__ == '__main__':
                 target_duration=args.target_duration)
   print('Results:')
   if args.mode == 'validation':
-    mAP = eval_model(predictions, image_ids, args.annotation_path)
+    mAP = eval_model(predictions, image_ids, args.annotation_path, args.output_saved_model_dir)
     print('  mAP: %f' % mAP)
   print('  images/sec: %d' % results['images_per_sec'])
   print('  99th_percentile(ms): %.2f' % results['99th_percentile'])

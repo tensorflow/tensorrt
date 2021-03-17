@@ -159,7 +159,7 @@ def get_graph_func(input_saved_model_dir,
         input_saved_model_dir=input_saved_model_dir,
         conversion_params=conversion_params,
     )
-    def input_fn(input_files, num_iterations):
+    def input_fn(input_files, num_iterations, model_phase):
       dataset = get_dataset(data_files=input_files,
                             batch_size=batch_size,
                             use_synthetic=False,
@@ -170,23 +170,23 @@ def get_graph_func(input_saved_model_dir,
         if i >= num_iterations:
           break
         yield (batch_images,)
-        print("  step %d/%d" % (i+1, num_iterations))
+        print("* [%s] - step %d/%d" % (model_phase, i+1, num_iterations))
         i += 1
     if conversion_params.precision_mode != 'INT8':
       print('Graph conversion...')
       converter.convert()
       if optimize_offline:
         print('Building TensorRT engines...')
-        converter.build(input_fn=partial(input_fn, data_files, 1))
+        converter.build(input_fn=partial(input_fn, data_files, 1, "Building"))
       converter.save(output_saved_model_dir=output_saved_model_dir)
       graph_func = get_func_from_saved_model(output_saved_model_dir)
     else:
       print('Graph conversion and INT8 calibration...')
       converter.convert(calibration_input_fn=partial(
-          input_fn, calib_files, num_calib_inputs//batch_size))
+          input_fn, calib_files, num_calib_inputs//batch_size, "Calibration"))
       if optimize_offline:
         print('Building TensorRT engines...')
-        converter.build(input_fn=partial(input_fn, data_files, 1))
+        converter.build(input_fn=partial(input_fn, data_files, 1, "Building"))
       converter.save(output_saved_model_dir=output_saved_model_dir)
       graph_func = get_func_from_saved_model(output_saved_model_dir)
   return graph_func, {'conversion': time.time() - start_time}
@@ -232,7 +232,7 @@ def run_inference(graph_func,
       batch_preds = graph_func(batch_images)[0].numpy()
       end_time = time.time()
       iter_times.append(end_time - start_time)
-      if i % display_every == 0:
+      if (i + 1) % display_every == 0:
         print("  step %d/%d, iter_time(ms)=%.0f" %
               (i+1, 50000//batch_size, iter_times[-1]*1000))
       corrects += eval_fn(
@@ -249,7 +249,7 @@ def run_inference(graph_func,
         start_time = time.time()
         batch_preds = list(graph_func(batch_images).values())[0].numpy()
         iter_times.append(time.time() - start_time)
-        if i % display_every == 0:
+        if (i + 1) % display_every == 0:
           print("  step %d/%d, iter_time(ms)=%.0f" %
                 (i+1, num_iterations, iter_times[-1]*1000))
       else:
