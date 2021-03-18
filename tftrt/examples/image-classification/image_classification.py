@@ -29,6 +29,9 @@ from tensorflow.python.saved_model import tag_constants
 from tensorflow.python.framework import convert_to_constants
 import preprocessing
 
+logging.disable(logging.WARNING)
+
+
 def deserialize_image_record(record):
   feature_map = {'image/encoded': tf.io.FixedLenFeature([], tf.string, ''),
                  'image/class/label': tf.io.FixedLenFeature([1], tf.int64, -1),

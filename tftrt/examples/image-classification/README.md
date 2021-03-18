@@ -90,3 +90,282 @@ Where:
 `--mode`: Which mode to use (validation or benchmark). In validation we run inference with accuracy and performance measurments, in benchmark only performance.
 
 Run with `--help` to see all available options.
+
+
+## Ready to Use Scripts:
+
+#### 1. resnet_v1_50
+```bash
+# Tensorflow - FP32
+./scripts/resnet_v1_50.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/resnet_v1_50.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/resnet_v1_50.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/resnet_v1_50.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 2. resnet_v1.5_50_tfv2
+```bash
+# Tensorflow - FP32
+./scripts/resnet_v1.5_50_tfv2.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/resnet_v1.5_50_tfv2.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/resnet_v1.5_50_tfv2.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/resnet_v1.5_50_tfv2.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 3. resnet_v2_50
+```bash
+# Tensorflow - FP32
+./scripts/resnet_v2_50.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/resnet_v2_50.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/resnet_v2_50.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/resnet_v2_50.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 4. inception_v3
+```bash
+# Tensorflow - FP32
+./scripts/inception_v3.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/inception_v3.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/inception_v3.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/inception_v3.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 5. inception_v4
+```bash
+# Tensorflow - FP32
+./scripts/inception_v4.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/inception_v4.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/inception_v4.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/inception_v4.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 6. mobilenet_v1
+```bash
+# Tensorflow - FP32
+./scripts/mobilenet_v1.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/mobilenet_v1.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/mobilenet_v1.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/mobilenet_v1.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 7. mobilenet_v2
+```bash
+# Tensorflow - FP32
+./scripts/mobilenet_v2.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/mobilenet_v2.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/mobilenet_v2.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/mobilenet_v2.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 8. nasnet_large
+```bash
+# Tensorflow - FP32
+./scripts/nasnet_large.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/nasnet_large.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/nasnet_large.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/nasnet_large.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 9. nasnet_mobile
+```bash
+# Tensorflow - FP32
+./scripts/nasnet_mobile.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/nasnet_mobile.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/nasnet_mobile.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/nasnet_mobile.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 10. vgg_16
+```bash
+# Tensorflow - FP32
+./scripts/vgg_16.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/vgg_16.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/vgg_16.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/vgg_16.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 11. vgg_19
+```bash
+# Tensorflow - FP32
+./scripts/vgg_19.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/vgg_19.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/vgg_19.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/vgg_19.sh \
+    --use_xla \
+    --data_dir=/data/imagenet/train-val-tfrecord --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
