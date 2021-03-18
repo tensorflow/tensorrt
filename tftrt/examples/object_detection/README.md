@@ -18,6 +18,7 @@ git submodule update --init
 ```
 
 <a name="od"></a>
+
 ## Usage
 
 Run `python object_detection.py --help` to see what arguments are available.
@@ -33,4 +34,181 @@ python object_detection.py \
     --batch_size 8 \
     --use_trt \
     --precision FP16
+```
+
+## Ready to Use Scripts:
+
+#### 1. faster_rcnn_resnet50_coco
+```bash
+# Tensorflow - FP32
+./scripts/faster_rcnn_resnet50_coco.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/coco2017 --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/faster_rcnn_resnet50_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/faster_rcnn_resnet50_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/faster_rcnn_resnet50_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 2. ssd_inception_v2_coco
+```bash
+# Tensorflow - FP32
+./scripts/ssd_inception_v2_coco.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/coco2017 --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/ssd_inception_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/ssd_inception_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/ssd_inception_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 3. ssd_mobilenet_v1_coco
+```bash
+# Tensorflow - FP32
+./scripts/ssd_mobilenet_v1_coco.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/coco2017 --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/ssd_mobilenet_v1_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/ssd_mobilenet_v1_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/ssd_mobilenet_v1_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 4. ssd_mobilenet_v1_fpn_coco
+```bash
+# Tensorflow - FP32
+./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/coco2017 --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 5. ssd_mobilenet_v2_coco
+```bash
+# Tensorflow - FP32
+./scripts/ssd_mobilenet_v2_coco.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/coco2017 --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/ssd_mobilenet_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/ssd_mobilenet_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/ssd_mobilenet_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 6. ssd_resnet_50_fpn_coco
+```bash
+# Tensorflow - FP32
+./scripts/ssd_resnet_50_fpn_coco.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/coco2017 --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/ssd_resnet_50_fpn_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/ssd_resnet_50_fpn_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/ssd_resnet_50_fpn_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
+```
+
+#### 7. ssdlite_mobilenet_v2_coco
+```bash
+# Tensorflow - FP32
+./scripts/ssdlite_mobilenet_v2_coco.sh \
+    --use_xla --no_tf32 \
+    --data_dir=/data/coco2017 --model_dir=/models
+
+# Tensorflow -TF32 (will only be different from FP32 with an AMPERE GPU or newer)
+./scripts/ssdlite_mobilenet_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models
+    
+# TF-TRT - FP16
+./scripts/ssdlite_mobilenet_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="FP16"
+    
+# TF-TRT - INT8
+./scripts/ssdlite_mobilenet_v2_coco.sh \
+    --use_xla \
+    --data_dir=/data/coco2017 --model_dir=/models \
+    --use_tftrt --tftrt_precision="INT8"
 ```
