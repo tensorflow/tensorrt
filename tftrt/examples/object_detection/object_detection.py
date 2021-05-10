@@ -232,7 +232,7 @@ def eval_model(predictions, image_ids, annotation_path, output_saved_model_dir):
     predictions[key] = np.vstack(predictions[key])
     if key == 'num_detections':
       predictions[key] = predictions[key].ravel()
-    
+
   coco = COCO(annotation_file=annotation_path)
   coco_detections = []
   for i, image_id in enumerate(image_ids):
@@ -298,11 +298,10 @@ def config_gpu_memory(gpu_mem_cap):
     except RuntimeError as e:
       print('Can not set GPU memory config', e)
 
-   
+
 def get_trt_conversion_params(max_workspace_size_bytes,
                               precision_mode,
-                              minimum_segment_size,
-                              max_batch_size):
+                              minimum_segment_size):
   conversion_params = trt.DEFAULT_TRT_CONVERSION_PARAMS
   conversion_params = conversion_params._replace(
       max_workspace_size_bytes=max_workspace_size_bytes)
@@ -311,8 +310,6 @@ def get_trt_conversion_params(max_workspace_size_bytes,
       minimum_segment_size=minimum_segment_size)
   conversion_params = conversion_params._replace(
       use_calibration=precision_mode == 'INT8')
-  conversion_params = conversion_params._replace(
-      max_batch_size=max_batch_size)
   return conversion_params
 
 

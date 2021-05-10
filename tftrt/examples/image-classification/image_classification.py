@@ -298,8 +298,7 @@ def config_gpu_memory(gpu_mem_cap):
 
 def get_trt_conversion_params(max_workspace_size_bytes,
                               precision_mode,
-                              minimum_segment_size,
-                              max_batch_size):
+                              minimum_segment_size):
   conversion_params = trt.DEFAULT_TRT_CONVERSION_PARAMS
   conversion_params = conversion_params._replace(
       max_workspace_size_bytes=max_workspace_size_bytes)
@@ -308,8 +307,6 @@ def get_trt_conversion_params(max_workspace_size_bytes,
       minimum_segment_size=minimum_segment_size)
   conversion_params = conversion_params._replace(
       use_calibration=precision_mode == 'INT8')
-  conversion_params = conversion_params._replace(
-      max_batch_size=max_batch_size)
   return conversion_params
 
 
