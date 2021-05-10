@@ -26,7 +26,6 @@ def load_with_converter(path, precision, batch_size):
 
     params = params._replace(
         precision_mode=precision_mode,
-        max_batch_size=batch_size,
         max_workspace_size_bytes=2 << 32,  # 8,589,934,592 bytes
         maximum_cached_engines=100,
         minimum_segment_size=3,
