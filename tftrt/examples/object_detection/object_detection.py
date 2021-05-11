@@ -402,8 +402,7 @@ if __name__ == '__main__':
   params = get_trt_conversion_params(
       args.max_workspace_size,
       args.precision,
-      args.minimum_segment_size,
-      args.batch_size,)
+      args.minimum_segment_size,)
   graph_func, times = get_graph_func(
       input_saved_model_dir=args.input_saved_model_dir,
       output_saved_model_dir=args.output_saved_model_dir,
