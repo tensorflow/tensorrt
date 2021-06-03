@@ -20,6 +20,7 @@ import sys
 
 import argparse
 import logging
+import multiprocessing
 import time
 
 from functools import partial
@@ -98,15 +99,29 @@ def get_dataset(data_files,
                 use_synthetic,
                 preprocess_method,
                 input_size):
+
+    dataset = tf.data.Dataset.from_tensor_slices(data_files)
+
+    dataset = dataset.interleave(
+        tf.data.TFRecordDataset,
+        cycle_length=min(8, multiprocessing.cpu_count()),
+        block_length=max(batch_size, 32)
+    )
+
     # preprocess function for input data
     preprocess_fn = get_preprocess_fn(
         preprocess_method=preprocess_method,
         input_size=input_size
     )
 
-    dataset = tf.data.TFRecordDataset(data_files)
-    dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=8)
-    dataset = dataset.batch(batch_size=batch_size)
+    dataset = dataset.apply(
+        tf.data.experimental.map_and_batch(
+            map_func=preprocess_fn,
+            batch_size=batch_size,
+            num_parallel_calls=min(8, multiprocessing.cpu_count()),
+            drop_remainder=True
+        )
+    )
 
     if use_synthetic:
         dataset = dataset.take(count=1)  # loop over 1 batch
@@ -133,7 +148,7 @@ def get_graph_func(input_saved_model_dir,
                    preprocess_method,
                    input_size,
                    output_saved_model_dir=None,
-                   conversion_params=trt.DEFAULT_TRT_CONVERSION_PARAMS,
+                   conversion_params=None,
                    use_trt=False,
                    calib_files=None,
                    num_calib_inputs=None,
@@ -145,10 +160,15 @@ def get_graph_func(input_saved_model_dir,
     batch_size: int, batch size for TensorRT optimizations
     returns: TF function that is ready to run for inference
     """
+
     start_time = time.time()
     graph_func = get_func_from_saved_model(input_saved_model_dir)
 
     if use_trt:
+
+        if conversion_params is None:
+            conversion_params = trt.DEFAULT_TRT_CONVERSION_PARAMS
+
         converter = trt.TrtGraphConverterV2(
             input_saved_model_dir=input_saved_model_dir,
             conversion_params=conversion_params,
