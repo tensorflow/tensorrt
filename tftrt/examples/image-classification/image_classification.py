@@ -463,9 +463,11 @@ if __name__ == '__main__':
 
     def print_dict(input_dict, prefix='  ', postfix=''):
         for k, v in sorted(input_dict.items()):
-            print('{}{}: {}{}'.format(
-                prefix, k, '%.1f' % v
-                if isinstance(v, float) else v, postfix
+            print('{prefix}{arg_name}: {value}{postfix}'.format(
+                prefix=prefix,
+                arg_name=k,
+                value='%.1f' % v if isinstance(v, float) else v,
+                postfix=postfix
             ))
 
     print('Benchmark arguments:')
