@@ -192,7 +192,6 @@ if [[ ${USE_TFTRT} == "0" ]]; then
         --num_warmup_iterations 100 \
         --display_every 50 \
         ${USE_SYNTHETIC_DATA_FLAG} \
-        --mode validation \
         --input_size 640 \
         --batch_size ${BATCH_SIZE}"
 else
@@ -205,7 +204,6 @@ else
         --num_warmup_iterations 100 \
         --display_every 50 \
         ${USE_SYNTHETIC_DATA_FLAG} \
-        --mode validation \
         --input_size 640 \
         --batch_size ${BATCH_SIZE} \
         --use_trt \
