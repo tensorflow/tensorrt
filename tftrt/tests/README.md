@@ -39,7 +39,7 @@ $(TENSORFLOW_REPO_PATH)/tensorflow/python/compiler/tensorrt/model_tests/run_mode
 Example:
 ```bash
 $(TENSORFLOW_REPO_PATH)/tensorflow/python/compiler/tensorrt/model_tests/run_models \
---saved_model_dir=$(TENSORFLOW_TENSORRT_REPO_PATH)/tftrt/tests/reset50v2 \
+--saved_model_dir=$(TENSORFLOW_TENSORRT_REPO_PATH)/tftrt/tests/resnet50v2 \
 --saved_model_signature_key=resnet50v2 --batch_size=1  --use_tf2=false --numerics_baseline=GPU
 ```
 
