@@ -1,3 +1,6 @@
 [submodule "tftrt/examples/third_party/cocoapi"]
 	path = tftrt/examples/third_party/cocoapi
 	url = https://github.com/cocodataset/cocoapi.git
+[submodule "tftrt/examples/third_party/DeepLearningExamples"]
+	path = tftrt/examples/third_party/DeepLearningExamples
+	url = https://github.com/NVIDIA/DeepLearningExamples.git
