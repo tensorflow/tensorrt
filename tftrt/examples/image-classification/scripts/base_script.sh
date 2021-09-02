@@ -10,6 +10,7 @@ USE_TFTRT=0
 TFTRT_PRECISION="FP32"
 
 USE_SYNTHETIC_DATA=""
+USE_DYNAMIC_SHAPE=""
 
 DATA_DIR=""
 MODEL_DIR=""
@@ -54,6 +55,10 @@ do
         USE_SYNTHETIC_DATA=1
         shift # Remove --use_synthetic from processing
         ;;
+        --use_dynamic_shape)
+        USE_DYNAMIC_SHAPE=1
+        shift # Remove --use_dynamic_shape from processing
+        ;;
     esac
 done
 
@@ -76,6 +81,13 @@ if [[ ${USE_SYNTHETIC_DATA} == "1" ]]; then
 else
     unset USE_SYNTHETIC_DATA_FLAG
     USE_SYNTHETIC_DATA_FLAG=""
+fi
+
+if [[ ${USE_DYNAMIC_SHAPE} == "1" ]]; then
+    USE_DYNAMIC_SHAPE_FLAG="--use_dynamic_shape"
+else
+    unset USE_DYNAMIC_SHAPE_FLAG
+    USE_DYNAMIC_SHAPE_FLAG=""
 fi
 
 # ============== Set model specific parameters ============= #
@@ -122,6 +134,9 @@ echo "[*] TF_XLA_FLAGS: ${TF_XLA_FLAGS}"
 echo ""
 echo "[*] USE_SYNTHETIC_DATA: ${USE_SYNTHETIC_DATA}"
 echo "[*] USE_SYNTHETIC_DATA_FLAG: ${USE_SYNTHETIC_DATA_FLAG}"
+echo ""
+echo "[*] USE_DYNAMIC_SHAPE: ${USE_DYNAMIC_SHAPE}"
+echo "[*] USE_DYNAMIC_SHAPE_FLAG: ${USE_DYNAMIC_SHAPE_FLAG}"
 echo ""
 echo "[*] USE_TF32: ${USE_TF32}"
 echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
@@ -184,35 +199,25 @@ cd ${BENCH_DIR}
 
 PREPEND_COMMAND="TF_CPP_MIN_LOG_LEVEL=2 ${TF_XLA_FLAGS} ${NVIDIA_TF32_OVERRIDE}"
 
-if [[ ${USE_TFTRT} == "0" ]]; then
-    COMMAND="${PREPEND_COMMAND} python image_classification.py \
-        --data_dir ${DATA_DIR} \
-        --calib_data_dir ${DATA_DIR} \
-        --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
-        --num_warmup_iterations 100 \
-        --display_every 50 \
-        ${USE_SYNTHETIC_DATA_FLAG} \
-        --batch_size ${BATCH_SIZE} \
-        --input_size ${INPUT_SIZE} \
-        --preprocess_method ${PREPROCESS_METHOD} \
-        --num_classes ${NUM_CLASSES}"
-else
-    COMMAND="${PREPEND_COMMAND} python image_classification.py \
-        --data_dir ${DATA_DIR} \
-        --calib_data_dir ${DATA_DIR} \
-        --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
-        --output_saved_model_dir /tmp/${RANDOM}/ \
-        --num_warmup_iterations 100 \
-        --display_every 50 \
-        ${USE_SYNTHETIC_DATA_FLAG} \
-        --batch_size ${BATCH_SIZE} \
-        --use_trt \
-        --optimize_offline \
-        --precision ${TFTRT_PRECISION} \
-        --max_workspace_size $((2**32)) \
-        --input_size ${INPUT_SIZE} \
-        --preprocess_method ${PREPROCESS_METHOD} \
-        --num_classes ${NUM_CLASSES}"
+COMMAND="${PREPEND_COMMAND} python image_classification.py \
+    --data_dir ${DATA_DIR} \
+    --calib_data_dir ${DATA_DIR} \
+    --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
+    --num_warmup_iterations 100 \
+    --display_every 50 \
+    ${USE_SYNTHETIC_DATA_FLAG} \
+    ${USE_DYNAMIC_SHAPE_FLAG} \
+    --batch_size ${BATCH_SIZE} \
+    --input_size ${INPUT_SIZE} \
+    --preprocess_method ${PREPROCESS_METHOD} \
+    --num_classes ${NUM_CLASSES}"
+
+if [[ ${USE_TFTRT} != "0" ]]; then
+      COMMAND="${COMMAND} \
+      --use_trt \
+      --optimize_offline \
+      --precision ${TFTRT_PRECISION} \
+      --max_workspace_size $((2**32))"
 fi
 
 echo -e "**Executing:**\n\n${COMMAND}\n"
