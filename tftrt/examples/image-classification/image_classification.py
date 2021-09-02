@@ -133,11 +133,16 @@ def get_dataset(data_files,
     return dataset
 
 
-def get_func_from_saved_model(saved_model_dir):
+def get_func_from_saved_model(saved_model_dir, input_signature_key=None):
+
+    if input_signature_key is None:
+        input_signature_key = \
+            signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+
     saved_model_loaded = tf.saved_model.load(
         saved_model_dir, tags=[tag_constants.SERVING])
-    _graph_func = saved_model_loaded.signatures[
-        signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+
+    _graph_func = saved_model_loaded.signatures[input_signature_key]
     _graph_func = convert_to_constants.convert_variables_to_constants_v2(
         _graph_func
     )
@@ -147,22 +152,27 @@ def get_func_from_saved_model(saved_model_dir):
 def get_graph_func(input_saved_model_dir,
                    preprocess_method,
                    input_size,
-                   output_saved_model_dir=None,
+                   output_saved_model_dir,
                    conversion_params=None,
                    use_trt=False,
                    calib_files=None,
                    num_calib_inputs=None,
+                   use_synthetic=False,
                    batch_size=None,
-                   optimize_offline=False):
+                   optimize_offline=False,
+                   use_dynamic_shape=False,
+                   input_signature_key=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+                   ):
     """Retreives a frozen SavedModel and applies TF-TRT
     use_trt: bool, if true use TensorRT
     precision: str, floating point precision (FP32, FP16, or INT8)
     batch_size: int, batch size for TensorRT optimizations
     returns: TF function that is ready to run for inference
     """
-
     start_time = time.time()
-    graph_func = get_func_from_saved_model(input_saved_model_dir)
+    graph_func = get_func_from_saved_model(
+        input_saved_model_dir, input_signature_key
+    )
 
     if use_trt:
 
@@ -172,6 +182,8 @@ def get_graph_func(input_saved_model_dir,
         converter = trt.TrtGraphConverterV2(
             input_saved_model_dir=input_saved_model_dir,
             conversion_params=conversion_params,
+            input_saved_model_signature_key=input_signature_key,
+            use_dynamic_shape=use_dynamic_shape
         )
 
         def input_fn(input_files, build_steps, model_phase):
@@ -191,34 +203,34 @@ def get_graph_func(input_saved_model_dir,
                 if i >= build_steps:
                     break
 
-                print("* [%s] - step %d/%d" % (model_phase, i + 1, build_steps))
+                print("* [%s] - step %04d/%04d" % (model_phase, i + 1, build_steps))
                 yield batch_images,
 
-        if conversion_params.precision_mode != 'INT8':
-            print('Graph conversion...')
-            converter.convert()
-            if optimize_offline:
-                print('Building TensorRT engines...')
-                converter.build(
-                    input_fn=partial(input_fn, data_files, 1, "Building")
+        if conversion_params.precision_mode == 'INT8':
+            print('Graph conversion and INT8 calibration...')
+            graph_func = converter.convert(
+                calibration_input_fn=partial(
+                    input_fn,
+                    input_files=calib_files,
+                    build_steps=num_calib_inputs // batch_size,
+                    model_phase="Calibration"
                 )
-            converter.save(output_saved_model_dir=output_saved_model_dir)
-            graph_func = get_func_from_saved_model(output_saved_model_dir)
+            )
 
         else:
-            print('Graph conversion and INT8 calibration...')
-            converter.convert(calibration_input_fn=partial(
-                input_fn, calib_files, num_calib_inputs // batch_size,
-                "Calibration"))
-            if optimize_offline:
-                print('Building TensorRT engines...')
-                converter.build(
-                    input_fn=partial(input_fn, data_files, 1, "Building")
-                )
-            converter.save(output_saved_model_dir=output_saved_model_dir)
-            graph_func = get_func_from_saved_model(output_saved_model_dir)
+            print('Graph conversion...')
+            graph_func = converter.convert()
 
-    return graph_func, {'conversion': time.time() - start_time}
+        if optimize_offline or use_dynamic_shape:
+            print('Building TensorRT engines...')
+            converter.build(
+                input_fn=partial(input_fn, data_files, 1, "Building")
+            )
+
+        if output_saved_model_dir is not None:
+            converter.save(output_saved_model_dir=output_saved_model_dir)
+
+    return graph_func, time.time() - start_time
 
 
 def eval_fn(preds, labels, adjust):
@@ -259,9 +271,20 @@ def run_inference(graph_func,
     if num_iterations is None:
         num_iterations = sys.maxsize
 
+    try:
+        output_tensorname = list(graph_func.structured_outputs.keys())[0]
+    except AttributeError:
+        # Output tensor doesn't have a name, index 0
+        output_tensorname = 0
+
+    @tf.function
+    def infer_step(batch_x):
+      return graph_func(batch_x)[output_tensorname]
+
     for i, (batch_images, batch_labels) in enumerate(dataset):
+
         start_time = time.time()
-        batch_preds = graph_func(batch_images)[0].numpy()
+        batch_preds = infer_step(batch_images).numpy()
         iter_times.append(time.time() - start_time)
 
         steps_executed += 1
@@ -273,13 +296,19 @@ def run_inference(graph_func,
                 iter_times[-1] * 1000
             ))
 
-        corrects += eval_fn(batch_preds, batch_labels.numpy(), adjust)
+        if not use_synthetic:
+            corrects += eval_fn(
+                preds=batch_preds,
+                labels=batch_labels.numpy(),
+                adjust=adjust
+            )
 
         if (i + 1) >= num_iterations:
             break
 
-    accuracy = corrects / (batch_size * steps_executed)
-    results['accuracy'] = accuracy
+    if not use_synthetic:
+        accuracy = corrects / (batch_size * steps_executed)
+        results['accuracy'] = accuracy
 
     iter_times = np.array(iter_times)
     iter_times = iter_times[num_warmup_iterations:]
@@ -298,11 +327,14 @@ def run_inference(graph_func,
 
 def config_gpu_memory(gpu_mem_cap):
     gpus = tf.config.experimental.list_physical_devices('GPU')
+
     if not gpus:
-        return
+        raise RuntimeError("No GPUs has been found.")
+
     print('Found the following GPUs:')
     for gpu in gpus:
         print(' ', gpu)
+
     for gpu in gpus:
         try:
             if not gpu_mem_cap:
@@ -372,6 +404,8 @@ if __name__ == '__main__':
     parser.add_argument('--display_every', type=int, default=100,
                         help='Number of iterations executed between'
                              'two consecutive display of metrics')
+    parser.add_argument('--use_dynamic_shape', action='store_true', help="Enable"
+                      "dynamic shape mode")
     parser.add_argument('--use_synthetic', action='store_true',
                         help='If set, one batch of random data is'
                              'generated and used at every iteration.')
@@ -386,7 +420,18 @@ if __name__ == '__main__':
                              'which means allow_growth will be used.')
     parser.add_argument('--max_workspace_size', type=int, default=(1 << 30),
                         help='workspace size in bytes')
+    parser.add_argument('--input_signature_key', type=str,
+                        default=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
+                        help='Directory containing TFRecord files for')
     args = parser.parse_args()
+
+    if args.use_dynamic_shape and not args.use_trt:
+        raise ValueError('TensorRT must be enabled for Dynamic Shape support '
+                         'to be enabled (--use_trt).')
+
+    if args.use_dynamic_shape and args.precision == 'INT8':
+        raise ValueError('TF-TRT does not support dynamic shape mode with INT8 '
+                         'calibration.')
 
     if args.precision != 'FP32' and not args.use_trt:
         raise ValueError('TensorRT must be enabled for FP16'
@@ -416,10 +461,6 @@ if __name__ == '__main__':
     if args.data_dir is None:
         raise ValueError("--data_dir is required")
 
-    if args.use_trt and not args.output_saved_model_dir:
-        raise ValueError("--output_saved_model_dir must be set if use_trt=True")
-
-
     def get_files(data_dir, filename_pattern):
         if data_dir is None:
             return []
@@ -448,7 +489,7 @@ if __name__ == '__main__':
         args.minimum_segment_size
     )
 
-    graph_func, times = get_graph_func(
+    graph_func, convert_time = get_graph_func(
         input_saved_model_dir=args.input_saved_model_dir,
         output_saved_model_dir=args.output_saved_model_dir,
         preprocess_method=args.preprocess_method,
@@ -458,8 +499,10 @@ if __name__ == '__main__':
         calib_files=calib_files,
         batch_size=args.batch_size,
         num_calib_inputs=args.num_calib_inputs,
-        optimize_offline=args.optimize_offline
-    )
+        use_synthetic=args.use_synthetic,
+        optimize_offline=args.optimize_offline,
+        use_dynamic_shape=args.use_dynamic_shape,
+        input_signature_key=args.input_signature_key)
 
     def print_dict(input_dict, prefix='  ', postfix=''):
         for k, v in sorted(input_dict.items()):
@@ -474,8 +517,7 @@ if __name__ == '__main__':
     print_dict(vars(args))
     print('TensorRT Conversion Params:')
     print_dict(dict(params._asdict()))
-    print('Conversion times:')
-    print_dict(times, postfix='s')
+    print('Conversion time: %.1f' % convert_time)
 
     results = run_inference(
         graph_func,
@@ -490,7 +532,8 @@ if __name__ == '__main__':
         display_every=args.display_every
     )
 
-    print('  accuracy: %.2f' % (results['accuracy'] * 100))
+    if not args.use_synthetic:
+        print('  accuracy: %.2f' % (results['accuracy'] * 100))
     print('  images/sec: %d' % results['images_per_sec'])
     print('  99th_percentile(ms): %.2f' % results['99th_percentile'])
     print('  total_time(s): %.1f' % results['total_time'])
