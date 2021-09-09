@@ -96,6 +96,9 @@ INPUT_SIZE=224
 PREPROCESS_METHOD="vgg"
 NUM_CLASSES=1001
 
+MIN_SEGMENT_SIZE=2
+MAX_WORKSPACE_SIZE=$((2**32))
+
 case ${MODEL_NAME} in
   "inception_v3" | "inception_v4")
     INPUT_SIZE=299
@@ -143,6 +146,8 @@ echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
 echo ""
 echo "[*] USE_TFTRT: ${USE_TFTRT}"
 echo "[*] TFTRT_PRECISION: ${TFTRT_PRECISION}"
+echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
+echo "[*] MIN_SEGMENT_SIZE: ${MIN_SEGMENT_SIZE}"
 echo ""
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] PREPROCESS_METHOD: ${PREPROCESS_METHOD}"
@@ -199,6 +204,9 @@ cd ${BENCH_DIR}
 
 PREPEND_COMMAND="TF_CPP_MIN_LOG_LEVEL=2 ${TF_XLA_FLAGS} ${NVIDIA_TF32_OVERRIDE}"
 
+MIN_SEGMENT_SIZE=2
+MAX_WORKSPACE_SIZE=$((2**32))
+
 COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
@@ -214,10 +222,11 @@ COMMAND="${PREPEND_COMMAND} python image_classification.py \
 
 if [[ ${USE_TFTRT} != "0" ]]; then
       COMMAND="${COMMAND} \
-      --use_trt \
-      --optimize_offline \
-      --precision ${TFTRT_PRECISION} \
-      --max_workspace_size $((2**32))"
+          --use_trt \
+          --optimize_offline \
+          --precision ${TFTRT_PRECISION} \
+          --minimum_segment_size ${MIN_SEGMENT_SIZE} \
+          --max_workspace_size ${MAX_WORKSPACE_SIZE}"
 fi
 
 echo -e "**Executing:**\n\n${COMMAND}\n"
