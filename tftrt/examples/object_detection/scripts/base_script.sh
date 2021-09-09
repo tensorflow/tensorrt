@@ -3,14 +3,22 @@
 MODEL_NAME=""
 BATCH_SIZE=8
 
-# Default values of arguments
+# Runtime Parameters
+USE_INPUT_SIGNATURE_KEY=0
+INPUT_SIGNATURE_KEY=""
+
+USE_SYNTHETIC_DATA=0
+SKIP_ACCURACY_TESTING=0
+
+DATA_DIR=""
+MODEL_DIR=""
+
+# TF-TRT Parameters
 USE_XLA=0
 USE_TF32=1
 USE_TFTRT=0
 TFTRT_PRECISION="FP32"
-
-DATA_DIR=""
-MODEL_DIR=""
+USE_DYNAMIC_SHAPE=0
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -20,7 +28,6 @@ do
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
         ;;
-
         --use_xla)
         USE_XLA=1
         shift # Remove --use_xla from processing
@@ -49,9 +56,22 @@ do
         TFTRT_PRECISION="${arg#*=}"
         shift # Remove --tftrt_precision= from processing
         ;;
-        --use_synthetic)
+        --use_synthetic_data)
         USE_SYNTHETIC_DATA=1
-        shift # Remove --use_synthetic from processing
+        shift # Remove --use_synthetic_data from processing
+        ;;
+        --use_dynamic_shape)
+        USE_DYNAMIC_SHAPE=1
+        shift # Remove --use_dynamic_shape from processing
+        ;;
+        --skip_accuracy_testing)
+        SKIP_ACCURACY_TESTING=1
+        shift # Remove --skip_accuracy_testing from processing
+        ;;
+        --input_signature_key=*)
+        USE_INPUT_SIGNATURE_KEY=1
+        INPUT_SIGNATURE_KEY="${arg#*=}"
+        shift # Remove --input_signature_key from processing
         ;;
     esac
 done
@@ -59,22 +79,37 @@ done
 if [[ ${USE_XLA} == "1" ]]; then
     TF_XLA_FLAGS="TF_XLA_FLAGS=--tf_xla_auto_jit=2"
 else
-    unset TF_XLA_FLAGS
     TF_XLA_FLAGS=""
 fi
 
 if [[ ${USE_TF32} == "0" ]]; then
     NVIDIA_TF32_OVERRIDE="NVIDIA_TF32_OVERRIDE=0"
 else
-    unset NVIDIA_TF32_OVERRIDE
     NVIDIA_TF32_OVERRIDE=""
 fi
 
 if [[ ${USE_SYNTHETIC_DATA} == "1" ]]; then
-    USE_SYNTHETIC_DATA_FLAG="--use_synthetic"
+    USE_SYNTHETIC_DATA_FLAG="--use_synthetic_data"
 else
-    unset USE_SYNTHETIC_DATA_FLAG
     USE_SYNTHETIC_DATA_FLAG=""
+fi
+
+if [[ ${USE_DYNAMIC_SHAPE} == "1" ]]; then
+    USE_DYNAMIC_SHAPE_FLAG="--use_dynamic_shape"
+else
+    USE_DYNAMIC_SHAPE_FLAG=""
+fi
+
+if [[ ${SKIP_ACCURACY_TESTING} == "1" ]]; then
+    SKIP_ACCURACY_TESTING_FLAG="--skip_accuracy_testing"
+else
+    SKIP_ACCURACY_TESTING_FLAG=""
+fi
+
+if [[ ${USE_INPUT_SIGNATURE_KEY} == "1" ]]; then
+    INPUT_SIGNATURE_KEY_FLAG="--input_signature_key=${INPUT_SIGNATURE_KEY}"
+else
+    INPUT_SIGNATURE_KEY_FLAG=""
 fi
 
 # ============== Set model specific parameters ============= #
@@ -101,14 +136,24 @@ echo ""
 echo "[*] USE_XLA: ${USE_XLA}"
 echo "[*] TF_XLA_FLAGS: ${TF_XLA_FLAGS}"
 echo ""
+echo "[*] USE_SYNTHETIC_DATA: ${USE_SYNTHETIC_DATA}"
+echo "[*] USE_SYNTHETIC_DATA_FLAG: ${USE_SYNTHETIC_DATA_FLAG}"
+echo ""
+echo "[*] SKIP_ACCURACY_TESTING: ${SKIP_ACCURACY_TESTING}"
+echo "[*] SKIP_ACCURACY_TESTING_FLAG: ${SKIP_ACCURACY_TESTING_FLAG}"
+echo ""
 echo "[*] USE_TF32: ${USE_TF32}"
 echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
 echo ""
+echo "[*] USE_INPUT_SIGNATURE_KEY: ${USE_INPUT_SIGNATURE_KEY}"
+echo "[*] INPUT_SIGNATURE_KEY_FLAG: ${INPUT_SIGNATURE_KEY_FLAG}"
+echo ""
 echo "[*] USE_TFTRT: ${USE_TFTRT}"
 echo "[*] TFTRT_PRECISION: ${TFTRT_PRECISION}"
-echo ""
 echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
 echo "[*] MIN_SEGMENT_SIZE: ${MIN_SEGMENT_SIZE}"
+echo "[*] USE_DYNAMIC_SHAPE: ${USE_DYNAMIC_SHAPE}"
+echo "[*] USE_DYNAMIC_SHAPE_FLAG: ${USE_DYNAMIC_SHAPE_FLAG}"
 echo -e "********************************************************************\n"
 
 # ======================= ARGUMENT VALIDATION ======================= #
@@ -182,34 +227,27 @@ fi
 
 PREPEND_COMMAND="TF_CPP_MIN_LOG_LEVEL=2 ${TF_XLA_FLAGS} ${NVIDIA_TF32_OVERRIDE}"
 
-if [[ ${USE_TFTRT} == "0" ]]; then
-    COMMAND="${PREPEND_COMMAND} python object_detection.py \
-        --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
-        --output_saved_model_dir /tmp/$RANDOM \
-        --data_dir ${VAL_DATA_DIR} \
-        --calib_data_dir ${VAL_DATA_DIR} \
-        --annotation_path ${ANNOTATIONS_DATA_FILE} \
-        --num_warmup_iterations 100 \
-        --display_every 50 \
-        ${USE_SYNTHETIC_DATA_FLAG} \
-        --input_size 640 \
-        --batch_size ${BATCH_SIZE}"
-else
-    COMMAND="${PREPEND_COMMAND} python object_detection.py \
-        --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
-        --output_saved_model_dir /tmp/$RANDOM \
-        --data_dir ${VAL_DATA_DIR} \
-        --calib_data_dir ${VAL_DATA_DIR} \
-        --annotation_path ${ANNOTATIONS_DATA_FILE} \
-        --num_warmup_iterations 100 \
-        --display_every 50 \
-        ${USE_SYNTHETIC_DATA_FLAG} \
-        --input_size 640 \
-        --batch_size ${BATCH_SIZE} \
+COMMAND="${PREPEND_COMMAND} python object_detection.py \
+    --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
+    --output_saved_model_dir /tmp/$RANDOM \
+    --data_dir ${VAL_DATA_DIR} \
+    --calib_data_dir ${VAL_DATA_DIR} \
+    --annotation_path ${ANNOTATIONS_DATA_FILE} \
+    --num_warmup_iterations 100 \
+    --display_every 50 \
+    ${SKIP_ACCURACY_TESTING_FLAG} \
+    ${USE_SYNTHETIC_DATA_FLAG} \
+    ${INPUT_SIGNATURE_KEY_FLAG} \
+    --input_size 640 \
+    --batch_size ${BATCH_SIZE}"
+
+if [[ ${USE_TFTRT} != "0" ]]; then
+    COMMAND="${COMMAND} \
         --use_trt \
         --optimize_offline \
         --precision ${TFTRT_PRECISION} \
         --minimum_segment_size ${MIN_SEGMENT_SIZE} \
+        ${USE_DYNAMIC_SHAPE_FLAG} \
         --max_workspace_size ${MAX_WORKSPACE_SIZE}"
 fi
 

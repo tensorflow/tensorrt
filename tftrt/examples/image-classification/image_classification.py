@@ -96,7 +96,7 @@ def get_preprocess_fn(preprocess_method, input_size):
 
 def get_dataset(data_files,
                 batch_size,
-                use_synthetic,
+                use_synthetic_data,
                 preprocess_method,
                 input_size):
 
@@ -123,7 +123,7 @@ def get_dataset(data_files,
         )
     )
 
-    if use_synthetic:
+    if use_synthetic_data:
         dataset = dataset.take(count=1)  # loop over 1 batch
         dataset = dataset.cache()
         dataset = dataset.repeat()
@@ -157,7 +157,7 @@ def get_graph_func(input_saved_model_dir,
                    use_trt=False,
                    calib_files=None,
                    num_calib_inputs=None,
-                   use_synthetic=False,
+                   use_synthetic_data=False,
                    batch_size=None,
                    optimize_offline=False,
                    use_dynamic_shape=False,
@@ -194,7 +194,7 @@ def get_graph_func(input_saved_model_dir,
                 # even when using synthetic data, we need to
                 # build and/or calibrate using real training data
                 # to be in a realistic scenario
-                use_synthetic=False,
+                use_synthetic_data=False,
                 preprocess_method=preprocess_method,
                 input_size=input_size
             )
@@ -251,8 +251,9 @@ def run_inference(graph_func,
                   num_classes,
                   num_iterations,
                   num_warmup_iterations,
-                  use_synthetic,
-                  display_every=100):
+                  use_synthetic_data,
+                  display_every=100,
+                  skip_accuracy_testing=False):
     """Run the given graph_func on the data files provided.
     It consumes TFRecords with labels and reports accuracy.
     """
@@ -264,7 +265,7 @@ def run_inference(graph_func,
     dataset = get_dataset(
         data_files=data_files,
         batch_size=batch_size,
-        use_synthetic=use_synthetic,
+        use_synthetic_data=use_synthetic_data,
         input_size=input_size,
         preprocess_method=preprocess_method
     )
@@ -299,7 +300,7 @@ def run_inference(graph_func,
                 iter_times[-1] * 1000
             ))
 
-        if not use_synthetic:
+        if not skip_accuracy_testing:
             corrects += eval_fn(
                 preds=batch_preds,
                 labels=batch_labels.numpy(),
@@ -309,21 +310,21 @@ def run_inference(graph_func,
         if (i + 1) >= num_iterations:
             break
 
-    if not use_synthetic:
+    if not skip_accuracy_testing:
         accuracy = corrects / (batch_size * steps_executed)
         results['accuracy'] = accuracy
 
     iter_times = np.array(iter_times)
-    iter_times = iter_times[num_warmup_iterations:]
+    run_times = iter_times[num_warmup_iterations:]
 
     results['total_time'] = np.sum(iter_times)
-    results['images_per_sec'] = np.mean(batch_size / iter_times)
+    results['images_per_sec'] = np.mean(batch_size / run_times)
     results['99th_percentile'] = np.percentile(
-        iter_times, q=99, interpolation='lower'
+        run_times, q=99, interpolation='lower'
     ) * 1000
-    results['latency_mean'] = np.mean(iter_times) * 1000
-    results['latency_median'] = np.median(iter_times) * 1000
-    results['latency_min'] = np.min(iter_times) * 1000
+    results['latency_mean'] = np.mean(run_times) * 1000
+    results['latency_median'] = np.median(run_times) * 1000
+    results['latency_min'] = np.min(run_times) * 1000
     results['latency_max'] = np.max(run_times) * 1000
 
     return results
@@ -410,7 +411,7 @@ if __name__ == '__main__':
                              'two consecutive display of metrics')
     parser.add_argument('--use_dynamic_shape', action='store_true', help="Enable"
                       "dynamic shape mode")
-    parser.add_argument('--use_synthetic', action='store_true',
+    parser.add_argument('--use_synthetic_data', action='store_true',
                         help='If set, one batch of random data is'
                              'generated and used at every iteration.')
     parser.add_argument('--num_warmup_iterations', type=int, default=50,
@@ -427,6 +428,8 @@ if __name__ == '__main__':
     parser.add_argument('--input_signature_key', type=str,
                         default=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
                         help='Directory containing TFRecord files for')
+    parser.add_argument('--skip_accuracy_testing', action='store_true',
+                        help='If set, accuracy calculation will be skipped.')
     args = parser.parse_args()
 
     if args.use_dynamic_shape and not args.use_trt:
@@ -444,7 +447,9 @@ if __name__ == '__main__':
     if args.precision == 'INT8' and not args.calib_data_dir:
         raise ValueError('--calib_data_dir is required for INT8 mode')
 
-    if args.use_synthetic:
+    if args.use_synthetic_data:
+        args.skip_accuracy_testing = True
+
         if args.num_iterations is None:
             args.num_iterations = SAMPLES_IN_VALIDATION_SET // args.batch_size
 
@@ -503,7 +508,7 @@ if __name__ == '__main__':
         calib_files=calib_files,
         batch_size=args.batch_size,
         num_calib_inputs=args.num_calib_inputs,
-        use_synthetic=args.use_synthetic,
+        use_synthetic_data=args.use_synthetic_data,
         optimize_offline=args.optimize_offline,
         use_dynamic_shape=args.use_dynamic_shape,
         input_signature_key=args.input_signature_key)
@@ -532,14 +537,15 @@ if __name__ == '__main__':
         preprocess_method=args.preprocess_method,
         input_size=args.input_size,
         num_classes=args.num_classes,
-        use_synthetic=args.use_synthetic,
-        display_every=args.display_every
+        use_synthetic_data=args.use_synthetic_data,
+        display_every=args.display_every,
+        skip_accuracy_testing=args.skip_accuracy_testing
     )
 
     print('\n=============================================\n')
     print('Results:\n')
 
-    if not args.use_synthetic:
+    if "accuracy" in results:
         print('  accuracy: %.2f' % (results['accuracy'] * 100))
     print('  images/sec: %d' % results['images_per_sec'])
     print('  99th_percentile(ms): %.2f' % results['99th_percentile'])
