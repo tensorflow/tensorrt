@@ -1,4 +1,4 @@
-$ saved_model_cli show --dir ./tftrt/examples/image-classification/saved_models/resnet50v2_backbone --all
+$  saved_model_cli show --dir ./tftrt/examples/image-classification/saved_models/resnet50v2_sparse_backbone --all
 
 MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
 
@@ -7,7 +7,7 @@ signature_def['resnet50v2']:
     inputs['inputs'] tensor_info:
         dtype: DT_FLOAT
         shape: (-1, 256, 256, 3)
-        name: conv2d_input:0
+        name: inputs:0
   The given SavedModel SignatureDef contains the following output(s):
     outputs['outputs'] tensor_info:
         dtype: DT_FLOAT
