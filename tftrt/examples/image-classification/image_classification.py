@@ -203,7 +203,9 @@ def get_graph_func(input_saved_model_dir,
                 if i >= build_steps:
                     break
 
-                print("* [%s] - step %04d/%04d" % (model_phase, i + 1, build_steps))
+                print("* [%s] - step %04d/%04d" % (
+                    model_phase, i + 1, build_steps
+                ))
                 yield batch_images,
 
         if conversion_params.precision_mode == 'INT8':
@@ -281,6 +283,7 @@ def run_inference(graph_func,
     def infer_step(batch_x):
       return graph_func(batch_x)[output_tensorname]
 
+    print("\nStart inference ...")
     for i, (batch_images, batch_labels) in enumerate(dataset):
 
         start_time = time.time()
@@ -290,7 +293,7 @@ def run_inference(graph_func,
         steps_executed += 1
 
         if (i + 1) % display_every == 0:
-            print("  step %d/%d, iter_time(ms)=%.0f" % (
+            print("  step %04d/%04d, iter_time(ms)=%.0f" % (
                 i + 1,
                 SAMPLES_IN_VALIDATION_SET // batch_size,
                 iter_times[-1] * 1000
@@ -321,6 +324,7 @@ def run_inference(graph_func,
     results['latency_mean'] = np.mean(iter_times) * 1000
     results['latency_median'] = np.median(iter_times) * 1000
     results['latency_min'] = np.min(iter_times) * 1000
+    results['latency_max'] = np.max(run_times) * 1000
 
     return results
 
@@ -532,6 +536,9 @@ if __name__ == '__main__':
         display_every=args.display_every
     )
 
+    print('\n=============================================\n')
+    print('Results:\n')
+
     if not args.use_synthetic:
         print('  accuracy: %.2f' % (results['accuracy'] * 100))
     print('  images/sec: %d' % results['images_per_sec'])
@@ -540,3 +547,4 @@ if __name__ == '__main__':
     print('  latency_mean(ms): %.2f' % results['latency_mean'])
     print('  latency_median(ms): %.2f' % results['latency_median'])
     print('  latency_min(ms): %.2f' % results['latency_min'])
+    print('  latency_max(ms): %.2f' % results['latency_max'])
