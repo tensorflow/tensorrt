@@ -271,8 +271,11 @@ def run_inference(graph_func,
     )
 
     steps_executed = 0
-    if num_iterations is None:
-        num_iterations = sys.maxsize
+    total_steps = (
+        SAMPLES_IN_VALIDATION_SET // batch_size
+        if num_iterations is None else
+        num_iterations
+    )
 
     try:
         output_tensorname = list(graph_func.structured_outputs.keys())[0]
@@ -296,7 +299,7 @@ def run_inference(graph_func,
         if (i + 1) % display_every == 0:
             print("  step %04d/%04d, iter_time(ms)=%.0f" % (
                 i + 1,
-                SAMPLES_IN_VALIDATION_SET // batch_size,
+                total_steps,
                 iter_times[-1] * 1000
             ))
 
@@ -307,7 +310,7 @@ def run_inference(graph_func,
                 adjust=adjust
             )
 
-        if (i + 1) >= num_iterations:
+        if num_iterations is not None and (i + 1) >= num_iterations:
             break
 
     if not skip_accuracy_testing:
@@ -522,11 +525,11 @@ if __name__ == '__main__':
                 postfix=postfix
             ))
 
-    print('Benchmark arguments:')
+    print('\nBenchmark arguments:')
     print_dict(vars(args))
-    print('TensorRT Conversion Params:')
+    print('\nTensorRT Conversion Params:')
     print_dict(dict(params._asdict()))
-    print('Conversion time: %.1f' % convert_time)
+    print('\nConversion time: %.1f' % convert_time)
 
     results = run_inference(
         graph_func,
