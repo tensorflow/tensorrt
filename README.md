@@ -16,7 +16,7 @@ performance of TF-TRT. For more information see
 
 ## Examples
 
-* [Image Classification](tftrt/examples/image-classification)
+* [Image Classification](tftrt/examples/image_classification)
 * [Object Detection](tftrt/examples/object_detection)
 
 

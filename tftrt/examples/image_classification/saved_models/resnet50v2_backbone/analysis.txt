@@ -1,4 +1,4 @@
-$ saved_model_cli show --dir ./tftrt/examples/image-classification/saved_models/resnet50v2_backbone --all
+$ saved_model_cli show --dir ./tftrt/examples/image_classification/saved_models/resnet50v2_backbone --all
 
 MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
 
