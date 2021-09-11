@@ -276,7 +276,7 @@ def run_inference(graph_func,
             print("  step %04d/%04d, iter_time(ms)=%.0f" % (
                 i + 1,
                 total_steps,
-                iter_times[-1] * 1000
+                np.mean(iter_times[-display_every:]) * 1000
             ))
 
         if num_iterations is not None and (i + 1) >= num_iterations:
