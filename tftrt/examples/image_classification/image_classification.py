@@ -16,7 +16,6 @@
 # =============================================================================
 
 import os
-import sys
 
 import argparse
 import logging
@@ -296,7 +295,7 @@ def run_inference(graph_func,
 
         steps_executed += 1
 
-        if (i + 1) % display_every == 0:
+        if (i + 1) % display_every == 0 or (i + 1) == total_steps:
             print("  step %04d/%04d, iter_time(ms)=%.0f" % (
                 i + 1,
                 total_steps,
@@ -310,7 +309,7 @@ def run_inference(graph_func,
                 adjust=adjust
             )
 
-        if num_iterations is not None and (i + 1) >= num_iterations:
+        if (i + 1) >= total_steps:
             break
 
     if not skip_accuracy_testing:

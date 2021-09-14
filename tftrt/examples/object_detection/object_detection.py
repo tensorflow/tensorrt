@@ -15,11 +15,13 @@
 # limitations under the License.
 # =============================================================================
 
-import argparse
-import json
-import logging
 import os
+
+import argparse
+import ujson as json
+import logging
 import time
+import shutil
 import subprocess
 
 from collections import defaultdict
@@ -232,9 +234,6 @@ def run_inference(graph_func,
     steps_executed = 0
     total_steps = num_steps if num_iterations is None else num_iterations
 
-    if num_iterations is None:
-        num_iterations = sys.maxsize
-
     output_name_map = (
         # <tf.Tensor 'detection_boxes:0' shape=(8, None, None) dtype=float32>
         (0, 'boxes'),
@@ -272,14 +271,14 @@ def run_inference(graph_func,
             for key, value in batch_preds.items():
                 predictions[key].append(value)
 
-        if (i + 1) % display_every == 0:
+        if (i + 1) % display_every == 0 or (i + 1) == total_steps:
             print("  step %04d/%04d, iter_time(ms)=%.0f" % (
                 i + 1,
                 total_steps,
                 np.mean(iter_times[-display_every:]) * 1000
             ))
 
-        if num_iterations is not None and (i + 1) >= num_iterations:
+        if (i + 1) >= total_steps:
             break
 
     if not skip_accuracy_testing:
@@ -345,7 +344,7 @@ def eval_model(predictions, image_ids, annotation_path, output_saved_model_dir):
         json.dump(coco_detections, f)
     cocoDt = coco.loadRes(coco_detections_path)
 
-    subprocess.call(['rm', '-r', tmp_dir])
+    shutil.rmtree(tmp_dir)
 
     # compute coco metrics
     eval = COCOeval(coco, cocoDt, 'bbox')
@@ -428,7 +427,7 @@ if __name__ == '__main__':
                         help='Number of images per batch.')
     parser.add_argument('--minimum_segment_size', type=int, default=2,
                         help='Minimum number of TF ops in a TRT engine.')
-    parser.add_argument('--num_iterations', type=int, default=2048,
+    parser.add_argument('--num_iterations', type=int, default=None,
                         help='How many iterations(batches) to evaluate.'
                              'If not supplied, the whole set will be evaluated.')
     parser.add_argument('--display_every', type=int, default=100,
