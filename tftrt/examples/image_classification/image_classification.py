@@ -465,7 +465,7 @@ if __name__ == '__main__':
             '({} <= {})'.format(args.num_iterations,
                                 args.num_warmup_iterations))
 
-    if args.num_calib_inputs <= args.batch_size:
+    if args.precision == 'INT8' and args.num_calib_inputs <= args.batch_size:
         raise ValueError(
             '--num_calib_inputs must not be smaller than --batch_size'
             '({} <= {})'.format(args.num_calib_inputs, args.batch_size))

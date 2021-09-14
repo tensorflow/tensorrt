@@ -111,7 +111,7 @@ case ${MODEL_NAME} in
     NUM_CLASSES=1000
     ;;
 
-  "resnet50v2_backbone")
+  "resnet50v2_backbone" | "resnet50v2_sparse_backbone" )
     INPUT_SIZE=256
     ;;
 esac
