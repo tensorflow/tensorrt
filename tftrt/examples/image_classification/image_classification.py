@@ -361,7 +361,7 @@ def get_trt_conversion_params(max_workspace_size_bytes,
                               minimum_segment_size):
 
     conversion_params = copy.deepcopy(trt.DEFAULT_TRT_CONVERSION_PARAMS)
-    conversion_params = params._replace(
+    conversion_params = conversion_params._replace(
         precision_mode=precision_mode,
         max_workspace_size_bytes=max_workspace_size_bytes,
         minimum_segment_size=minimum_segment_size,
