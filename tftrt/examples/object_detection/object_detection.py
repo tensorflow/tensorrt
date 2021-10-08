@@ -255,6 +255,8 @@ def run_inference(graph_func,
 
         start_time = time.time()
         batch_preds = infer_step(batch_images)
+        iter_times.append(time.time() - start_time)
+
         # batch_preds = graph_func(batch_images)
         if isinstance(batch_preds, dict):
             batch_preds = {k:t.numpy() for k, t in batch_preds.items()}
@@ -262,9 +264,6 @@ def run_inference(graph_func,
             batch_preds = {
                 name:batch_preds[idx].numpy() for idx, name in output_name_map
             }
-            # batch_preds = [t.numpy() for t in batch_preds]
-
-        iter_times.append(time.time() - start_time)
 
         steps_executed += 1
 
