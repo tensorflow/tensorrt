@@ -285,13 +285,13 @@ def run_inference(graph_func,
 
     @tf.function
     def infer_step(batch_x):
-      return graph_func(batch_x)[output_tensorname]
+      return graph_func(batch_x)
 
     print("\nStart inference ...")
     for i, (batch_images, batch_labels) in enumerate(dataset):
 
         start_time = time.time()
-        batch_preds = infer_step(batch_images).numpy()
+        batch_preds = infer_step(batch_images)
         iter_times.append(time.time() - start_time)
 
         steps_executed += 1
@@ -305,7 +305,7 @@ def run_inference(graph_func,
 
         if not skip_accuracy_testing:
             corrects += eval_fn(
-                preds=batch_preds,
+                preds=batch_preds[output_tensorname].numpy(),
                 labels=batch_labels.numpy(),
                 adjust=adjust
             )
