@@ -19,10 +19,10 @@
 set -v
 
 echo Install PyBind11 and UJson
-pip install -y pybind11 ujson
+pip install pybind11 ujson
 
 echo Install Cython...
-pip install -y Cython
+pip install Cython
 
 echo Install cocodataset/cocoapi/PythonAPI...
 COCO_API_DIR=../third_party/cocoapi
