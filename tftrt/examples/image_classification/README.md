@@ -64,7 +64,6 @@ python image_classification.py \
     --calib_data_dir /data/imagenet/train-val-tfrecord \
     --saved_model_dir /models/resnet_v1.5_50_saved_model/ \
     --model resnet_v1.5_50_tfv2 \
-    --mode validation \
     --num_warmup_iterations 50 \
     --num_calib_inputs 128
     --display_every 10 \
