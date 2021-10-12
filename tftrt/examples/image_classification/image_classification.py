@@ -429,7 +429,9 @@ if __name__ == '__main__':
                         help='workspace size in bytes')
     parser.add_argument('--input_signature_key', type=str,
                         default=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
-                        help='Directory containing TFRecord files for')
+                        help='SavedModel signature to use for inference, '
+                        'defaults to: %s' %
+                        signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY)
     parser.add_argument('--skip_accuracy_testing', action='store_true',
                         help='If set, accuracy calculation will be skipped.')
     args = parser.parse_args()
