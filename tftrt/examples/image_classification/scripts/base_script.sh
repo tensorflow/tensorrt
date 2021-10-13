@@ -44,17 +44,17 @@ do
         DATA_DIR="${arg#*=}"
         shift # Remove --data_dir= from processing
         ;;
-        --model_dir=*)
+        --input_saved_model_dir=*)
         MODEL_DIR="${arg#*=}"
-        shift # Remove --model_dir= from processing
+        shift # Remove --input_saved_model_dir= from processing
         ;;
         --use_tftrt)
         USE_TFTRT=1
         shift # Remove --use_tftrt from processing
         ;;
-        --tftrt_precision=*)
+        --precision=*)
         TFTRT_PRECISION="${arg#*=}"
-        shift # Remove --tftrt_precision= from processing
+        shift # Remove --precision= from processing
         ;;
         --use_synthetic_data)
         USE_SYNTHETIC_DATA_FLAG="--use_synthetic_data"
@@ -161,12 +161,12 @@ fi
 # ----------------------  Model Directory --------------
 
 if [[ -z ${MODEL_DIR} ]]; then
-    echo "ERROR: \`--model_dir=/path/to/directory\` is missing."
+    echo "ERROR: \`--input_saved_model_dir=/path/to/directory\` is missing."
     exit 1
 fi
 
 if [[ ! -d ${MODEL_DIR} ]]; then
-    echo "ERROR: \`--model_dir=/path/to/directory\` does not exist. [Received: \`${MODEL_DIR}\`]"
+    echo "ERROR: \`--input_saved_model_dir=/path/to/directory\` does not exist. [Received: \`${MODEL_DIR}\`]"
     exit 1
 fi
 
@@ -211,7 +211,7 @@ COMMAND="${PREPEND_COMMAND} python image_classification.py \
 
 if [[ ${USE_TFTRT} != "0" ]]; then
       COMMAND="${COMMAND} \
-          --use_trt \
+          --use_tftrt \
           --optimize_offline \
           --precision ${TFTRT_PRECISION} \
           --minimum_segment_size ${MIN_SEGMENT_SIZE} \
