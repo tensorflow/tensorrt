@@ -159,7 +159,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             if not skip_accuracy_testing:
                 self.process_model_output(
                     outputs=batch_preds,
-                    batch_y=batch_y
+                    batch_y=batch_y,
+                    **kwargs
                 )
 
             if (i + 1) >= num_iterations:
@@ -168,7 +169,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         if not skip_accuracy_testing:
             results['accuracy_metric'] = self.compute_accuracy_metric(
                 batch_size=batch_size,
-                steps_executed=steps_executed
+                steps_executed=steps_executed,
+                **kwargs
             )
 
         iter_times = np.array(iter_times)

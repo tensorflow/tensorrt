@@ -150,10 +150,11 @@ if __name__ == '__main__':
 
     def _input_fn(build_steps, model_phase):
 
-        dataset = dataloader_fn(
+        dataset = get_dataset(
             batch_size=args.batch_size,
             seq_len=args.sequence_length,
-            vocab_size=args.vocab_size
+            vocab_size=args.vocab_size,
+            use_synthetic_data=args.use_synthetic_data
         )
 
         for i, (input_batch) in enumerate(dataset):
