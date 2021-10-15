@@ -91,11 +91,6 @@ class BaseCommandLineAPI(object):
                                     default_sign_key
                                   ))
 
-        self._parser.add_argument('--num_calib_inputs', type=int, default=500,
-                                  help='Number of inputs (e.g. images) used '
-                                       'for calibration (last batch is skipped '
-                                       'in case it is not full)')
-
         self._parser.add_argument('--num_iterations', type=int, default=None,
                                   help='How many iterations(batches) to '
                                        'evaluate. If not supplied, the whole '
@@ -147,6 +142,11 @@ class BaseCommandLineAPI(object):
         self._parser.add_argument('--minimum_segment_size', type=int, default=5,
                                   help='Minimum number of TensorFlow ops in a '
                                        'TRT engine.')
+
+        self._parser.add_argument('--num_calib_inputs', type=int, default=500,
+                                  help='Number of inputs (e.g. images) used '
+                                       'for calibration (last batch is skipped '
+                                       'in case it is not full)')
 
         self._add_bool_argument(
             name="optimize_offline",

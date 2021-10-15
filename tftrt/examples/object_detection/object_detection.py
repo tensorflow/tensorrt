@@ -205,16 +205,20 @@ if __name__ == '__main__':
     cmdline_api = CommandLineAPI()
     args = cmdline_api.parse_args()
 
+    coco = COCO(annotation_file=args.annotation_path)
+    image_ids = coco.getImgIds()
+
     def _input_fn(input_data_dir, build_steps, model_phase):
-        dataset, image_ids, _ = get_dataset(
-            images_dir=input_data_dir,
-            annotation_path=args.annotation_path,
+
+        dataset = get_dataset(
             batch_size=args.batch_size,
+            images_dir=input_data_dir,
+            image_ids=image_ids,
+            input_size=args.input_size,
             # even when using synthetic data, we need to
             # build and/or calibrate using real training data
             # to be in a realistic scenario
             use_synthetic_data=False,
-            input_size=args.input_size,
         )
 
         for i, batch_images in enumerate(dataset):
@@ -255,9 +259,6 @@ if __name__ == '__main__':
         precision_mode=args.precision,
         use_dynamic_shape=args.use_dynamic_shape,
         use_tftrt=args.use_tftrt)
-
-    coco = COCO(annotation_file=args.annotation_path)
-    image_ids = coco.getImgIds()
 
     get_benchmark_input_fn = partial(
         get_dataset,
