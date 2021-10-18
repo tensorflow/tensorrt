@@ -74,7 +74,7 @@ class BaseCommandLineAPI(object):
         self._parser.add_argument('--batch_size', type=int, default=8,
                                   help='Number of images per batch.')
 
-        self._parser.add_argument('--display_every', type=int, default=100,
+        self._parser.add_argument('--display_every', type=int, default=50,
                                   help='Number of iterations executed between'
                                        'two consecutive display of metrics')
 
@@ -97,7 +97,7 @@ class BaseCommandLineAPI(object):
                                        'set will be evaluated.')
 
         self._parser.add_argument('--num_warmup_iterations', type=int,
-                                  default=50,
+                                  default=100,
                                   help='Number of initial iterations skipped '
                                        'from timing')
 
@@ -150,7 +150,7 @@ class BaseCommandLineAPI(object):
 
         self._add_bool_argument(
             name="optimize_offline",
-            default=False,
+            default=True,
             required=False,
             help='If set to True, TensorRT engines are built before runtime.'
         )
