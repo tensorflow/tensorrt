@@ -91,7 +91,7 @@ echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] PREPROCESS_METHOD: ${PREPROCESS_METHOD}"
 echo "[*] NUM_CLASSES: ${NUM_CLASSES}"
 echo ""
-echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
+echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 echo -e "********************************************************************\n"
 
 # ======================= ARGUMENT VALIDATION ======================= #

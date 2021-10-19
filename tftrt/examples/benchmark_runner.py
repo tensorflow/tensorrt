@@ -69,6 +69,11 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         logging.getLogger("tensorflow").setLevel(logging.INFO)
         logging.disable(logging.WARNING)
 
+        # TensorFlow can execute operations synchronously or asynchronously.
+        # If asynchronous execution is enabled, operations may return
+        # "non-ready" handles.
+        tf.config.experimental.set_synchronous_execution(True)
+
         tftrt_utils.config_gpu_memory(gpu_mem_cap)
 
         calibration_input_fn = (
