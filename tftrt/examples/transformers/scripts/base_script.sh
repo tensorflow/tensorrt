@@ -85,7 +85,8 @@ echo "[*] NUM_ITERATIONS: ${NUM_ITERATIONS}"
 echo "[*] USE_SYNTHETIC_DATA_FLAG: ${USE_SYNTHETIC_DATA_FLAG}"
 echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo ""
-echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
+echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
+
 echo -e "********************************************************************\n"
 
 # ======================= ARGUMENT VALIDATION ======================= #

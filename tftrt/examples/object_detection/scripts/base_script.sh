@@ -73,7 +73,7 @@ echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
 echo ""
-echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
+echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 echo -e "********************************************************************\n"
 
 # ======================= ARGUMENT VALIDATION ======================= #
