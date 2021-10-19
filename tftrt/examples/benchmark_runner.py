@@ -26,6 +26,15 @@ from tensorflow.python.saved_model.signature_constants import \
 import utils as tftrt_utils
 
 
+def force_gpu_resync(func):
+    p = tf.constant(0.)  # Create small tensor to force GPU resync
+    def wrapper(*args, **kwargs):
+        rslt = func(*args, **kwargs)
+        (p + 1.).numpy()  # Sync the GPU
+        return rslt
+    return wrapper
+
+
 class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
     ACCURACY_METRIC_NAME = None
@@ -129,6 +138,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             use_synthetic_data=use_synthetic_data,
         )
 
+        @force_gpu_resync
         @tf.function
         def infer_step(_batch_x):
           return self._graph_func(_batch_x)
