@@ -6,7 +6,6 @@ DATA_DIR=""
 MODEL_DIR=""
 
 # Default Argument Values
-TF_XLA_FLAGS=""
 NVIDIA_TF32_OVERRIDE=""
 
 BYPASS_ARGUMENTS=""
@@ -18,10 +17,6 @@ do
         --model_name=*)
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
-        ;;
-        --use_xla)
-        TF_XLA_FLAGS="TF_XLA_FLAGS=--tf_xla_auto_jit=2"
-        shift # Remove --use_xla from processing
         ;;
         --no_tf32)
         NVIDIA_TF32_OVERRIDE="NVIDIA_TF32_OVERRIDE=0"
@@ -84,7 +79,6 @@ echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
 echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
-echo "[*] TF_XLA_FLAGS: ${TF_XLA_FLAGS}"
 echo ""
 # Custom Image Classification Task Flags
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
@@ -134,7 +128,7 @@ cd ${BENCH_DIR}
 
 # Execute the example
 
-PREPEND_COMMAND="TF_CPP_MIN_LOG_LEVEL=2 ${TF_XLA_FLAGS} ${NVIDIA_TF32_OVERRIDE}"
+PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 TF_CPP_MIN_LOG_LEVEL=2 ${NVIDIA_TF32_OVERRIDE}"
 
 COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --data_dir ${DATA_DIR} \

@@ -29,17 +29,17 @@ import tensorflow as tf
 
 from statistics import mean
 
-# Import of Top Level file `utils.py`
+# Allow import of top level python files
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-import utils as tftrt_utils
+from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
 
-class CommandLineAPI(tftrt_utils.BaseCommandLineAPI):
+class CommandLineAPI(BaseCommandLineAPI):
 
     # SAMPLES_IN_VALIDATION_SET = 50000
 
@@ -218,4 +218,5 @@ if __name__ == '__main__':
             args.use_synthetic_data or args.skip_accuracy_testing
         ),
         use_synthetic_data=args.use_synthetic_data,
+        use_xla=args.use_xla,
     )
