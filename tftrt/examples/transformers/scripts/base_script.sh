@@ -9,8 +9,6 @@ NVIDIA_TF32_OVERRIDE=""
 
 # TODO: remove when real dataloader is implemented
 DATA_DIR="/tmp"
-USE_SYNTHETIC_DATA_FLAG="--use_synthetic_data"
-NUM_ITERATIONS=500
 
 BYPASS_ARGUMENTS=""
 
@@ -29,13 +27,15 @@ do
         --data_dir=*)
         shift # Remove --data_dir= from processing
         ;;
+        --vocab_size=*)
+        shift # Remove --vocab_size= from processing
+        ;;
+        --minimum_segment_size=*)
+        shift # Remove --minimum_segment_size= from processing
+        ;;
         --input_saved_model_dir=*)
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
-        ;;
-        --num_iterations=*)
-        NUM_ITERATIONS="${arg#*=}"
-        shift # Remove --num_iterations from processing
         ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
@@ -75,8 +75,6 @@ echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
 echo ""
 # Custom Transormers Task Flags
 echo "[*] MIN_SEGMENT_SIZE: ${MIN_SEGMENT_SIZE}"
-echo "[*] NUM_ITERATIONS: ${NUM_ITERATIONS}"
-echo "[*] USE_SYNTHETIC_DATA_FLAG: ${USE_SYNTHETIC_DATA_FLAG}"
 echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
@@ -129,9 +127,7 @@ COMMAND="${PREPEND_COMMAND} python transformers.py \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
     --data_dir ${DATA_DIR} \
     --vocab_size ${VOCAB_SIZE} \
-    ${USE_SYNTHETIC_DATA_FLAG} \
     --minimum_segment_size ${MIN_SEGMENT_SIZE} \
-    --num_iterations ${NUM_ITERATIONS} \
     ${BYPASS_ARGUMENTS}"
 
 COMMAND=$(echo "${COMMAND}" | tr -s " ")
