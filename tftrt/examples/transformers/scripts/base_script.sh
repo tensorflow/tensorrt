@@ -123,7 +123,7 @@ cd ${BENCH_DIR}
 
 # Execute the example
 
-PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 TF_CPP_MIN_LOG_LEVEL=2 ${NVIDIA_TF32_OVERRIDE}"
+PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 ${NVIDIA_TF32_OVERRIDE}"
 
 COMMAND="${PREPEND_COMMAND} python transformers.py \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \

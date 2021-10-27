@@ -133,7 +133,7 @@ fi
 
 # Step 2: Execute the example
 
-PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 TF_CPP_MIN_LOG_LEVEL=2 ${NVIDIA_TF32_OVERRIDE}"
+PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 ${NVIDIA_TF32_OVERRIDE}"
 
 COMMAND="${PREPEND_COMMAND} python object_detection.py \
     --data_dir ${VAL_DATA_DIR} \
