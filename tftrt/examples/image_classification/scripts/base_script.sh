@@ -130,7 +130,7 @@ cd ${BENCH_DIR}
 
 # Execute the example
 
-PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 TF_CPP_MIN_LOG_LEVEL=2 ${NVIDIA_TF32_OVERRIDE}"
+PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 ${NVIDIA_TF32_OVERRIDE}"
 
 COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --data_dir ${DATA_DIR} \
