@@ -258,6 +258,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 with _timed_section('TF-TRT graph conversion ...'):
                     graph_func = converter.convert()
 
+            try:
+
+                converter.summary(
+                    line_length=max(160, os.get_terminal_size().columns),
+                    detailed=True
+                )
+            except AttributeError:
+                pass
+
             if optimize_offline or use_dynamic_shape:
 
                 _check_input_fn(
