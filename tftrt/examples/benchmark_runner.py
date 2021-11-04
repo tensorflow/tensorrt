@@ -259,11 +259,11 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     graph_func = converter.convert()
 
             try:
-
-                converter.summary(
-                    line_length=max(160, os.get_terminal_size().columns),
-                    detailed=True
-                )
+                try:
+                    line_length = max(160, os.get_terminal_size().columns)
+                except OSError:
+                    line_length = 160
+                converter.summary(line_length=line_length, detailed=True)
             except AttributeError:
                 pass
 
