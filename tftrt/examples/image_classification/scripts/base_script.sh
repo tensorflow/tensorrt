@@ -75,6 +75,13 @@ case ${MODEL_NAME} in
     NUM_CLASSES=1000
     ;;
 
+  "resnet50-v1.5_tf1_ngc" )
+    NUM_CLASSES=1000
+    OUTPUT_TENSOR_IDX_FLAG="--output_tensor_indices=0"
+    OUTPUT_TENSOR_NAME_FLAG="--output_tensor_names=classes"
+    PREPROCESS_METHOD="resnet50_v1_5_tf1_ngc_preprocess"
+    ;;
+
   "resnet50v2_backbone" | "resnet50v2_sparse_backbone" )
     INPUT_SIZE=256
     ;;

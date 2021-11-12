@@ -55,10 +55,12 @@ class CommandLineAPI(BaseCommandLineAPI):
                                        'the model')
 
         self._parser.add_argument('--preprocess_method', type=str,
-                                  choices=['vgg', 'inception'], default='vgg',
+                                  choices=['vgg', 'inception',
+                                           'resnet50_v1_5_tf1_ngc_preprocess'
+                                  ],
+                                  default='vgg',
                                   help='The image preprocessing method used in '
                                        'dataloading.')
-
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
@@ -107,6 +109,8 @@ def get_dataset(data_files, batch_size, use_synthetic_data, preprocess_method, i
             preprocess_fn = preprocessing.vgg_preprocess
         elif preprocess_method == 'inception':
             preprocess_fn = preprocessing.inception_preprocess
+        elif preprocess_method == 'resnet50_v1_5_tf1_ngc_preprocess':
+            preprocess_fn = preprocessing.resnet50_v1_5_tf1_ngc_preprocess
         else:
             raise ValueError(
                 'Invalid preprocessing method {}'.format(preprocess_method)
