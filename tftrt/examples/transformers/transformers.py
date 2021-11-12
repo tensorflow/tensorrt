@@ -89,10 +89,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
     def before_benchmark(self, **kwargs):
         pass
 
-    def compute_accuracy_metric(self, batch_size, steps_executed, **kwargs):
+    def compute_accuracy_metric(self, predictions, expected, **kwargs):
         pass
 
-    def process_model_output(self, outputs, batch_y, **kwargs):
+    def process_model_output(self, outputs, **kwargs):
         pass
 
 # def validate_model_artifacts(infer_func, model_dir, use_tftrt, precision):
@@ -182,6 +182,7 @@ if __name__ == '__main__':
         output_saved_model_dir=args.output_saved_model_dir,
         allow_build_at_runtime=args.allow_build_at_runtime,
         calibration_input_fn=calibration_input_fn,
+        debug=args.debug,
         gpu_mem_cap=args.gpu_mem_cap,
         input_signature_key=args.input_signature_key,
         max_workspace_size_bytes=args.max_workspace_size,
@@ -189,6 +190,8 @@ if __name__ == '__main__':
         num_calib_inputs=args.num_calib_inputs,
         optimize_offline=args.optimize_offline,
         optimize_offline_input_fn=optimize_offline_input_fn,
+        output_tensor_indices=args.output_tensor_indices,
+        output_tensor_names=args.output_tensor_names,
         precision_mode=args.precision,
         use_dynamic_shape=args.use_dynamic_shape,
         use_tftrt=args.use_tftrt)

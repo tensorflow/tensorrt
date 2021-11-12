@@ -22,7 +22,6 @@ import logging
 import time
 import shutil
 
-from collections import defaultdict
 from functools import partial
 import ujson as json
 
@@ -62,8 +61,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
     ACCURACY_METRIC_NAME = "mAP"
 
     def before_benchmark(self, **kwargs):
-        self._predictions = defaultdict(lambda: [])
-
         self._output_name_map = (
             # <tf.Tensor 'detection_boxes:0' shape=(8, None, None) dtype=float32>
             (0, 'boxes'),
@@ -75,19 +72,19 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             (3, 'scores'),
         )
 
-    def compute_accuracy_metric(self, batch_size, steps_executed, **kwargs):
+    def compute_accuracy_metric(self, predictions, expected, **kwargs):
         return self._eval_model(
-            predictions=self._predictions,
+            predictions=predictions,
             image_ids=kwargs["image_ids"],
             annotation_path=kwargs["annotation_path"]
         )
 
     def _eval_model(self, predictions, image_ids, annotation_path):
 
-        for key in predictions:
-            predictions[key] = np.vstack(predictions[key])
-            if key == 'num_detections':
-                predictions[key] = predictions[key].ravel()
+        # for key in predictions:
+        #     predictions[key] = np.vstack(predictions[key])
+        #     if key == 'num_detections':
+        #         predictions[key] = predictions[key].ravel()
 
         coco = COCO(annotation_file=annotation_path)
         coco_detections = []
@@ -134,7 +131,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         return eval.stats[0]
 
-    def process_model_output(self, outputs, batch_y, **kwargs):
+    def process_model_output(self, outputs, **kwargs):
         # outputs = graph_func(batch_images)
         if isinstance(outputs, dict):
             outputs = {k:t.numpy() for k, t in outputs.items()}
@@ -144,8 +141,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                 for idx, name in self._output_name_map
             }
 
-        for key, value in outputs.items():
-            self._predictions[key].append(value)
+        return outputs
 
 
 def get_dataset(batch_size,
@@ -249,6 +245,7 @@ if __name__ == '__main__':
         output_saved_model_dir=args.output_saved_model_dir,
         allow_build_at_runtime=args.allow_build_at_runtime,
         calibration_input_fn=calibration_input_fn,
+        debug=args.debug,
         gpu_mem_cap=args.gpu_mem_cap,
         input_signature_key=args.input_signature_key,
         max_workspace_size_bytes=args.max_workspace_size,
@@ -256,6 +253,8 @@ if __name__ == '__main__':
         num_calib_inputs=args.num_calib_inputs,
         optimize_offline=args.optimize_offline,
         optimize_offline_input_fn=optimize_offline_input_fn,
+        output_tensor_indices=args.output_tensor_indices,
+        output_tensor_names=args.output_tensor_names,
         precision_mode=args.precision,
         use_dynamic_shape=args.use_dynamic_shape,
         use_tftrt=args.use_tftrt)
