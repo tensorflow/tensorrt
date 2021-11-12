@@ -65,33 +65,16 @@ class BenchmarkRunner(BaseBenchmarkRunner):
     ACCURACY_METRIC_NAME = "accuracy"
 
     def before_benchmark(self, **kwargs):
-        self._adjust = 1 if kwargs["num_classes"] == 1001 else 0
-        self._corrects = 0
+        self._labels_shift = 1 if kwargs["num_classes"] == 1001 else 0
 
-        try:
-            self._output_tensorname = list(
-                self._graph_func.structured_outputs.keys()
-            )[0]
-        except AttributeError:
-            # Output tensor doesn't have a name, index 0
-            self._output_tensorname = 0
+    def compute_accuracy_metric(self, predictions, expected, **kwargs):
+        return np.mean(np.equal(predictions["outputs"], expected))
 
-    def compute_accuracy_metric(self, batch_size, steps_executed, **kwargs):
-        return self._corrects / (batch_size * steps_executed)
-
-    def _eval_fn(self, preds, labels, adjust):
-        """Measures number of correct predicted labels in a batch.
-        Assumes preds and labels are numpy arrays.
-        """
-        preds = np.argmax(preds, axis=1).reshape(-1) - adjust
-        return np.sum((labels.reshape(-1) == preds).astype(np.float32))
-
-    def process_model_output(self, outputs, batch_y, **kwargs):
-        self._corrects += self._eval_fn(
-            preds=outputs[self._output_tensorname].numpy(),
-            labels=batch_y.numpy(),
-            adjust=self._adjust
-        )
+    def process_model_output(self, outputs, **kwargs):
+        outputs = outputs.numpy()
+        if (len(outputs.shape) != 1):
+            outputs = np.argmax(outputs, axis=1).reshape(-1)
+        return {"outputs": outputs - self._labels_shift}
 
 
 def get_dataset(data_files, batch_size, use_synthetic_data, preprocess_method, input_size):
@@ -162,14 +145,12 @@ def get_dataset(data_files, batch_size, use_synthetic_data, preprocess_method, i
         input_size=input_size
     )
 
-    dataset = dataset.apply(
-        tf.data.experimental.map_and_batch(
-            map_func=preprocess_fn,
-            batch_size=batch_size,
-            num_parallel_calls=min(8, multiprocessing.cpu_count()),
-            drop_remainder=True
-        )
+    dataset = dataset.map(
+        map_func=preprocess_fn,
+        num_parallel_calls=min(8, multiprocessing.cpu_count())
     )
+
+    dataset = dataset.batch(batch_size=batch_size, drop_remainder=True)
 
     if use_synthetic_data:
         dataset = dataset.take(count=1)  # loop over 1 batch
@@ -246,6 +227,7 @@ if __name__ == '__main__':
         output_saved_model_dir=args.output_saved_model_dir,
         allow_build_at_runtime=args.allow_build_at_runtime,
         calibration_input_fn=calibration_input_fn,
+        debug=args.debug,
         gpu_mem_cap=args.gpu_mem_cap,
         input_signature_key=args.input_signature_key,
         max_workspace_size_bytes=args.max_workspace_size,
@@ -253,9 +235,12 @@ if __name__ == '__main__':
         num_calib_inputs=args.num_calib_inputs,
         optimize_offline=args.optimize_offline,
         optimize_offline_input_fn=optimize_offline_input_fn,
+        output_tensor_indices=args.output_tensor_indices,
+        output_tensor_names=args.output_tensor_names,
         precision_mode=args.precision,
         use_dynamic_shape=args.use_dynamic_shape,
-        use_tftrt=args.use_tftrt)
+        use_tftrt=args.use_tftrt
+    )
 
     get_benchmark_input_fn = partial(
         get_dataset,

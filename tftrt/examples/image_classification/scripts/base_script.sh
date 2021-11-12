@@ -32,6 +32,12 @@ do
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
         ;;
+        --output_tensor_names=*)
+        shift # Remove --output_tensor_names= from processing
+        ;;
+        --output_tensor_indices=*)
+        shift # Remove --output_tensor_indices= from processing
+        ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
         ;;
@@ -43,6 +49,8 @@ done
 INPUT_SIZE=224
 PREPROCESS_METHOD="vgg"
 NUM_CLASSES=1001
+OUTPUT_TENSOR_NAME_FLAG=""
+OUTPUT_TENSOR_IDX_FLAG=""
 
 case ${MODEL_NAME} in
   "inception_v3" | "inception_v4")
@@ -86,6 +94,8 @@ echo ""
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] PREPROCESS_METHOD: ${PREPROCESS_METHOD}"
 echo "[*] NUM_CLASSES: ${NUM_CLASSES}"
+echo "[*] OUTPUT_TENSOR_IDX_FLAG: ${OUTPUT_TENSOR_IDX_FLAG}"
+echo "[*] OUTPUT_TENSOR_NAME_FLAG: ${OUTPUT_TENSOR_NAME_FLAG}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 echo -e "********************************************************************\n"
@@ -140,6 +150,8 @@ COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --input_size ${INPUT_SIZE} \
     --preprocess_method ${PREPROCESS_METHOD} \
     --num_classes ${NUM_CLASSES} \
+    ${OUTPUT_TENSOR_IDX_FLAG} \
+    ${OUTPUT_TENSOR_NAME_FLAG} \
     ${BYPASS_ARGUMENTS}"
 
 COMMAND=$(echo "${COMMAND}" | tr -s " ")

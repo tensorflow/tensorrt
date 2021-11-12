@@ -72,6 +72,18 @@ class BaseCommandLineAPI(object):
                                     default_sign_key
                                   ))
 
+        self._parser.add_argument('--output_tensor_names', type=str,
+                                  default=None,
+                                  help='Output tensors\' name, defaults to all '
+                                       'tensors available if not set. Will '
+                                       'only work with `--use_tftrt`.')
+
+        self._parser.add_argument('--output_tensor_indices', type=str,
+                                  default=None,
+                                  help='Output tensors\' index, defaults to '
+                                       'all tensors available if not set. Will '
+                                       'only work without `--use_tftrt`.')
+
         self._parser.add_argument('--num_iterations', type=int, default=None,
                                   help='How many iterations(batches) to '
                                        'evaluate. If not supplied, the whole '
@@ -157,6 +169,15 @@ class BaseCommandLineAPI(object):
             help='Whether to use implicit batch mode or dynamic shape mode.'
         )
 
+        # =========================== DEBUG Flags ========================== #
+
+        self._add_bool_argument(
+            name="debug",
+            default=False,
+            required=False,
+            help='If set to True, will print additional information.'
+        )
+
     def _add_bool_argument(self, name=None, default=False, required=False, help=None):
             if not isinstance(default, bool):
                 raise ValueError()
@@ -205,7 +226,7 @@ class BaseCommandLineAPI(object):
         else:
             if args.use_xla:
                 raise ValueError("--use_xla flag is not supported with TF-TRT.")
-                
+
             if args.precision not in self.ALLOWED_TFTRT_PRECISION_MODES:
                 raise ValueError("The received --precision={} is not supported."
                                  " Allowed: {}".format(
@@ -250,5 +271,6 @@ class BaseCommandLineAPI(object):
 
         print('\nBenchmark arguments:')
         _print_dict(vars(args))
+        print()
 
         return args

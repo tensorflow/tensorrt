@@ -9,8 +9,10 @@ import copy
 import logging
 import time
 
+from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial
+from operator import itemgetter
 
 import numpy as np
 import tensorflow as tf
@@ -64,11 +66,11 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def compute_accuracy_metric(self, batch_size, steps_executed, **kwargs):
+    def compute_accuracy_metric(self, predictions, expected, **kwargs):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def process_model_output(self, outputs, batch_y, **kwargs):
+    def process_model_output(self, outputs, **kwargs):
         raise NotImplementedError()
 
     ############################################################################
@@ -81,6 +83,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         output_saved_model_dir,
         allow_build_at_runtime=False,
         calibration_input_fn=None,
+        debug=False,
         gpu_mem_cap=None,
         input_signature_key=DEFAULT_SERVING_SIGNATURE_DEF_KEY,
         max_workspace_size_bytes=DEFAULT_TRT_MAX_WORKSPACE_SIZE_BYTES,
@@ -88,13 +91,17 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         num_calib_inputs=None,
         optimize_offline=False,
         optimize_offline_input_fn=None,
+        output_tensor_indices=None,
+        output_tensor_names=None,
         precision_mode=None,
         use_dynamic_shape=False,
-        use_tftrt=False
+        use_tftrt=False,
     ):
 
         logging.getLogger("tensorflow").setLevel(logging.INFO)
         logging.disable(logging.WARNING)
+
+        self._debug = debug
 
         # TensorFlow can execute operations synchronously or asynchronously.
         # If asynchronous execution is enabled, operations may return
@@ -131,15 +138,17 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             use_tftrt=use_tftrt
         )
 
+        self._set_output_tensor_name(output_tensor_indices, output_tensor_names)
+
     def _config_gpu_memory(self, gpu_mem_cap):
         gpus = tf.config.experimental.list_physical_devices('GPU')
 
         if not gpus:
             raise RuntimeError("No GPUs has been found.")
 
-        print('Found the following GPUs:')
+        self.debug_print('Found the following GPUs:')
         for gpu in gpus:
-            print(' ', gpu)
+            self.debug_print(f"\t- {gpu}")
 
         for gpu in gpus:
             try:
@@ -152,6 +161,42 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                             memory_limit=gpu_mem_cap)])
             except RuntimeError as e:
                 print('Can not set GPU memory config', e)
+
+    def _set_output_tensor_name(
+        self, output_tensor_indices, output_tensor_names
+    ):
+        structured_outputs = self._graph_func.structured_outputs
+
+        if isinstance(structured_outputs, (list, tuple)):
+            if output_tensor_indices is None:
+                output_tensor_indices = list(range(len(structured_outputs)))
+            else:
+                output_tensor_indices = [
+                    int(i) for i in output_tensor_indices.split(",")
+                ]
+
+            self._output_tensors = output_tensor_indices
+
+        elif isinstance(structured_outputs, dict):
+            structured_outputs = dict(sorted(structured_outputs.items()))
+            if output_tensor_names is None:
+                output_tensor_names = list(structured_outputs.keys())
+            else:
+                output_tensor_names = [n for n in output_tensor_names.split(",")]
+                for name in output_tensor_names:
+                    if name not in structured_outputs.keys():
+                        raise ValueError(
+                          f"Unknown output_tensor_names received: {name}. " \
+                          f"Authorized: {structured_outputs.keys()}")
+
+            self._output_tensors = output_tensor_names
+
+        else:
+            raise RuntimeError('Unknown structured_outputs format received:',
+                               type(structured_outputs))
+
+        self.debug_print(f"Available Output Tensors: {structured_outputs}")
+        self.debug_print(f"Chosen Output Tensor: {self._output_tensors}")
 
     def _get_graph_func(
         self,
@@ -288,6 +333,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
         return graph_func
 
+    def debug_print(self, msg):
+        if self._debug:
+            print(f"[DEBUG] {msg}")
+
     def execute_benchmark(
         self,
         batch_size,
@@ -317,7 +366,22 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         @_force_gpu_resync
         @tf.function(jit_compile=use_xla)
         def infer_step(_batch_x):
-          return self._graph_func(_batch_x)
+          output = self._graph_func(_batch_x)
+          return itemgetter(*self._output_tensors)(output)
+
+        predicted_dict = defaultdict(lambda: [])
+        expected_arr = []
+
+        def get_debug_output_shape_str(output):
+            if isinstance(output, (tuple, list)):
+                return [t.shape for t in output]
+
+            elif isinstance(output, dict):
+                return {k: v.shape for k, v in output.items()}
+
+            else:
+                return output.shape
+
 
         print("\nStart inference ...")
         for i, data_batch in enumerate(dataset):
@@ -348,19 +412,62 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 ))
 
             if not skip_accuracy_testing:
-                self.process_model_output(
-                    outputs=batch_preds,
-                    batch_y=batch_y,
-                    **kwargs
-                )
+                if i == 0:
+                    self.debug_print("=========== BEFORE PROCESSING ==========")
+                    debug_batch_preds = get_debug_output_shape_str(batch_preds)
+                    self.debug_print(f"`batch_preds`: {debug_batch_preds}")
+                    if batch_y is not None:
+                        self.debug_print(f"`batch_y` shape: {batch_y.shape}")
+
+                batch_preds = self.process_model_output(batch_preds, **kwargs)
+
+                if not isinstance(batch_preds, dict):
+                    raise ValueError(
+                        f"`self.process_model_output` did not return a dict. " \
+                        f"Received: {type(batch_preds)}"
+                    )
+
+                if batch_y is not None:
+                    batch_y = batch_y.numpy()
+                    if batch_y.shape[-1] == 1:
+                        batch_y = np.squeeze(batch_y, axis=-1)
+
+                if i == 0:
+                    self.debug_print("=========== AFTER PROCESSING ===========")
+                    debug_batch_preds = get_debug_output_shape_str(batch_preds)
+                    self.debug_print(f"`batch_preds`: {debug_batch_preds}")
+                    if batch_y is not None:
+                        self.debug_print(f"`batch_y` shape: {batch_y.shape}")
+                    self.debug_print("========================================")
+
+                for key, value in batch_preds.items():
+                    predicted_dict[key].append(value)
+
+                if batch_y is not None:
+                    expected_arr.append(batch_y)
 
             if (i + 1) >= num_iterations:
                 break
 
         if not skip_accuracy_testing:
+            predicted_dict = {
+                k: np.concatenate(v, axis=0)
+                for k, v in predicted_dict.items()
+            }
+            if expected_arr:
+                expected_arr = np.concatenate(expected_arr, axis=0)
+            else:
+                expected_arr = np.array(expected_arr)
+
+            self.debug_print("=========== BEFORE METRIC COMPUTATION ==========")
+            debug_predicted_dict = get_debug_output_shape_str(predicted_dict)
+            self.debug_print(f"`predicted_dict`: {debug_predicted_dict}")
+            self.debug_print(f"`expected_arr` shape: {expected_arr.shape}")
+            self.debug_print("========================================")
+
             results['accuracy_metric'] = self.compute_accuracy_metric(
-                batch_size=batch_size,
-                steps_executed=steps_executed,
+                predictions=predicted_dict,
+                expected=expected_arr,
                 **kwargs
             )
 
