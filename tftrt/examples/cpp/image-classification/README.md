@@ -4,9 +4,6 @@
 
 This directory contains example code to demonstrate TF-TRT conversion using the C++ API.
 
-### Limitations
-- Freezing the model is not implemented correctly, the current example only works with frozen graphs.
-
 ### Acknowledgment
 
 The MNIST inference example is based on https://github.com/bmzhao/saved-model-example
@@ -48,5 +45,5 @@ wget -O - http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz | gunzip > 
 Run inference
 ```
 cd /workspace/tensorrt/tftrt/examples/cpp/image-classification/build
-TF_CPP_VMODULE=trt_convert=2,trt_optimization_pass=2,trt_engine_utils=2,trt_engine_op=2,segment=2,trt_shape_optimization_profiles=2,trt_lru_cache=2,convert_graph=2,trt_engine_resource_ops=2 ./tf_trt_example --saved_model_dir=/workspace/tensorflow-source/tf_trt_cpp_example/mnist_model_frozen --mnist_data=/workspace/tensorflow-source/tf_trt_cpp_example/t10k-images.idx3-ubyte
+TF_CPP_VMODULE=trt_convert=2,trt_optimization_pass=2,trt_engine_utils=2,trt_engine_op=2,segment=2,trt_shape_optimization_profiles=2,trt_lru_cache=2,convert_graph=2,trt_engine_resource_ops=2 ./tf_trt_example --saved_model_dir=/workspace/tensorflow-source/tf_trt_cpp_example/mnist_model --mnist_data=/workspace/tensorflow-source/tf_trt_cpp_example/t10k-images.idx3-ubyte
 ```

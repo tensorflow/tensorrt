@@ -96,7 +96,7 @@ LoadInputs(const std::string &mnist_path,
 
   for (int i = 0; i < 4; i++) {
     std::cout << "Input image " << i << std::endl;
-    std::cout << image_reader.images[i];
+    std::cout << image_reader.images[i] << std::endl;
   }
   return tensorflow::Status::OK();
 }
@@ -121,11 +121,14 @@ int main(int argc, char **argv) {
   std::string mnist_data_path =
       "/workspace/tensorflow-source/tf_trt_cpp_example/"
       "t10k-images.idx3-ubyte";
+  bool frozen_graph = false;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("saved_model_dir", &export_dir,
                        "Path to saved model directory"),
       tensorflow::Flag("mnist_data", &mnist_data_path, "Path to MNIST images"),
-  };
+      tensorflow::Flag("frozen_graph", &frozen_graph,
+                       "Assume graph is frozen and use TF-TRT API for frozen "
+                       "graphs")};
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
 
   if (!parse_result) {
@@ -136,8 +139,8 @@ int main(int argc, char **argv) {
   tensorflow::port::InitMain(argv[0], &argc, &argv);
 
   tensorflow::SavedModelBundle bundle;
-  std::vector<std::string> input_names = {"serving_default_flatten_input"};
-  std::vector<std::string> output_names = {"PartitionedCall"};
+  std::vector<std::string> input_names;
+  std::vector<std::string> output_names;
 
   // Load the saved model from the provided path.
   TFTRT_ENSURE_OK(LoadModel(export_dir, &bundle, &input_names, &output_names));
@@ -147,14 +150,18 @@ int main(int argc, char **argv) {
   TFTRT_ENSURE_OK(LoadInputs(mnist_data_path, &inputs));
 
   // Run TF-TRT conversion
-
   tensorflow::tensorrt::TfTrtConversionParams params;
   params.use_dynamic_shape = true;
   params.profile_strategy = tensorflow::tensorrt::ProfileStrategy::kOptimal;
-  tensorflow::StatusOr<tensorflow::GraphDef> status_or_gdef =
-      tensorflow::tensorrt::ConvertAndBuild(bundle.meta_graph_def.graph_def(),
-                                            input_names, output_names, inputs,
-                                            params);
+  tensorflow::StatusOr<tensorflow::GraphDef> status_or_gdef;
+  if (frozen_graph) {
+    status_or_gdef = tensorflow::tensorrt::ConvertAndBuild(
+        bundle.meta_graph_def.graph_def(), input_names, output_names, inputs,
+        params);
+  } else {
+    status_or_gdef = tensorflow::tensorrt::ConvertAndBuild(
+        &bundle, "serving_default", inputs, params);
+  }
   if (!status_or_gdef.ok()) {
     std::cerr << "Error converting the graph" << status_or_gdef.status()
               << std::endl;
