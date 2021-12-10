@@ -15,6 +15,7 @@ MAX_WORKSPACE_SIZE=$((2 ** (32 + 1)))  # + 1 necessary compared to python
 INPUT_SIZE=640
 
 BYPASS_ARGUMENTS=""
+TF_AUTO_JIT_XLA_FLAG=""
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -39,6 +40,10 @@ do
         --input_saved_model_dir=*)
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
+        ;;
+        --use_xla_auto_jit)
+        TF_AUTO_JIT_XLA_FLAG="TF_XLA_FLAGS=--tf_xla_auto_jit=2"
+        shift # Remove --use_xla_auto_jit from processing
         ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
@@ -69,6 +74,7 @@ echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
 echo ""
+echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 echo -e "********************************************************************\n"
 
@@ -133,7 +139,7 @@ fi
 
 # Step 2: Execute the example
 
-PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 ${NVIDIA_TF32_OVERRIDE}"
+PREPEND_COMMAND="${TF_AUTO_JIT_XLA_FLAG} ${NVIDIA_TF32_OVERRIDE}"
 
 COMMAND="${PREPEND_COMMAND} python object_detection.py \
     --data_dir ${VAL_DATA_DIR} \

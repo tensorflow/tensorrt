@@ -13,6 +13,7 @@ NVIDIA_TF32_OVERRIDE=""
 DATA_DIR="/tmp"
 
 BYPASS_ARGUMENTS=""
+TF_AUTO_JIT_XLA_FLAG=""
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -38,6 +39,10 @@ do
         --input_saved_model_dir=*)
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
+        ;;
+        --use_xla_auto_jit)
+        TF_AUTO_JIT_XLA_FLAG="TF_XLA_FLAGS=--tf_xla_auto_jit=2"
+        shift # Remove --use_xla_auto_jit from processing
         ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
@@ -79,6 +84,7 @@ echo ""
 echo "[*] MIN_SEGMENT_SIZE: ${MIN_SEGMENT_SIZE}"
 echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo ""
+echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
@@ -123,7 +129,7 @@ cd ${BENCH_DIR}
 
 # Execute the example
 
-PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 ${NVIDIA_TF32_OVERRIDE}"
+PREPEND_COMMAND="${TF_AUTO_JIT_XLA_FLAG} ${NVIDIA_TF32_OVERRIDE}"
 
 COMMAND="${PREPEND_COMMAND} python transformers.py \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \

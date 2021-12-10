@@ -11,6 +11,7 @@ MODEL_DIR=""
 NVIDIA_TF32_OVERRIDE=""
 
 BYPASS_ARGUMENTS=""
+TF_AUTO_JIT_XLA_FLAG=""
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -37,6 +38,10 @@ do
         ;;
         --output_tensor_indices=*)
         shift # Remove --output_tensor_indices= from processing
+        ;;
+        --use_xla_auto_jit)
+        TF_AUTO_JIT_XLA_FLAG="TF_XLA_FLAGS=--tf_xla_auto_jit=2"
+        shift # Remove --use_xla_auto_jit from processing
         ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
@@ -104,6 +109,7 @@ echo "[*] NUM_CLASSES: ${NUM_CLASSES}"
 echo "[*] OUTPUT_TENSOR_IDX_FLAG: ${OUTPUT_TENSOR_IDX_FLAG}"
 echo "[*] OUTPUT_TENSOR_NAME_FLAG: ${OUTPUT_TENSOR_NAME_FLAG}"
 echo ""
+echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 echo -e "********************************************************************\n"
 
@@ -147,7 +153,7 @@ cd ${BENCH_DIR}
 
 # Execute the example
 
-PREPEND_COMMAND="TF_XLA_FLAGS=--tf_xla_auto_jit=2 ${NVIDIA_TF32_OVERRIDE}"
+PREPEND_COMMAND="${TF_AUTO_JIT_XLA_FLAG} ${NVIDIA_TF32_OVERRIDE}"
 
 COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --data_dir ${DATA_DIR} \
