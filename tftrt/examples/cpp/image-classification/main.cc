@@ -21,9 +21,11 @@ limitations under the License.
 
 #include "absl/strings/string_view.h"
 #include "mnist.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/compiler/tf2tensorrt/trt_convert_api.h"
 #include "tensorflow/core/framework/tensor.pb.h"
+#include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/public/session.h"
@@ -42,21 +44,24 @@ GetNodeNames(const google::protobuf::Map<std::string, tensorflow::TensorInfo>
       name.remove_suffix(name.size() - last_colon);
     }
     names.push_back(std::string(name));
+    std::cout << "Found name " << name << std::endl;
   }
   return names;
 }
 
 // Loads a SavedModel from export_dir into the SavedModelBundle.
 tensorflow::Status LoadModel(const std::string &export_dir,
+                             const std::string &signature_key,
                              tensorflow::SavedModelBundle *bundle,
                              std::vector<std::string> *input_names,
                              std::vector<std::string> *output_names) {
 
+  VLOG(2) << "loading saved model";
   tensorflow::RunOptions run_options;
   TF_RETURN_IF_ERROR(tensorflow::LoadSavedModel(tensorflow::SessionOptions(),
                                                 run_options, export_dir,
                                                 {"serve"}, bundle));
-
+  VLOG(2) << "Saved model loaded";
   // Print the signature defs.
   auto signature_map = bundle->GetSignatures();
   for (const auto &name_and_signature_def : signature_map) {
@@ -67,37 +72,72 @@ tensorflow::Status LoadModel(const std::string &export_dir,
   }
 
   // Extract input and output tensor names from the signature def.
-  const tensorflow::SignatureDef &signature = signature_map["serving_default"];
+  const tensorflow::SignatureDef &signature = signature_map[signature_key];
   *input_names = GetNodeNames(signature.inputs());
   *output_names = GetNodeNames(signature.outputs());
 
+  // std::cout << "input " << *(input_names->begin()) << ", output "
+  //           << *(output_names->begin()) << std::endl;
   return tensorflow::Status::OK();
 }
 
-// We prepare to input sets, with batch size 1 and batch size 4.
-tensorflow::Status
-LoadInputs(const std::string &mnist_path,
-           std::vector<std::vector<tensorflow::Tensor>> *inputs) {
-  // Load the MNIST images from the given path.
-  mnist::MNISTImageReader image_reader(mnist_path);
-  TF_RETURN_IF_ERROR(image_reader.ReadMnistImages());
-
-  // Convert the first image to a tensorflow::Tensor.
-  tensorflow::Tensor input_image = image_reader.MNISTImageToTensor(0, 1);
-  std::cout << "Created input tensor with shape "
-            << input_image.shape().DebugString() << std::endl;
-  inputs->push_back({input_image});
-
-  // Create another tensor with batch size 4.
-  input_image = image_reader.MNISTImageToTensor(0, 4);
-  std::cout << "Created input tensor with shape "
-            << input_image.shape().DebugString() << std::endl;
-  inputs->push_back({input_image});
-
-  for (int i = 0; i < 4; i++) {
-    std::cout << "Input image " << i << std::endl;
-    std::cout << image_reader.images[i] << std::endl;
+tensorflow::Status CreateInputShapeTensor(tensorflow::SavedModelBundle *bundle,
+                                          std::string signature_key, int N,
+                                          int H, int W,
+                                          tensorflow::Tensor *out) {
+  auto signature_map = bundle->GetSignatures();
+  if (signature_map.empty()) {
+    return tensorflow::errors::InvalidArgument("Incorrect input signature");
   }
+  const tensorflow::SignatureDef signature = signature_map[signature_key];
+  if (signature.inputs().size() != 1) {
+    return tensorflow::errors::InvalidArgument(
+        "Error expected a network with 1 input, got ",
+        signature.inputs().size());
+  }
+  const tensorflow::TensorInfo tensor_info = signature.inputs().begin()->second;
+  if (tensor_info.dtype() != tensorflow::DT_FLOAT) {
+    return tensorflow::errors::Unimplemented(
+        "Only networks with float input supported");
+  }
+  const tensorflow::TensorShapeProto tensor_shape = tensor_info.tensor_shape();
+
+  if (tensor_shape.dim().size() != 4) {
+    return tensorflow::errors::InvalidArgument(
+        "Expected network with 4D input");
+  }
+
+  std::vector<int> shape_vec{N, H, W, -1};
+
+  for (int i = 0; i < tensor_shape.dim().size(); i++) {
+    if (tensor_shape.dim(i).size() != -1) {
+      shape_vec[i] = tensor_shape.dim(i).size();
+    }
+  }
+  tensorflow::Tensor kShape(tensorflow::DT_INT32, {4});
+  std::copy_n(shape_vec.data(), 4, kShape.flat<int32_t>().data());
+
+  *out = std::move(kShape);
+  return tensorflow::Status::OK();
+}
+
+// Adds a node that generates random input image.
+tensorflow::Status AddInputNode(tensorflow::SavedModelBundle *bundle,
+                                std::string node_name,
+                                std::string signature_key = "serving_default",
+                                int N = 1, int H = 224, int W = 224) {
+  tensorflow::Tensor shape_tensor;
+  TF_RETURN_IF_ERROR(
+      CreateInputShapeTensor(bundle, signature_key, N, H, W, &shape_tensor));
+
+  tensorflow::Scope root = tensorflow::Scope::NewRootScope();
+  auto shape = tensorflow::ops::Const(root.WithOpName("shape"), shape_tensor);
+  auto attrs = tensorflow::ops::RandomUniform::Seed(137);
+  auto r = tensorflow::ops::RandomUniform(root.WithOpName(node_name), shape,
+                                          tensorflow::DT_FLOAT, attrs);
+  tensorflow::GraphDef gdef;
+  TF_RETURN_IF_ERROR(root.ToGraphDef(&gdef));
+  TF_RETURN_IF_ERROR(bundle->GetSession()->Extend(gdef));
   return tensorflow::Status::OK();
 }
 
@@ -114,21 +154,27 @@ LoadInputs(const std::string &mnist_path,
 int main(int argc, char **argv) {
   // One can use a command line arg to specify the saved model directory.
   // Note that the model has to be trained with input size [None, 28, 28].
-  // Currently, it is assumed that the model is already frozen (variables are
-  // converted to constants).
+  // Currently, it is assumed that the model is already frozen (variables
+  // are converted to constants).
   std::string export_dir =
       "/workspace/tensorflow-source/tf_trt_cpp_example/mnist_model_frozen";
   std::string mnist_data_path =
       "/workspace/tensorflow-source/tf_trt_cpp_example/"
       "t10k-images.idx3-ubyte";
   bool frozen_graph = false;
+  int batch_size = 16;
+  int image_size = 224;
+  std::string signature_key = "serving_default";
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("saved_model_dir", &export_dir,
                        "Path to saved model directory"),
       tensorflow::Flag("mnist_data", &mnist_data_path, "Path to MNIST images"),
       tensorflow::Flag("frozen_graph", &frozen_graph,
                        "Assume graph is frozen and use TF-TRT API for frozen "
-                       "graphs")};
+                       "graphs"),
+      tensorflow::Flag("batch_size", &batch_size, "Batch size"),
+      tensorflow::Flag("image_size", &image_size, "Image size"),
+      tensorflow::Flag("signature_key", &signature_key, "Signature key")};
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
 
   if (!parse_result) {
@@ -143,16 +189,20 @@ int main(int argc, char **argv) {
   std::vector<std::string> output_names;
 
   // Load the saved model from the provided path.
-  TFTRT_ENSURE_OK(LoadModel(export_dir, &bundle, &input_names, &output_names));
+  TFTRT_ENSURE_OK(LoadModel(export_dir, signature_key, &bundle, &input_names,
+                            &output_names));
 
   // Prepare input tensors
-  std::vector<std::vector<tensorflow::Tensor>> inputs;
-  TFTRT_ENSURE_OK(LoadInputs(mnist_data_path, &inputs));
+  TFTRT_ENSURE_OK(AddInputNode(&bundle, "rnd_tensor", signature_key, batch_size,
+                               image_size, image_size));
+  std::vector<tensorflow::Tensor> input1;
+  TFTRT_ENSURE_OK(bundle.GetSession()->Run({}, {"rnd_tensor"}, {}, &input1));
+  std::vector<std::vector<tensorflow::Tensor>> inputs{input1};
 
   // Run TF-TRT conversion
   tensorflow::tensorrt::TfTrtConversionParams params;
   params.use_dynamic_shape = true;
-  params.profile_strategy = tensorflow::tensorrt::ProfileStrategy::kOptimal;
+  params.profile_strategy = tensorflow::tensorrt::ProfileStrategy::kRange;
   tensorflow::StatusOr<tensorflow::GraphDef> status_or_gdef;
   if (frozen_graph) {
     status_or_gdef = tensorflow::tensorrt::ConvertAndBuild(
@@ -160,7 +210,7 @@ int main(int argc, char **argv) {
         params);
   } else {
     status_or_gdef = tensorflow::tensorrt::ConvertAndBuild(
-        &bundle, "serving_default", inputs, params);
+        &bundle, signature_key, inputs, params);
   }
   if (!status_or_gdef.ok()) {
     std::cerr << "Error converting the graph" << status_or_gdef.status()

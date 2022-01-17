@@ -30,20 +30,11 @@ cmake ..
 make
 ```
 
-### Train the model and save it
-```
-python mnist_train.py
-```
 
 ### Run TF-TRT conversion and infer the converted model
-Get input data
-```
-cd /workspace/tensorrt/tftrt/examples/cpp/image-classification
-wget -O - http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz | gunzip > t10k-images.idx3-ubyte
 
-```
 Run inference
 ```
 cd /workspace/tensorrt/tftrt/examples/cpp/image-classification/build
-TF_CPP_VMODULE=trt_convert=2,trt_optimization_pass=2,trt_engine_utils=2,trt_engine_op=2,segment=2,trt_shape_optimization_profiles=2,trt_lru_cache=2,convert_graph=2,trt_engine_resource_ops=2 ./tf_trt_example --saved_model_dir=/workspace/tensorflow-source/tf_trt_cpp_example/mnist_model --mnist_data=/workspace/tensorflow-source/tf_trt_cpp_example/t10k-images.idx3-ubyte
+TF_CPP_VMODULE=trt_convert=2,trt_optimization_pass=2,trt_engine_utils=2,trt_engine_op=2,segment=2,trt_shape_optimization_profiles=2,trt_lru_cache=2,convert_graph=2,trt_engine_resource_ops=2 ./tf_trt_example --saved_model_dir=saved_model_dir
 ```
