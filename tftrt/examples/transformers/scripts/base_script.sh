@@ -138,7 +138,7 @@ COMMAND="${PREPEND_COMMAND} python transformers.py \
     --minimum_segment_size ${MIN_SEGMENT_SIZE} \
     ${BYPASS_ARGUMENTS}"
 
-COMMAND=$(echo "${COMMAND}" | tr -s " ")
+COMMAND=$(echo ${COMMAND} | sed 's/ *$//g')  # Trimming whitespaces
 
 echo -e "**Executing:**\n\n${COMMAND}\n"
 sleep 5

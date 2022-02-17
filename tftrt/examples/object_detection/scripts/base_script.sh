@@ -152,7 +152,7 @@ COMMAND="${PREPEND_COMMAND} python object_detection.py \
     --max_workspace_size ${MAX_WORKSPACE_SIZE} \
     ${BYPASS_ARGUMENTS}"
 
-COMMAND=$(echo "${COMMAND}" | tr -s " ")
+COMMAND=$(echo ${COMMAND} | sed 's/ *$//g')  # Trimming whitespaces
 
 echo -e "**Executing:**\n\n${COMMAND}\n"
 sleep 5

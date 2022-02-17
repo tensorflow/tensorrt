@@ -224,12 +224,18 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         f"`{self._args.output_saved_model_dir}`"
                     )
 
-        savedmodel_outputs = graph_func.structured_outputs
+        savedmodel_outputs = print_dict(
+            graph_func.structured_outputs,
+            redirect_to_str=True
+        )
 
-        chosen_outputs = sorted(self._args.output_tensors_name.split(","))
+        chosen_outputs = "\n  - ".join(
+            sorted(self._args.output_tensors_name.split(","))
+        )
 
-        self._debug_print(f"Available Output Tensors: {savedmodel_outputs}")
-        self._debug_print(f"Chosen Output Tensor: {chosen_outputs}")
+        self._debug_print(f"Available Output Tensors:\n{savedmodel_outputs}")
+        print()  # visual spacing
+        self._debug_print(f"Chosen Output Tensor:\n  - {chosen_outputs}")
 
         return graph_func
 

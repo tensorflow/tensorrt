@@ -23,16 +23,18 @@ def force_gpu_resync(func):
     return wrapper
 
 
-def print_dict(input_dict, prefix='  ', postfix=''):
-    for k, v in sorted(input_dict.items()):
-        print(
-            '{prefix}{arg_name}: {value}{postfix}'.format(
-                prefix=prefix,
-                arg_name=k,
-                value='%.1f' % v if isinstance(v, float) else v,
-                postfix=postfix
-            )
-        )
+def print_dict(input_dict, prefix='  ', postfix='', redirect_to_str=False):
+    rslt_str = ""
+    for key, val in sorted(input_dict.items()):
+        val = f"{val:.1f}" if isinstance(val, float) else val
+        tmp_str = f"{prefix}- {key}: {val}{postfix}"
+        if not redirect_to_str:
+            print(tmp_str)
+        else:
+            rslt_str += f"{tmp_str}\n"
+
+    if redirect_to_str:
+        return rslt_str.rstrip()
 
 
 @contextmanager

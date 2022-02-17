@@ -163,11 +163,12 @@ COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --input_size ${INPUT_SIZE} \
     --preprocess_method ${PREPROCESS_METHOD} \
     --num_classes ${NUM_CLASSES} \
+    --total_max_samples=49920 \
     ${OUTPUT_TENSOR_IDX_FLAG} \
     ${OUTPUT_TENSOR_NAME_FLAG} \
     ${BYPASS_ARGUMENTS}"
 
-COMMAND=$(echo "${COMMAND}" | tr -s " ")
+COMMAND=$(echo ${COMMAND} | sed 's/ *$//g')  # Trimming whitespaces
 
 echo -e "**Executing:**\n\n${COMMAND}\n"
 sleep 5
