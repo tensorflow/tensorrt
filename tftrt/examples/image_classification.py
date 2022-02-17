@@ -215,6 +215,18 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
         return dataset, None
+        """Evaluate result predictions for entire dataset.
+
+        This computes overall accuracy, mAP,  etc.  Returns the
+        metric value and a metric_units string naming the metric.
+
+        Note: script arguments can be accessed using `self._args.attr`
+        """
+
+        return (
+            np.mean(predictions["data"] == expected["data"]) * 100.0,
+            "Top-1 Accuracy %"
+        )
 
     def preprocess_model_inputs(self, data_batch):
         """This function prepare the `data_batch` generated from the dataset.

@@ -1,0 +1,158 @@
+#!/usr/bin/env python
+# Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# -*- coding: utf-8 -*-
+
+import time
+
+import numpy as np
+import tensorflow as tf
+
+from contextlib import contextmanager
+
+__all__ = ["DataAggregator", "force_gpu_resync", "print_dict", "timed_section"]
+
+
+def force_gpu_resync(func):
+    p = tf.constant(0.)  # Create small tensor to force GPU resync
+
+    def wrapper(*args, **kwargs):
+        rslt = func(*args, **kwargs)
+        (p + 1.).numpy()  # Sync the GPU
+        return rslt
+
+    return wrapper
+
+
+def print_dict(input_dict, prefix='  ', postfix=''):
+    for k, v in sorted(input_dict.items()):
+        print(
+            '{prefix}{arg_name}: {value}{postfix}'.format(
+                prefix=prefix,
+                arg_name=k,
+                value='%.1f' % v if isinstance(v, float) else v,
+                postfix=postfix
+            )
+        )
+
+
+@contextmanager
+def timed_section(msg):
+    print('\n[START] {}'.format(msg))
+    start_time = time.time()
+    yield
+    print("[END] Duration: {:.1f}s".format(time.time() - start_time))
+    print("=" * 80, "\n")
+
+
+def _format_output_tensors(predictions, expected, batch_size):
+
+    def dictionarize(data):
+        tmp_preds = dict()
+        if isinstance(data, (tuple, list)):
+            for idx, pred_i in enumerate(data):
+                tmp_preds[f"data_{idx:03d}"] = pred_i
+        elif not isinstance(data, dict):
+            tmp_preds["data"] = data
+        else:
+            tmp_preds = data
+        return tmp_preds
+
+    def format(data):
+
+        def _format(tensor):
+            if tensor.shape[0] != batch_size:
+                tensor = np.expand_dims(tensor, 0)
+            elif len(tensor.shape) == 1:
+                tensor = np.expand_dims(tensor, 1)
+            return tensor
+
+        for key, val in data.items():
+            data[key] = _format(val)
+
+        return data
+
+    predictions = format(dictionarize(predictions))
+    expected = format(dictionarize(expected))
+
+    return predictions, expected
+
+
+class DataAggregator(object):
+
+    def __init__(self, postprocess_model_outputs_fn, args):
+
+        self._args = args
+
+        self._predicted = dict()
+        self._expected = dict()
+
+        self._total_samples_processed = 0
+
+        self._postprocess_model_outputs_fn = postprocess_model_outputs_fn
+
+    def _calc_step_batchsize(self, data_arr):
+        if isinstance(data_arr, (list, tuple)):
+            return data_arr[0].shape[0]
+        elif isinstance(data_arr, dict):
+            return list(data_arr.values())[0].shape[0]
+        else:  # TF.Tensor or TF.EagerTensor
+            return data_arr.shape[0]
+
+    @property
+    def predicted_dict(self):
+        tmp_data = dict()
+        for key, val in self._predicted.items():
+            tmp_data[key] = val[:self._total_samples_processed]
+        return tmp_data
+
+    @property
+    def expected_dict(self):
+        tmp_data = dict()
+        for key, val in self._expected.items():
+            tmp_data[key] = val[:self._total_samples_processed]
+        return tmp_data
+
+    @property
+    def total_samples_processed(self):
+        return self._total_samples_processed
+
+    def aggregate_data(self, y_pred, y):
+
+        proc_start_t = time.time()
+
+        step_batch_size = self._calc_step_batchsize(y_pred)
+
+        y_pred, y = self._postprocess_model_outputs_fn(
+            predictions=y_pred, expected=y
+        )
+
+        y_pred, y = _format_output_tensors(
+            y_pred, y, batch_size=step_batch_size
+        )
+
+        if not self._predicted:  # First call
+            for key, val in y_pred.items():
+                self._predicted[key] = np.empty([self._args.total_max_samples] +
+                                                list(val.shape[1:]),
+                                                dtype=val.dtype)
+
+        if not self._expected:  # First call
+            for key, val in y.items():
+                self._expected[key] = np.empty([self._args.total_max_samples] +
+                                               list(val.shape[1:]),
+                                               dtype=val.dtype)
+
+        idx_start = self._total_samples_processed
+
+        self._total_samples_processed += step_batch_size
+        idx_stop = self._total_samples_processed
+
+        copy_start_t = time.time()
+        for key, val in self._predicted.items():
+            self._predicted[key][idx_start:idx_stop] = y_pred[key]
+        for key, val in self._expected.items():
+            self._expected[key][idx_start:idx_stop] = y[key]
+
+        if self._args.debug:
+            print("Copy Time:", time.time() - copy_start_t)
+            print("Processing Time:", time.time() - proc_start_t)

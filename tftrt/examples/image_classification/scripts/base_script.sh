@@ -33,8 +33,8 @@ do
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
         ;;
-        --output_tensor_names=*)
-        shift # Remove --output_tensor_names= from processing
+        --output_tensors_name=*)
+        shift # Remove --output_tensors_name= from processing
         ;;
         --output_tensor_indices=*)
         shift # Remove --output_tensor_indices= from processing
@@ -83,7 +83,7 @@ case ${MODEL_NAME} in
   "resnet50-v1.5_tf1_ngc" )
     NUM_CLASSES=1000
     OUTPUT_TENSOR_IDX_FLAG="--output_tensor_indices=0"
-    OUTPUT_TENSOR_NAME_FLAG="--output_tensor_names=classes"
+    OUTPUT_TENSOR_NAME_FLAG="--output_tensors_name=classes"
     PREPROCESS_METHOD="resnet50_v1_5_tf1_ngc_preprocess"
     ;;
 

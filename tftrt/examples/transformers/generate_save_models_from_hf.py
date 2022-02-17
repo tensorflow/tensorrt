@@ -13,19 +13,21 @@ from tensorflow.python.keras import backend as K
 from transformers import BertTokenizer, TFBertForPreTraining
 from transformers import BartTokenizer, TFBartForConditionalGeneration
 
-
 USE_CACHE = False
 OUTPUT_ATTENTIONS = False
 OUTPUT_HIDDEN_STATES = False
 
 
 class HFModel(tf.Module):
+
     def __init__(self, model, is_encoder_decoder):
         self._model = model
         self._is_encoder_decoder = is_encoder_decoder
 
     @tf.function(
-        input_signature=[tf.TensorSpec((None, None), tf.int32, name="input_ids")]
+        input_signature=[
+            tf.TensorSpec((None, None), tf.int32, name="input_ids")
+        ]
     )
     def serving(self, input_ids):
         if self._is_encoder_decoder:
@@ -39,14 +41,9 @@ class HFModel(tf.Module):
 if __name__ == "__main__":
 
     MODEL_NAMES = [
-        "bert-base-uncased",
-        "bert-base-cased",
-        "bert-large-uncased",
-        "bert-large-cased",
-        'facebook/bart-base',
-        'facebook/bart-large'
+        "bert-base-uncased", "bert-base-cased", "bert-large-uncased",
+        "bert-large-cased", 'facebook/bart-base', 'facebook/bart-large'
     ]
-
 
     # use_cache (:obj:`bool`, `optional`, defaults to :obj:`True`):
     #     If set to :obj:`True`, :obj:`past_key_values` key value states are returned and can be used to speed up
@@ -111,7 +108,9 @@ if __name__ == "__main__":
             )
 
         print("Exporting Model to SavedModel at:", pb_model_dir)
-        hf_model = HFModel(model, is_encoder_decoder)  # necessary to define a custom input signature
+        hf_model = HFModel(
+            model, is_encoder_decoder
+        )  # necessary to define a custom input signature
 
         tf.saved_model.save(
             hf_model,
@@ -144,7 +143,7 @@ if __name__ == "__main__":
             print("saving:", key, "...")
             arr_save_path = os.path.join(numpy_asset_dir, '%s.npy' % key)
             np.save(arr_save_path, val)
-            assert(np.allclose(np.load(arr_save_path), val))
+            assert (np.allclose(np.load(arr_save_path), val))
 
         # Clearing the GPU memory
 
@@ -152,5 +151,7 @@ if __name__ == "__main__":
         del tokenizer
         K.clear_session()
 
-        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        print(
+            "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+        )
         print()

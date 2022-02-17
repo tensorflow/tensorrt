@@ -31,7 +31,10 @@ from statistics import mean
 
 # Allow import of top level python files
 import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe()))
+)
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
@@ -52,19 +55,29 @@ class CommandLineAPI(BaseCommandLineAPI):
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 
-        self._parser.add_argument('--sequence_length', type=int, default=128,
-                            help='Directory containing the input saved model.')
+        self._parser.add_argument(
+            '--sequence_length',
+            type=int,
+            default=128,
+            help='Directory containing the input saved model.'
+        )
 
-        self._parser.add_argument('--vocab_size', type=int, required=True,
-                                  choices=self.ALLOWED_VOCAB_SIZES,
-                                  help='Size of the vocabulory used for '
-                                       'training. Refer to huggingface '
-                                       'documentation.')
+        self._parser.add_argument(
+            '--vocab_size',
+            type=int,
+            required=True,
+            choices=self.ALLOWED_VOCAB_SIZES,
+            help='Size of the vocabulory used for '
+            'training. Refer to huggingface '
+            'documentation.'
+        )
 
-        self._parser.add_argument('--validate_output', action='store_true',
-                            help='Validates that the model returns the correct '
-                            'value. This only works with batch_size =32.')
-
+        self._parser.add_argument(
+            '--validate_output',
+            action='store_true',
+            help='Validates that the model returns the correct '
+            'value. This only works with batch_size =32.'
+        )
 
     def _validate_args(self, args):
         super(CommandLineAPI, self)._validate_args(args)
@@ -74,8 +87,10 @@ class CommandLineAPI(BaseCommandLineAPI):
 
         # TODO: Remove when proper dataloading is implemented
         if args.num_iterations is None:
-            raise ValueError("This benchmark does not currently support "
-                             "--num_iterations=None")
+            raise ValueError(
+                "This benchmark does not currently support "
+                "--num_iterations=None"
+            )
 
     # TODO: Remove when proper dataloading is implemented
     def _post_process_args(self, args):
@@ -94,6 +109,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
     def process_model_output(self, outputs, **kwargs):
         pass
+
 
 # def validate_model_artifacts(infer_func, model_dir, use_tftrt, precision):
 #     numpy_asset_dir = os.path.join(model_dir, "numpy_assets")
@@ -130,8 +146,9 @@ def get_dataset(batch_size, seq_len, vocab_size, use_synthetic_data):
         raise NotImplementedError()
 
     tf.random.set_seed(10)
-    input_data = tf.random.uniform(shape=(1, seq_len), maxval=vocab_size,
-                                   dtype=tf.int32)
+    input_data = tf.random.uniform(
+        shape=(1, seq_len), maxval=vocab_size, dtype=tf.int32
+    )
 
     dataset = tf.data.Dataset.from_tensor_slices(input_data)
     dataset = dataset.repeat()
@@ -161,20 +178,16 @@ if __name__ == '__main__':
             if i >= build_steps:
                 break
 
-            print("* [%s] - step %04d/%04d" % (
-                model_phase, i + 1, build_steps
-            ))
+            print("* [%s] - step %04d/%04d" % (model_phase, i + 1, build_steps))
             yield input_batch,
 
     calibration_input_fn = partial(
         _input_fn,
-        build_steps=args.num_calib_inputs // args.batch_size,
+        build_steps=args.num_calib_batches // args.batch_size,
         model_phase="Calibration"
     )
     optimize_offline_input_fn = partial(
-        _input_fn,
-        build_steps=1,
-        model_phase="Building"
+        _input_fn, build_steps=1, model_phase="Building"
     )
 
     runner = BenchmarkRunner(
@@ -187,14 +200,15 @@ if __name__ == '__main__':
         input_signature_key=args.input_signature_key,
         max_workspace_size_bytes=args.max_workspace_size,
         minimum_segment_size=args.minimum_segment_size,
-        num_calib_inputs=args.num_calib_inputs,
+        num_calib_batches=args.num_calib_batches,
         optimize_offline=args.optimize_offline,
         optimize_offline_input_fn=optimize_offline_input_fn,
         output_tensor_indices=args.output_tensor_indices,
         output_tensor_names=args.output_tensor_names,
         precision_mode=args.precision,
         use_dynamic_shape=args.use_dynamic_shape,
-        use_tftrt=args.use_tftrt)
+        use_tftrt=args.use_tftrt
+    )
 
     # if args.validate_output:
     #     # artifacts only generated for BS == 32
@@ -206,9 +220,7 @@ if __name__ == '__main__':
     #     )
 
     get_benchmark_input_fn = partial(
-        get_dataset,
-        seq_len=args.sequence_length,
-        vocab_size=args.vocab_size
+        get_dataset, seq_len=args.sequence_length, vocab_size=args.vocab_size
     )
 
     runner.execute_benchmark(

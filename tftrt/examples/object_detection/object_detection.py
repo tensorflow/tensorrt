@@ -33,7 +33,10 @@ from pycocotools.cocoeval import COCOeval
 
 # Allow import of top level python files
 import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe()))
+)
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
@@ -48,12 +51,19 @@ class CommandLineAPI(BaseCommandLineAPI):
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 
-        self._parser.add_argument('--input_size', type=int, default=640,
-                                  help='Size of input images expected by the '
-                                       'model')
+        self._parser.add_argument(
+            '--input_size',
+            type=int,
+            default=640,
+            help='Size of input images expected by the '
+            'model'
+        )
 
-        self._parser.add_argument('--annotation_path', type=str,
-                                  help='Path that contains COCO annotations')
+        self._parser.add_argument(
+            '--annotation_path',
+            type=str,
+            help='Path that contains COCO annotations'
+        )
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):
@@ -99,8 +109,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                 bbox_coco_fmt = [
                     x1 * image_width,  # x0
                     y1 * image_height,  # x1
-                    (x2 - x1) * image_width,  # width
-                    (y2 - y1) * image_height,  # height
+                    (x2-x1) * image_width,  # width
+                    (y2-y1) * image_height,  # height
                 ]
                 coco_detection = {
                     'image_id': image_id,
@@ -134,7 +144,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
     def process_model_output(self, outputs, **kwargs):
         # outputs = graph_func(batch_images)
         if isinstance(outputs, dict):
-            outputs = {k:t.numpy() for k, t in outputs.items()}
+            outputs = {k: t.numpy() for k, t in outputs.items()}
         else:
             outputs = {
                 name: outputs[idx].numpy()
@@ -144,11 +154,9 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         return outputs
 
 
-def get_dataset(batch_size,
-                images_dir,
-                image_ids,
-                input_size,
-                use_synthetic_data):
+def get_dataset(
+    batch_size, images_dir, image_ids, input_size, use_synthetic_data
+):
 
     image_paths = []
 
@@ -221,15 +229,13 @@ if __name__ == '__main__':
             if i >= build_steps:
                 break
 
-            print("* [%s] - step %04d/%04d" % (
-                model_phase, i + 1, build_steps
-            ))
+            print("* [%s] - step %04d/%04d" % (model_phase, i + 1, build_steps))
             yield batch_images,
 
     calibration_input_fn = partial(
         _input_fn,
         input_data_dir=args.calib_data_dir,
-        build_steps=args.num_calib_inputs // args.batch_size,
+        build_steps=args.num_calib_batches // args.batch_size,
         model_phase="Calibration"
     )
 
@@ -250,14 +256,15 @@ if __name__ == '__main__':
         input_signature_key=args.input_signature_key,
         max_workspace_size_bytes=args.max_workspace_size,
         minimum_segment_size=args.minimum_segment_size,
-        num_calib_inputs=args.num_calib_inputs,
+        num_calib_batches=args.num_calib_batches,
         optimize_offline=args.optimize_offline,
         optimize_offline_input_fn=optimize_offline_input_fn,
         output_tensor_indices=args.output_tensor_indices,
         output_tensor_names=args.output_tensor_names,
         precision_mode=args.precision,
         use_dynamic_shape=args.use_dynamic_shape,
-        use_tftrt=args.use_tftrt)
+        use_tftrt=args.use_tftrt
+    )
 
     get_benchmark_input_fn = partial(
         get_dataset,
