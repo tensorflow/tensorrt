@@ -183,7 +183,7 @@ class DataAggregator(object):
             self._total_samples_processed += step_batch_size
             idx_stop = self._total_samples_processed
 
-            with timed_section("Copy Time",
+            with timed_section("Numpy Copy Time",
                                activate=self._args.debug_performance,
                                start_end_mode=False):
                 for key, val in self._predicted.items():

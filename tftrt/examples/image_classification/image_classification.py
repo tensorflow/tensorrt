@@ -15,13 +15,8 @@
 # limitations under the License.
 # =============================================================================
 
-import multiprocessing
 import os
 import sys
-
-import multiprocessing
-
-from functools import partial
 
 import numpy as np
 
@@ -169,7 +164,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         dataset = dataset.interleave(
             tf.data.TFRecordDataset,
-            cycle_length=min(8, multiprocessing.cpu_count()),
+            cycle_length=tf.data.experimental.AUTOTUNE,
             block_length=max(self._args.batch_size, 32)
         )
 
@@ -181,7 +176,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         dataset = dataset.map(
             map_func=preprocess_fn,
-            num_parallel_calls=min(8, multiprocessing.cpu_count())
+            num_parallel_calls=tf.data.experimental.AUTOTUNE,
         )
 
         dataset = dataset.batch(self._args.batch_size, drop_remainder=False)
