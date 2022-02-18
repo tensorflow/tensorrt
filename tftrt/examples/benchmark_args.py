@@ -322,7 +322,7 @@ class BaseCommandLineAPI(object):
 
         if args.num_iterations is None:
             args.num_iterations = (
-                self.SAMPLES_IN_VALIDATION_SET // args.batch_size
+                max((args.total_max_samples // args.batch_size) + 1, 1000)
             )
 
         return args

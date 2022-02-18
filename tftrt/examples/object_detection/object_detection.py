@@ -42,8 +42,6 @@ from benchmark_runner import BaseBenchmarkRunner
 
 class CommandLineAPI(BaseCommandLineAPI):
 
-    SAMPLES_IN_VALIDATION_SET = 50000
-
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 

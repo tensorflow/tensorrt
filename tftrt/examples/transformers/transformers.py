@@ -44,8 +44,6 @@ from benchmark_runner import BaseBenchmarkRunner
 
 class CommandLineAPI(BaseCommandLineAPI):
 
-    # SAMPLES_IN_VALIDATION_SET = 50000
-
     ALLOWED_VOCAB_SIZES = [
         30522,  # BERT Uncased
         28996,  # BERT Cased

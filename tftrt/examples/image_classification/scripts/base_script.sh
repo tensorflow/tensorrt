@@ -33,6 +33,9 @@ do
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
         ;;
+        --total_max_samples=*)
+        shift # Remove --total_max_samples= from processing
+        ;;
         --output_tensors_name=*)
         shift # Remove --output_tensors_name= from processing
         ;;
@@ -51,6 +54,7 @@ done
 INPUT_SIZE=224
 PREPROCESS_METHOD="vgg"
 NUM_CLASSES=1001
+MAX_SAMPLES=49920
 OUTPUT_TENSORS_NAME="logits"
 
 case ${MODEL_NAME} in
@@ -107,6 +111,7 @@ echo ""
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] PREPROCESS_METHOD: ${PREPROCESS_METHOD}"
 echo "[*] NUM_CLASSES: ${NUM_CLASSES}"
+echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
 echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
@@ -163,7 +168,7 @@ COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --input_size ${INPUT_SIZE} \
     --preprocess_method ${PREPROCESS_METHOD} \
     --num_classes ${NUM_CLASSES} \
-    --total_max_samples=49920 \
+    --total_max_samples=${MAX_SAMPLES} \
     --output_tensors_name=${OUTPUT_TENSORS_NAME} \
     ${BYPASS_ARGUMENTS}"
 
