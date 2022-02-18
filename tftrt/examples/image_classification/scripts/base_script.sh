@@ -36,9 +36,6 @@ do
         --output_tensors_name=*)
         shift # Remove --output_tensors_name= from processing
         ;;
-        --output_tensor_indices=*)
-        shift # Remove --output_tensor_indices= from processing
-        ;;
         --use_xla_auto_jit)
         TF_AUTO_JIT_XLA_FLAG="TF_XLA_FLAGS=--tf_xla_auto_jit=2"
         shift # Remove --use_xla_auto_jit from processing
@@ -54,8 +51,7 @@ done
 INPUT_SIZE=224
 PREPROCESS_METHOD="vgg"
 NUM_CLASSES=1001
-OUTPUT_TENSOR_NAME_FLAG=""
-OUTPUT_TENSOR_IDX_FLAG=""
+OUTPUT_TENSORS_NAME="logits"
 
 case ${MODEL_NAME} in
   "inception_v3" | "inception_v4")
@@ -76,19 +72,24 @@ case ${MODEL_NAME} in
     PREPROCESS_METHOD="inception"
     ;;
 
-  "resnet_v1.5_50_tfv2" | "vgg_16" | "vgg_19" )
+  "resnet_v1.5_50_tfv2" )
+    NUM_CLASSES=1000
+    OUTPUT_TENSORS_NAME="activation_49"
+    ;;
+
+  "vgg_16" | "vgg_19" )
     NUM_CLASSES=1000
     ;;
 
   "resnet50-v1.5_tf1_ngc" )
     NUM_CLASSES=1000
-    OUTPUT_TENSOR_IDX_FLAG="--output_tensor_indices=0"
-    OUTPUT_TENSOR_NAME_FLAG="--output_tensors_name=classes"
+    OUTPUT_TENSORS_NAME="classes"
     PREPROCESS_METHOD="resnet50_v1_5_tf1_ngc_preprocess"
     ;;
 
   "resnet50v2_backbone" | "resnet50v2_sparse_backbone" )
     INPUT_SIZE=256
+    OUTPUT_TENSORS_NAME="outputs"
     ;;
 esac
 
@@ -106,8 +107,7 @@ echo ""
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] PREPROCESS_METHOD: ${PREPROCESS_METHOD}"
 echo "[*] NUM_CLASSES: ${NUM_CLASSES}"
-echo "[*] OUTPUT_TENSOR_IDX_FLAG: ${OUTPUT_TENSOR_IDX_FLAG}"
-echo "[*] OUTPUT_TENSOR_NAME_FLAG: ${OUTPUT_TENSOR_NAME_FLAG}"
+echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
 echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
@@ -164,8 +164,7 @@ COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --preprocess_method ${PREPROCESS_METHOD} \
     --num_classes ${NUM_CLASSES} \
     --total_max_samples=49920 \
-    ${OUTPUT_TENSOR_IDX_FLAG} \
-    ${OUTPUT_TENSOR_NAME_FLAG} \
+    --output_tensors_name=${OUTPUT_TENSORS_NAME} \
     ${BYPASS_ARGUMENTS}"
 
 COMMAND=$(echo ${COMMAND} | sed 's/ *$//g')  # Trimming whitespaces

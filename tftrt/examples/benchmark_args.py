@@ -110,14 +110,6 @@ class BaseCommandLineAPI(object):
         )
 
         self._parser.add_argument(
-            "--output_tensor_indices",
-            type=str,
-            default=None,
-            help="Output tensors' index, defaults to all tensors available if "
-            "not set. Will only work without `--use_tftrt`."
-        )
-
-        self._parser.add_argument(
             "--num_iterations",
             type=int,
             default=None,
@@ -230,6 +222,13 @@ class BaseCommandLineAPI(object):
 
         self._add_bool_argument(
             name="debug",
+            default=False,
+            required=False,
+            help="If set to True, will print additional information."
+        )
+
+        self._add_bool_argument(
+            name="debug_performance",
             default=False,
             required=False,
             help="If set to True, will print additional information."

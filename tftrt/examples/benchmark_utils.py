@@ -38,12 +38,42 @@ def print_dict(input_dict, prefix='  ', postfix='', redirect_to_str=False):
 
 
 @contextmanager
-def timed_section(msg):
-    print('\n[START] {}'.format(msg))
-    start_time = time.time()
-    yield
-    print("[END] Duration: {:.1f}s".format(time.time() - start_time))
-    print("=" * 80, "\n")
+def timed_section(msg, activate=True, start_end_mode=True):
+    if activate:
+
+        if start_end_mode:
+            print(f"\n[START] {msg} ...")
+
+        start_time = time.time()
+        yield
+        total_time = time.time() - start_time
+
+        if start_end_mode:
+            print(f"[END] `{msg}` - Duration: {total_time:.1f}s")
+            print("=" * 80, "\n")
+        else:
+            print(f"{msg:18s}: {total_time:.4f}s")
+
+    else:
+        yield
+
+
+def timed_dataset(ds, activate=True):
+    data_start_t = time.time()
+
+    for idx, data_batch in enumerate(ds):
+
+        if activate:
+            print(f"Step: {idx + 1}")
+            print(
+                f"{'Data Loading Time':18s}: {time.time() - data_start_t:.4f}s"
+            )
+
+        yield data_batch
+
+        if activate:
+            print("===============")
+            data_start_t = time.time()
 
 
 def _format_output_tensors(predictions, expected, batch_size):
@@ -120,41 +150,43 @@ class DataAggregator(object):
 
     def aggregate_data(self, y_pred, y):
 
-        proc_start_t = time.time()
+        with timed_section("Processing Time",
+                           activate=self._args.debug_performance,
+                           start_end_mode=False):
 
-        step_batch_size = self._calc_step_batchsize(y_pred)
+            step_batch_size = self._calc_step_batchsize(y_pred)
 
-        y_pred, y = self._postprocess_model_outputs_fn(
-            predictions=y_pred, expected=y
-        )
+            y_pred, y = self._postprocess_model_outputs_fn(
+                predictions=y_pred, expected=y
+            )
 
-        y_pred, y = _format_output_tensors(
-            y_pred, y, batch_size=step_batch_size
-        )
+            y_pred, y = _format_output_tensors(
+                y_pred, y, batch_size=step_batch_size
+            )
 
-        if not self._predicted:  # First call
-            for key, val in y_pred.items():
-                self._predicted[key] = np.empty([self._args.total_max_samples] +
-                                                list(val.shape[1:]),
-                                                dtype=val.dtype)
+            if not self._predicted:  # First call
+                for key, val in y_pred.items():
+                    self._predicted[key] = np.empty(
+                        [self._args.total_max_samples] + list(val.shape[1:]),
+                        dtype=val.dtype
+                    )
 
-        if not self._expected:  # First call
-            for key, val in y.items():
-                self._expected[key] = np.empty([self._args.total_max_samples] +
-                                               list(val.shape[1:]),
-                                               dtype=val.dtype)
+            if not self._expected:  # First call
+                for key, val in y.items():
+                    self._expected[key] = np.empty(
+                        [self._args.total_max_samples] + list(val.shape[1:]),
+                        dtype=val.dtype
+                    )
 
-        idx_start = self._total_samples_processed
+            idx_start = self._total_samples_processed
 
-        self._total_samples_processed += step_batch_size
-        idx_stop = self._total_samples_processed
+            self._total_samples_processed += step_batch_size
+            idx_stop = self._total_samples_processed
 
-        copy_start_t = time.time()
-        for key, val in self._predicted.items():
-            self._predicted[key][idx_start:idx_stop] = y_pred[key]
-        for key, val in self._expected.items():
-            self._expected[key][idx_start:idx_stop] = y[key]
-
-        if self._args.debug:
-            print("Copy Time:", time.time() - copy_start_t)
-            print("Processing Time:", time.time() - proc_start_t)
+            with timed_section("Copy Time",
+                               activate=self._args.debug_performance,
+                               start_end_mode=False):
+                for key, val in self._predicted.items():
+                    self._predicted[key][idx_start:idx_stop] = y_pred[key]
+                for key, val in self._expected.items():
+                    self._expected[key][idx_start:idx_stop] = y[key]

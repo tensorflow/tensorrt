@@ -203,7 +203,6 @@ if __name__ == '__main__':
         num_calib_batches=args.num_calib_batches,
         optimize_offline=args.optimize_offline,
         optimize_offline_input_fn=optimize_offline_input_fn,
-        output_tensor_indices=args.output_tensor_indices,
         output_tensor_names=args.output_tensor_names,
         precision_mode=args.precision,
         use_dynamic_shape=args.use_dynamic_shape,

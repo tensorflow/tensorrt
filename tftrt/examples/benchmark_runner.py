@@ -15,12 +15,12 @@ from benchmark_utils import DataAggregator
 from benchmark_utils import force_gpu_resync
 from benchmark_utils import print_dict
 from benchmark_utils import timed_section
+from benchmark_utils import timed_dataset
 
 import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
-from tensorflow.python.saved_model import tag_constants
 
 __all__ = ["BaseBenchmarkRunner"]
 
@@ -102,7 +102,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
         if not self._args.use_tftrt:
 
-            with timed_section('Loading TensorFlow native model...'):
+            with timed_section("Loading TensorFlow native model"):
 
                 saved_model_loaded = tf.saved_model.load(
                     export_dir=self._args.input_saved_model_dir,
@@ -111,9 +111,17 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
                 graph_func = saved_model_loaded.signatures[
                     self._args.input_signature_key]
+                # from tensorflow.python.framework import convert_to_constants
                 # graph_func = convert_to_constants.convert_variables_to_constants_v2(
                 #     graph_func
                 # )
+
+                # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
+                # it looks like if the original trackable object is released by
+                # the Python garbage collector once it goes out of scope, and
+                # the signature returned by the function does not maintain a
+                # back-reference to the original loaded object.
+                graph_func._backref_to_saved_model = saved_model_loaded
 
         else:
 
@@ -208,7 +216,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     num_batches=1, model_phase="Building"
                 )
 
-                with timed_section('Building TensorRT engines...'):
+                with timed_section("Building TensorRT engines"):
                     converter.build(
                         input_fn=tf.autograph.experimental.
                         do_not_convert(offline_opt_input_fn)
@@ -217,25 +225,30 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             if self._args.output_saved_model_dir is not None:
 
-                with timed_section('Saving converted graph with TF-TRT ...'):
+                with timed_section("Saving converted graph with TF-TRT"):
                     converter.save(self._args.output_saved_model_dir)
                     print(
                         f"Converted graph saved to "
                         f"`{self._args.output_saved_model_dir}`"
                     )
 
-        savedmodel_outputs = print_dict(
-            graph_func.structured_outputs,
-            redirect_to_str=True
-        )
+        if isinstance(graph_func.structured_outputs, (tuple, list)):
+            savedmodel_outputs = "\n  - ".join([
+                str(t) for t in graph_func.structured_outputs
+            ])
+            savedmodel_outputs = f"  - {savedmodel_outputs}"
+        else:
+            savedmodel_outputs = print_dict(
+                graph_func.structured_outputs, redirect_to_str=True
+            )
+        self._debug_print(f"Available Output Tensors:\n{savedmodel_outputs}")
+        print()  # visual spacing
 
         chosen_outputs = "\n  - ".join(
             sorted(self._args.output_tensors_name.split(","))
         )
-
-        self._debug_print(f"Available Output Tensors:\n{savedmodel_outputs}")
-        print()  # visual spacing
         self._debug_print(f"Chosen Output Tensor:\n  - {chosen_outputs}")
+        print()  # visual spacing
 
         return graph_func
 
@@ -244,111 +257,139 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         It consumes TFRecords with labels and reports accuracy.
         """
 
-        print("\nStart loading model ...")
+        with timed_section("Model Loading"):
+            graph_func = self._get_graph_func()
 
-        graph_func = self._get_graph_func()
+        with timed_section("Model Inference"):
+            dataset, bypass_data_to_eval = self.get_dataset_batches()
 
-        dataset, bypass_data_to_eval = self.get_dataset_batches()
+            if self._args.use_synthetic_data:
+                old_ds = dataset
+                try:
+                    dataset = dataset.take(count=1)  # loop over 1 batch
+                    dataset = dataset.cache()
+                    dataset = dataset.repeat()
+                    dataset = dataset.prefetch(
+                        buffer_size=tf.data.experimental.AUTOTUNE
+                    )
+                    self._debug_print(
+                        "Model dataset has been replaced by a synthetic data "
+                        "loader to minimize data loading jitter."
+                    )
 
-        print("\nStart inference ...")
+                except Exception as e:
+                    dataset = old_ds
+                    print(
+                        f"[ERROR] Impossible to transform the dataset into a "
+                        f"synthetic dataset. Performance numbers will be "
+                        f"impacted.\nError: {str(e)}."
+                    )
 
-        @force_gpu_resync
-        @tf.function(jit_compile=self._args.use_xla)
-        def infer_batch(x):
-            if isinstance(x, (tuple, list)):
-                model_out = graph_func(*x)
-            elif isinstance(x, dict):
-                model_out = graph_func(**x)
-            else:
-                model_out = graph_func(x)
-
-            if self._args.output_tensors_name is not None:
-                output_tensors_name = self._args.output_tensors_name.split(",")
-                if len(output_tensors_name) == 1:
-                    return model_out[self._args.output_tensors_name]
+            @force_gpu_resync
+            @tf.function(jit_compile=self._args.use_xla)
+            def infer_batch(x):
+                if isinstance(x, (tuple, list)):
+                    model_out = graph_func(*x)
+                elif isinstance(x, dict):
+                    model_out = graph_func(**x)
                 else:
-                    return {key: model_out[key] for key in output_tensors_name}
+                    model_out = graph_func(x)
 
-            return model_out
+                if self._args.output_tensors_name is not None:
+                    output_ts_name = self._args.output_tensors_name.split(",")
+                    if len(output_ts_name) == 1:
+                        return model_out[self._args.output_tensors_name]
+                    else:
+                        return {key: model_out[key] for key in output_ts_name}
 
-        data_aggregator = DataAggregator(
-            self.postprocess_model_outputs, args=self._args
-        )
+                return model_out
 
-        iter_times = []
-
-        def log_step(step_idx, display_every, iter_time):
-            if step_idx % display_every == 0:
-                print("  step %04d, iter_time(ms)=%.3f" % (step_idx, iter_time))
-
-        data_start_t = time.time()
-        for step_idx, data_batch in enumerate(dataset):
-            x, y = self.preprocess_model_inputs(data_batch)
-
-            if self._args.debug:
-                print("Step:", step_idx + 1)
-                print("Data Loading Time:", time.time() - data_start_t)
-
-            start_time = time.time()
-            y_pred = infer_batch(x)
-            iter_times.append(time.time() - start_time)
-
-            if not self._args.debug:
-                log_step(
-                    step_idx + 1, self._args.display_every,
-                    np.mean(iter_times[-self._args.display_every:]) * 1000
+            if not self._args.use_synthetic_data:
+                data_aggregator = DataAggregator(
+                    self.postprocess_model_outputs, args=self._args
                 )
-            else:
-                print("GPU Iteration Time:", iter_times[-1])
 
-            data_aggregator.aggregate_data(y_pred, y)
+            iter_times = []
 
-            if (self._args.num_iterations is not None and
-                    step_idx + 1 >= self._args.num_iterations):
-                break
+            def log_step(step_idx, display_every, iter_time):
+                if step_idx % display_every == 0:
+                    print(
+                        f"  step {step_idx:04d}, iter_time(ms)={iter_time:.3f}"
+                    )
 
-            if self._args.debug:
-                print("===============")
-                data_start_t = time.time()
-
-        if step_idx % self._args.display_every != 0:  # avoids double printing
-            log_step(
-                step_idx + 1,
-                display_every=1,  # force print
-                iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000
+            dataset = timed_dataset(
+                dataset, activate=self._args.debug_performance
             )
 
-        print("\nEnd of inference. Computing metrics ...\n")
+            for step_idx, data_batch in enumerate(dataset):
+                x, y = self.preprocess_model_inputs(data_batch)
 
-        metric, metric_units = self.evaluate_model(
-            data_aggregator.predicted_dict, data_aggregator.expected_dict,
-            bypass_data_to_eval
-        )
-        print(f"- {metric_units:35s}: {metric:.2f}")
+                start_time = time.time()
+                y_pred = infer_batch(x)
+                iter_times.append(time.time() - start_time)
 
-        metrics = dict()
+                if not self._args.debug_performance:
+                    log_step(
+                        step_idx + 1, self._args.display_every,
+                        np.mean(iter_times[-self._args.display_every:]) * 1000
+                    )
+                else:
+                    print(f"{'GPU Iteration Time':18s}: {iter_times[-1]:.4f}s")
 
-        metrics["Total Samples Processed"] = (
-            data_aggregator.total_samples_processed
-        )
+                if not self._args.use_synthetic_data:
+                    data_aggregator.aggregate_data(y_pred, y)
 
-        # Skipping last batch. Might have different batch_size
-        run_times = np.array(iter_times)[self._args.num_warmup_iterations:-1]
+                if (self._args.num_iterations is not None and
+                        step_idx + 1 >= self._args.num_iterations):
+                    break
 
-        metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
-        metrics['Throughput (samples/sec)'] = np.mean(
-            self._args.batch_size / run_times
-        )
-        metrics['99th_percentile (ms)'] = np.percentile(
-            run_times, q=99, interpolation='lower'
-        ) * 1000
-        metrics['GPU Latency Mean (ms)'] = np.mean(run_times) * 1000
-        metrics['GPU Latency Median (ms)'] = np.median(run_times) * 1000
-        metrics['GPU Latency Min (ms)'] = np.min(run_times) * 1000
-        metrics['GPU Latency Max (ms)'] = np.max(run_times) * 1000
+            if (not self._args.debug_performance and
+                    step_idx % self._args.display_every !=
+                    0):  # avoids double printing
+                log_step(
+                    step_idx + 1,
+                    display_every=1,  # force print
+                    iter_time=(
+                        np.mean(iter_times[-self._args.display_every:]) * 1000
+                    )
+                )
 
-        for key, val in sorted(metrics.items()):
-            if isinstance(val, int):
-                print(f"- {key:35s}: {val}")
-            else:
-                print(f"- {key:35s}: {val:.2f}")
+        with timed_section("Metric Computation"):
+
+            if not self._args.use_synthetic_data:
+                metric, metric_units = self.evaluate_model(
+                    data_aggregator.predicted_dict,
+                    data_aggregator.expected_dict, bypass_data_to_eval
+                )
+                print(f"- {metric_units:35s}: {metric:.2f}")
+
+            metrics = dict()
+
+            if not self._args.use_synthetic_data:
+                metrics["Total Samples Processed"] = (
+                    data_aggregator.total_samples_processed
+                )
+
+            # Skipping last batch. Might have different batch_size
+            run_times = np.array(iter_times)
+            run_times = run_times[self._args.num_warmup_iterations:-1]
+
+            metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
+            metrics['Throughput (samples/sec)'] = np.mean(
+                self._args.batch_size / run_times
+            )
+            metrics['99th_percentile (ms)'] = np.percentile(
+                run_times, q=99, interpolation='lower'
+            ) * 1000
+            metrics['GPU Latency Mean (ms)'] = np.mean(run_times) * 1000
+            metrics['GPU Latency Median (ms)'] = np.median(run_times) * 1000
+            metrics['GPU Latency Min (ms)'] = np.min(run_times) * 1000
+            metrics['GPU Latency Max (ms)'] = np.max(run_times) * 1000
+
+            for key, val in sorted(metrics.items()):
+                if isinstance(val, int):
+                    print(f"- {key:35s}: {val}")
+                else:
+                    print(f"- {key:35s}: {val:.2f}")
+
+        print()  # visual spacing

@@ -74,6 +74,12 @@ class CommandLineAPI(BaseCommandLineAPI):
             'dataloading.'
         )
 
+    def _post_process_args(self, args):
+        args = super(CommandLineAPI, self)._post_process_args(args)
+        args.labels_shift = 1 if args.num_classes == 1001 else 0
+
+        return args
+
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
@@ -113,12 +119,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         def deserialize_image_record(record):
             feature_map = {
                 'image/encoded': tf.io.FixedLenFeature([], tf.string, ''),
-                'image/class/label': tf.io.FixedLenFeature([1], tf.int64, -1),
-                'image/class/text': tf.io.FixedLenFeature([], tf.string, ''),
-                'image/object/bbox/xmin': tf.io.VarLenFeature(dtype=tf.float32),
-                'image/object/bbox/ymin': tf.io.VarLenFeature(dtype=tf.float32),
-                'image/object/bbox/xmax': tf.io.VarLenFeature(dtype=tf.float32),
-                'image/object/bbox/ymax': tf.io.VarLenFeature(dtype=tf.float32)
+                'image/class/label': tf.io.FixedLenFeature([1], tf.int64, -1)
             }
             with tf.compat.v1.name_scope('deserialize_image_record'):
                 obj = tf.io.parse_single_example(
@@ -128,51 +129,21 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                 label = tf.cast(obj['image/class/label'], tf.int32)
             return imgdata, label
 
-        def get_preprocess_fn(input_size):
+        def get_preprocess_fn(preprocess_method, input_size):
             """Creates a function to parse and process a TFRecord
             input_size: int
             returns: function, the preprocessing function for a record
             """
-
-            def data_preprocess(image, height, width, central_fraction=0.875):
-                """Prepare one image for evaluation.
-                If height and width are specified it would output an image with that
-                size by applying resize_bilinear. If central_fraction is specified
-                it would crop the central fraction of the input image.
-                Args:
-                image: 3-D Tensor of image. If dtype is tf.float32 then the range
-                should be [0, 1], otherwise it would converted to tf.float32
-                assuming that the range is [0, MAX], where MAX is largest positive
-                representable number for int(8/16/32) data type (see
-                `tf.image.convert_image_dtype` for details).
-                height: integer
-                width: integer
-                central_fraction: Optional Float, fraction of the image to crop.
-                scope: Optional scope for name_scope.
-                central_crop: Enable central cropping of images during preprocessing
-                for evaluation.
-                Returns:
-                3-D float Tensor of prepared image.
-                """
-                if image.dtype != tf.float32:
-                    image = tf.image.convert_image_dtype(
-                        image, dtype=tf.float32
-                    )
-                    # Crop the central region of the image with an area containing
-                    # 87.5% of the original image.
-
-                image = tf.image.central_crop(
-                    image, central_fraction=central_fraction
+            if preprocess_method == 'vgg':
+                preprocess_fn = preprocessing.vgg_preprocess
+            elif preprocess_method == 'inception':
+                preprocess_fn = preprocessing.inception_preprocess
+            elif preprocess_method == 'resnet50_v1_5_tf1_ngc_preprocess':
+                preprocess_fn = preprocessing.resnet50_v1_5_tf1_ngc_preprocess
+            else:
+                raise ValueError(
+                    'Invalid preprocessing method {}'.format(preprocess_method)
                 )
-
-                if height and width:
-                    # Resize the image to the specified height and width.
-                    image = tf.expand_dims(image, 0)
-                    image = tf.image.resize(image, [height, width])
-                    image = tf.squeeze(image, [0])
-
-                image = image * 255
-                return image
 
             def preprocess_sample_fn(record):
                 # Parse TFRecord
@@ -188,7 +159,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                 except:
                     image = tf.image.decode_png(imgdata, channels=3)
                 # Use model's preprocessing function
-                image = data_preprocess(image, input_size, input_size)
+                image = preprocess_fn(image, input_size, input_size)
                 return image, label
 
             return preprocess_sample_fn
@@ -203,7 +174,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         )
 
         # preprocess function for input data
-        preprocess_fn = get_preprocess_fn(input_size=self._args.input_size)
+        preprocess_fn = get_preprocess_fn(
+            preprocess_method=self._args.preprocess_method,
+            input_size=self._args.input_size
+        )
 
         dataset = dataset.map(
             map_func=preprocess_fn,
@@ -236,7 +210,15 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        return predictions.numpy(), expected.numpy()
+        predictions = predictions.numpy()
+
+        if len(predictions.shape) != 1:
+            predictions = tf.math.argmax(predictions, axis=1)
+            predictions = predictions.numpy().reshape(-1)
+
+        predictions - self._args.labels_shift
+
+        return predictions - self._args.labels_shift, expected.numpy()
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
