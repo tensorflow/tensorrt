@@ -65,7 +65,7 @@ python image_classification.py \
     --saved_model_dir /models/resnet_v1.5_50_saved_model/ \
     --model resnet_v1.5_50_tfv2 \
     --num_warmup_iterations 50 \
-    --num_calib_inputs 128
+    --num_calib_batches 128
     --display_every 10 \
     --use_tftrt \
     --optimize_offline \

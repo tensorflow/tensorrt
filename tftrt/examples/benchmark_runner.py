@@ -1,144 +1,71 @@
 #!/usr/bin/env python
+# Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # -*- coding: utf-8 -*-
+
 import os
-import sys
 
 import abc
-import argparse
-import copy
 import logging
+import sys
 import time
 
-from collections import defaultdict
-from contextlib import contextmanager
-from functools import partial
-from operator import itemgetter
+from distutils.util import strtobool
+
+from benchmark_utils import DataAggregator
+from benchmark_utils import force_gpu_resync
+from benchmark_utils import print_dict
+from benchmark_utils import timed_section
+from benchmark_utils import timed_dataset
 
 import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
-from tensorflow.python.compiler.tensorrt.trt_convert import \
-    DEFAULT_TRT_MAX_WORKSPACE_SIZE_BYTES
-from tensorflow.python.framework import convert_to_constants
+
+from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
-from tensorflow.python.saved_model.signature_constants import \
-    DEFAULT_SERVING_SIGNATURE_DEF_KEY
 
-
-def _print_dict(input_dict, prefix='  ', postfix=''):
-    for k, v in sorted(input_dict.items()):
-        print('{prefix}{arg_name}: {value}{postfix}'.format(
-            prefix=prefix,
-            arg_name=k,
-            value='%.1f' % v if isinstance(v, float) else v,
-            postfix=postfix
-        ))
-
-
-@contextmanager
-def _timed_section(msg):
-    print('\n[START] {}'.format(msg))
-    start_time = time.time()
-    yield
-    print("[END] Duration: {:.1f}s".format(time.time() - start_time))
-    print("=" * 80, "\n")
-
-
-def _force_gpu_resync(func):
-    p = tf.constant(0.)  # Create small tensor to force GPU resync
-    def wrapper(*args, **kwargs):
-        rslt = func(*args, **kwargs)
-        (p + 1.).numpy()  # Sync the GPU
-        return rslt
-    return wrapper
+__all__ = ["BaseBenchmarkRunner"]
 
 
 class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
-
-    ACCURACY_METRIC_NAME = None
 
     ############################################################################
     # Methods expected to be overwritten by the subclasses
     ############################################################################
 
-    def before_benchmark(self, **kwargs):
-        pass
-
     @abc.abstractmethod
-    def compute_accuracy_metric(self, predictions, expected, **kwargs):
+    def get_dataset_batches(self):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def process_model_output(self, outputs, **kwargs):
+    def preprocess_model_inputs(self, data_batch):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def postprocess_model_outputs(self, predictions, expected):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         raise NotImplementedError()
 
     ############################################################################
     # Common methods for all the benchmarks
     ############################################################################
 
-    def __init__(
-        self,
-        input_saved_model_dir,
-        output_saved_model_dir,
-        allow_build_at_runtime=False,
-        calibration_input_fn=None,
-        debug=False,
-        gpu_mem_cap=None,
-        input_signature_key=DEFAULT_SERVING_SIGNATURE_DEF_KEY,
-        max_workspace_size_bytes=DEFAULT_TRT_MAX_WORKSPACE_SIZE_BYTES,
-        minimum_segment_size=5,
-        num_calib_inputs=None,
-        optimize_offline=False,
-        optimize_offline_input_fn=None,
-        output_tensor_indices=None,
-        output_tensor_names=None,
-        precision_mode=None,
-        use_dynamic_shape=False,
-        use_tftrt=False,
-    ):
+    def __init__(self, args):
+        self._args = args
 
         logging.getLogger("tensorflow").setLevel(logging.INFO)
         logging.disable(logging.WARNING)
-
-        self._debug = debug
 
         # TensorFlow can execute operations synchronously or asynchronously.
         # If asynchronous execution is enabled, operations may return
         # "non-ready" handles.
         tf.config.experimental.set_synchronous_execution(True)
 
-        self._config_gpu_memory(gpu_mem_cap)
-
-        calibration_input_fn = (
-            None
-            if precision_mode != 'INT8' else
-            calibration_input_fn
-        )
-
-        optimize_offline_input_fn = (
-            None
-            if not optimize_offline and not use_dynamic_shape else
-            optimize_offline_input_fn
-        )
-
-        self._graph_func = self._get_graph_func(
-            input_saved_model_dir=input_saved_model_dir,
-            output_saved_model_dir=output_saved_model_dir,
-            allow_build_at_runtime=allow_build_at_runtime,
-            calibration_input_fn=calibration_input_fn,
-            input_signature_key=input_signature_key,
-            max_workspace_size_bytes=max_workspace_size_bytes,
-            minimum_segment_size=minimum_segment_size,
-            num_calib_inputs=num_calib_inputs,
-            optimize_offline=optimize_offline,
-            optimize_offline_input_fn=optimize_offline_input_fn,
-            precision_mode=precision_mode,
-            use_dynamic_shape=use_dynamic_shape,
-            use_tftrt=use_tftrt
-        )
-
-        self._set_output_tensor_name(output_tensor_indices, output_tensor_names)
+        self._config_gpu_memory(self._args.gpu_mem_cap)
 
     def _config_gpu_memory(self, gpu_mem_cap):
         gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -146,9 +73,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         if not gpus:
             raise RuntimeError("No GPUs has been found.")
 
-        self.debug_print('Found the following GPUs:')
+        self._debug_print('Found the following GPUs:')
         for gpu in gpus:
-            self.debug_print(f"\t- {gpu}")
+            self._debug_print(f"\t- {gpu}")
 
         for gpu in gpus:
             try:
@@ -156,151 +83,130 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     tf.config.experimental.set_memory_growth(gpu, True)
                 else:
                     tf.config.experimental.set_virtual_device_configuration(
-                        gpu,
-                        [tf.config.experimental.VirtualDeviceConfiguration(
-                            memory_limit=gpu_mem_cap)])
+                        gpu, [
+                            tf.config.experimental.VirtualDeviceConfiguration(
+                                memory_limit=gpu_mem_cap
+                            )
+                        ]
+                    )
             except RuntimeError as e:
                 print('Can not set GPU memory config', e)
 
-    def _set_output_tensor_name(
-        self, output_tensor_indices, output_tensor_names
-    ):
-        structured_outputs = self._graph_func.structured_outputs
+    def _debug_print(self, msg):
+        if self._args.debug:
+            print(f"[DEBUG] {msg}")
 
-        if isinstance(structured_outputs, (list, tuple)):
-            if output_tensor_indices is None:
-                output_tensor_indices = list(range(len(structured_outputs)))
-            else:
-                output_tensor_indices = [
-                    int(i) for i in output_tensor_indices.split(",")
-                ]
-
-            self._output_tensors = output_tensor_indices
-
-        elif isinstance(structured_outputs, dict):
-            structured_outputs = dict(sorted(structured_outputs.items()))
-            if output_tensor_names is None:
-                output_tensor_names = list(structured_outputs.keys())
-            else:
-                output_tensor_names = [n for n in output_tensor_names.split(",")]
-                for name in output_tensor_names:
-                    if name not in structured_outputs.keys():
-                        raise ValueError(
-                          f"Unknown output_tensor_names received: {name}. " \
-                          f"Authorized: {structured_outputs.keys()}")
-
-            self._output_tensors = output_tensor_names
-
-        else:
-            raise RuntimeError('Unknown structured_outputs format received:',
-                               type(structured_outputs))
-
-        self.debug_print(f"Available Output Tensors: {structured_outputs}")
-        self.debug_print(f"Chosen Output Tensor: {self._output_tensors}")
-
-    def _get_graph_func(
-        self,
-        input_saved_model_dir,
-        output_saved_model_dir,
-        allow_build_at_runtime=False,
-        calibration_input_fn=None,
-        input_signature_key=DEFAULT_SERVING_SIGNATURE_DEF_KEY,
-        max_workspace_size_bytes=DEFAULT_TRT_MAX_WORKSPACE_SIZE_BYTES,
-        minimum_segment_size=5,
-        num_calib_inputs=None,
-        optimize_offline=False,
-        optimize_offline_input_fn=None,
-        precision_mode=None,
-        use_dynamic_shape=False,
-        use_tftrt=False):
+    def _get_graph_func(self):
         """Retreives a frozen SavedModel and applies TF-TRT
         use_tftrt: bool, if true use TensorRT
         precision: str, floating point precision (FP32, FP16, or INT8)
         returns: TF function that is ready to run for inference
         """
 
-        if not use_tftrt:
+        def load_model_from_disk(
+            path,
+            tags=[tag_constants.SERVING],
+            signature_key=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+        ):
+            saved_model_loaded = tf.saved_model.load(export_dir=path, tags=tags)
 
-            with _timed_section('Loading TensorFlow native model...'):
-                saved_model_loaded = tf.saved_model.load(
-                    input_saved_model_dir, tags=[tag_constants.SERVING]
-                )
+            graph_func = saved_model_loaded.signatures[signature_key]
 
-                graph_func = saved_model_loaded.signatures[input_signature_key]
-                graph_func = convert_to_constants.convert_variables_to_constants_v2(
-                    graph_func
+            # from tensorflow.python.framework import convert_to_constants
+            # graph_func = convert_to_constants.convert_variables_to_constants_v2(
+            #     graph_func
+            # )
+
+            # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
+            # it looks like if the original trackable object is released by
+            # the Python garbage collector once it goes out of scope, and
+            # the signature returned by the function does not maintain a
+            # back-reference to the original loaded object.
+            graph_func._backref_to_saved_model = saved_model_loaded
+
+            return graph_func
+
+        if not self._args.use_tftrt:
+
+            with timed_section("Loading TensorFlow native model"):
+                graph_func = load_model_from_disk(
+                    path=self._args.input_saved_model_dir,
+                    tags=self._args.model_tag.split(","),
+                    signature_key=self._args.input_signature_key
                 )
 
         else:
 
-            def get_trt_conversion_params(
-                allow_build_at_runtime,
-                max_workspace_size_bytes,
-                precision_mode,
-                minimum_segment_size):
+            def get_trt_precision(precision):
+                if precision == "FP32":
+                    return trt.TrtPrecisionMode.FP32
+                elif precision == "FP16":
+                    return trt.TrtPrecisionMode.FP16
+                elif precision == "INT8":
+                    return trt.TrtPrecisionMode.INT8
+                else:
+                    raise RuntimeError(
+                        f"Unknown precision received: `{precision}`. "
+                        f"Expected: FP32, FP16 or INT8"
+                    )
 
-                params = copy.deepcopy(trt.DEFAULT_TRT_CONVERSION_PARAMS)
+            tftrt_precision = get_trt_precision(self._args.precision)
 
-                def get_trt_precision():
-                    if precision_mode == "FP32":
-                        return trt.TrtPrecisionMode.FP32
-                    elif precision_mode == "FP16":
-                        return trt.TrtPrecisionMode.FP16
-                    elif precision_mode == "INT8":
-                        return trt.TrtPrecisionMode.INT8
-                    else:
-                        raise RuntimeError("Unknown precision received: `{}`. Expected: "
-                                           "FP32, FP16 or INT8".format(precision))
+            trt_converter_params = dict(
+                allow_build_at_runtime=self._args.allow_build_at_runtime,
+                enable_sparse_compute=True,
+                input_saved_model_dir=self._args.input_saved_model_dir,
+                input_saved_model_signature_key=self._args.input_signature_key,
+                input_saved_model_tags=self._args.model_tag.split(","),
+                max_workspace_size_bytes=self._args.max_workspace_size,
+                maximum_cached_engines=1,
+                minimum_segment_size=self._args.minimum_segment_size,
+                precision_mode=tftrt_precision,
+                use_calibration=(tftrt_precision == trt.TrtPrecisionMode.INT8),
+                use_dynamic_shape=self._args.use_dynamic_shape,
+            )
 
-                params = params._replace(
-                    allow_build_at_runtime=allow_build_at_runtime,
-                    max_workspace_size_bytes=max_workspace_size_bytes,
-                    minimum_segment_size=minimum_segment_size,
-                    precision_mode=get_trt_precision(),
-                    use_calibration=precision_mode == "INT8"
+            print("\n[*] TF-TRT Converter Parameters:")
+            print_dict(trt_converter_params)
+
+            converter = trt.TrtGraphConverterV2(**trt_converter_params)
+
+            def engine_build_input_fn(num_batches, model_phase):
+                dataset, _ = self.get_dataset_batches()
+
+                for idx, data_batch in enumerate(dataset):
+                    print(
+                        f"* [{model_phase}] "
+                        f"- step {(idx+1):04d}/{num_batches:04d}"
+                    )
+                    x, _ = self.preprocess_model_inputs(data_batch)  # x, y
+
+                    if not isinstance(x, (tuple, list, dict)):
+                        x = [x]
+
+                    yield x
+
+                    if (idx + 1) >= num_batches:
+                        break
+
+            if tftrt_precision == trt.TrtPrecisionMode.INT8:
+
+                calibration_input_fn = lambda: engine_build_input_fn(
+                    num_batches=self._args.num_calib_batches,
+                    model_phase="Calibration"
                 )
 
-                print('\nTensorRT Conversion Params:')
-                _print_dict(dict(params._asdict()))
-
-                return params
-
-            conversion_params = get_trt_conversion_params(
-                allow_build_at_runtime=allow_build_at_runtime,
-                max_workspace_size_bytes=max_workspace_size_bytes,
-                precision_mode=precision_mode,
-                minimum_segment_size=minimum_segment_size
-            )
-
-            converter = trt.TrtGraphConverterV2(
-                input_saved_model_dir=input_saved_model_dir,
-                conversion_params=conversion_params,
-                input_saved_model_signature_key=input_signature_key,
-                use_dynamic_shape=use_dynamic_shape
-            )
-
-            def _check_input_fn(func, name):
-                if func is None:
-                    raise ValueError("The function `{}` is None.".format(name))
-
-                if not callable(func):
-                    raise ValueError("The argument `{}` is not a function.".format(
-                        name))
-
-            if conversion_params.precision_mode == 'INT8':
-
-                _check_input_fn(calibration_input_fn, "calibration_input_fn")
-
-                with _timed_section('TF-TRT graph conversion and INT8 '
-                                   'calibration ...'):
+                with timed_section(
+                        "TF-TRT graph conversion and INT8 calibration ..."):
                     graph_func = converter.convert(
-                        calibration_input_fn=tf.autograph.experimental.do_not_convert(
-                            calibration_input_fn
+                        calibration_input_fn=(
+                            tf.autograph.experimental.
+                            do_not_convert(calibration_input_fn)
                         )
                     )
 
             else:
-                with _timed_section('TF-TRT graph conversion ...'):
+                with timed_section("TF-TRT graph conversion ..."):
                     graph_func = converter.convert()
 
             try:
@@ -312,188 +218,197 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             except AttributeError:
                 pass
 
-            if optimize_offline or use_dynamic_shape:
+            if strtobool(os.environ.get("TF_TRT_BENCHMARK_QUIT_AFTER_SUMMARY",
+                                        "0")):
+                sys.exit(0)
 
-                _check_input_fn(
-                    optimize_offline_input_fn,
-                    "optimize_offline_input_fn"
+            if self._args.optimize_offline or self._args.use_dynamic_shape:
+
+                offline_opt_input_fn = lambda: engine_build_input_fn(
+                    num_batches=1, model_phase="Building"
                 )
 
-                with _timed_section('Building TensorRT engines...'):
-                    converter.build(input_fn=tf.autograph.experimental.do_not_convert(
-                        optimize_offline_input_fn
-                    ))
+                with timed_section("Building TensorRT engines"):
+                    converter.build(
+                        input_fn=tf.autograph.experimental.
+                        do_not_convert(offline_opt_input_fn)
+                    )
+                pass
 
-            if output_saved_model_dir is not None:
+            if self._args.output_saved_model_dir is not None:
 
-                with _timed_section('Saving converted graph with TF-TRT ...'):
-                    converter.save(output_saved_model_dir)
-                    print("Converted graph saved to `{}`".format(
-                        output_saved_model_dir))
+                with timed_section("Saving converted graph with TF-TRT"):
+                    converter.save(self._args.output_saved_model_dir)
+                    print(
+                        f"Converted graph saved to "
+                        f"`{self._args.output_saved_model_dir}`"
+                    )
+                    # Engine cache is cleared while saving, we have to reload.
+                    # Failing to do so, would force TF-TRT to rebuild
+                    del converter
+                    del graph_func
+                    graph_func = load_model_from_disk(
+                        self._args.output_saved_model_dir
+                    )
+
+        if isinstance(graph_func.structured_outputs, (tuple, list)):
+            savedmodel_outputs = "\n  - ".join([
+                str(t) for t in graph_func.structured_outputs
+            ])
+            savedmodel_outputs = f"  - {savedmodel_outputs}"
+        else:
+            savedmodel_outputs = print_dict(
+                graph_func.structured_outputs, redirect_to_str=True
+            )
+        self._debug_print(f"Available Output Tensors:\n{savedmodel_outputs}")
+        print()  # visual spacing
+
+        chosen_outputs = "\n  - ".join(
+            sorted(self._args.output_tensors_name.split(","))
+        )
+        self._debug_print(f"Chosen Output Tensor:\n  - {chosen_outputs}")
+        print()  # visual spacing
 
         return graph_func
 
-    def debug_print(self, msg):
-        if self._debug:
-            print(f"[DEBUG] {msg}")
-
-    def execute_benchmark(
-        self,
-        batch_size,
-        display_every,
-        get_benchmark_input_fn,
-        num_iterations,
-        num_warmup_iterations,
-        skip_accuracy_testing,
-        use_synthetic_data,
-        use_xla,
-        **kwargs):
+    def execute_benchmark(self):
         """Run the given graph_func on the data files provided.
         It consumes TFRecords with labels and reports accuracy.
         """
 
-        self.before_benchmark(**kwargs)
+        with timed_section("Model Loading"):
+            graph_func = self._get_graph_func()
 
-        results = {}
-        iter_times = []
-        steps_executed = 0
+        with timed_section("Model Inference"):
+            dataset, bypass_data_to_eval = self.get_dataset_batches()
 
-        dataset = get_benchmark_input_fn(
-            batch_size=batch_size,
-            use_synthetic_data=use_synthetic_data,
-        )
-
-        @_force_gpu_resync
-        @tf.function(jit_compile=use_xla)
-        def infer_step(_batch_x):
-          output = self._graph_func(_batch_x)
-          return itemgetter(*self._output_tensors)(output)
-
-        predicted_dict = defaultdict(lambda: [])
-        expected_arr = []
-
-        def get_debug_output_shape_str(output):
-            if isinstance(output, (tuple, list)):
-                return [t.shape for t in output]
-
-            elif isinstance(output, dict):
-                return {k: v.shape for k, v in output.items()}
-
-            else:
-                return output.shape
-
-
-        print("\nStart inference ...")
-        for i, data_batch in enumerate(dataset):
-
-            if isinstance(data_batch, (list, tuple)):
-                if len(data_batch) == 1:
-                    batch_x, batch_y = (data_batch, None)
-                elif len(data_batch) == 2:
-                    batch_x, batch_y = data_batch
-                else:
-                    raise RuntimeError("Error: The dataset function returned "
-                                       "%d elements." % len(data_batch))
-            # TF Tensor
-            else:
-                batch_x, batch_y = (data_batch, None)
-
-            start_time = time.time()
-            batch_preds = infer_step(batch_x)
-            iter_times.append(time.time() - start_time)
-
-            steps_executed += 1
-
-            if (i + 1) % display_every == 0 or (i + 1) == num_iterations:
-                print("  step %04d/%04d, iter_time(ms)=%.0f" % (
-                    i + 1,
-                    num_iterations,
-                    np.mean(iter_times[-display_every:]) * 1000
-                ))
-
-            if not skip_accuracy_testing:
-                if i == 0:
-                    self.debug_print("=========== BEFORE PROCESSING ==========")
-                    debug_batch_preds = get_debug_output_shape_str(batch_preds)
-                    self.debug_print(f"`batch_preds`: {debug_batch_preds}")
-                    if batch_y is not None:
-                        self.debug_print(f"`batch_y` shape: {batch_y.shape}")
-
-                batch_preds = self.process_model_output(batch_preds, **kwargs)
-
-                if not isinstance(batch_preds, dict):
-                    raise ValueError(
-                        f"`self.process_model_output` did not return a dict. " \
-                        f"Received: {type(batch_preds)}"
+            if self._args.use_synthetic_data:
+                old_ds = dataset
+                try:
+                    dataset = dataset.take(count=1)  # loop over 1 batch
+                    dataset = dataset.cache()
+                    dataset = dataset.repeat()
+                    dataset = dataset.prefetch(
+                        buffer_size=tf.data.experimental.AUTOTUNE
+                    )
+                    self._debug_print(
+                        "Model dataset has been replaced by a synthetic data "
+                        "loader to minimize data loading jitter."
                     )
 
-                if batch_y is not None:
-                    batch_y = batch_y.numpy()
-                    if batch_y.shape[-1] == 1:
-                        batch_y = np.squeeze(batch_y, axis=-1)
+                except Exception as e:
+                    dataset = old_ds
+                    print(
+                        f"[ERROR] Impossible to transform the dataset into a "
+                        f"synthetic dataset. Performance numbers will be "
+                        f"impacted.\nError: {str(e)}."
+                    )
 
-                if i == 0:
-                    self.debug_print("=========== AFTER PROCESSING ===========")
-                    debug_batch_preds = get_debug_output_shape_str(batch_preds)
-                    self.debug_print(f"`batch_preds`: {debug_batch_preds}")
-                    if batch_y is not None:
-                        self.debug_print(f"`batch_y` shape: {batch_y.shape}")
-                    self.debug_print("========================================")
+            @force_gpu_resync
+            @tf.function(jit_compile=self._args.use_xla)
+            def infer_batch(x):
+                if isinstance(x, (tuple, list)):
+                    model_out = graph_func(*x)
+                elif isinstance(x, dict):
+                    model_out = graph_func(**x)
+                else:
+                    model_out = graph_func(x)
 
-                for key, value in batch_preds.items():
-                    predicted_dict[key].append(value)
+                if self._args.output_tensors_name is not None:
+                    output_ts_name = self._args.output_tensors_name.split(",")
+                    if len(output_ts_name) == 1:
+                        return model_out[self._args.output_tensors_name]
+                    else:
+                        return {key: model_out[key] for key in output_ts_name}
 
-                if batch_y is not None:
-                    expected_arr.append(batch_y)
+                return model_out
 
-            if (i + 1) >= num_iterations:
-                break
+            if not self._args.use_synthetic_data:
+                data_aggregator = DataAggregator(
+                    self.postprocess_model_outputs, args=self._args
+                )
 
-        if not skip_accuracy_testing:
-            predicted_dict = {
-                k: np.concatenate(v, axis=0)
-                for k, v in predicted_dict.items()
-            }
-            if expected_arr:
-                expected_arr = np.concatenate(expected_arr, axis=0)
-            else:
-                expected_arr = np.array(expected_arr)
+            iter_times = []
 
-            self.debug_print("=========== BEFORE METRIC COMPUTATION ==========")
-            debug_predicted_dict = get_debug_output_shape_str(predicted_dict)
-            self.debug_print(f"`predicted_dict`: {debug_predicted_dict}")
-            self.debug_print(f"`expected_arr` shape: {expected_arr.shape}")
-            self.debug_print("========================================")
+            def log_step(step_idx, display_every, iter_time):
+                if step_idx % display_every == 0:
+                    print(
+                        f"  step {step_idx:04d}, iter_time(ms)={iter_time:.3f}"
+                    )
 
-            results['accuracy_metric'] = self.compute_accuracy_metric(
-                predictions=predicted_dict,
-                expected=expected_arr,
-                **kwargs
+            dataset = timed_dataset(
+                dataset, activate=self._args.debug_performance
             )
 
-        iter_times = np.array(iter_times)
-        run_times = iter_times[num_warmup_iterations:]
+            for step_idx, data_batch in enumerate(dataset):
+                x, y = self.preprocess_model_inputs(data_batch)
 
-        results['total_time(s)'] = int(np.sum(iter_times))
-        results['samples/sec'] = int(np.mean(batch_size / run_times))
-        results['99th_percentile(ms)'] = np.percentile(
-            run_times, q=99, interpolation='lower'
-        ) * 1000
-        results['latency_mean(ms)'] = np.mean(run_times) * 1000
-        results['latency_median(ms)'] = np.median(run_times) * 1000
-        results['latency_min(ms)'] = np.min(run_times) * 1000
-        results['latency_max(ms)'] = np.max(run_times) * 1000
+                start_time = time.time()
+                y_pred = infer_batch(x)
+                iter_times.append(time.time() - start_time)
 
-        print('\n=============================================\n')
-        print('Results:\n')
+                if not self._args.debug_performance:
+                    log_step(
+                        step_idx + 1, self._args.display_every,
+                        np.mean(iter_times[-self._args.display_every:]) * 1000
+                    )
+                else:
+                    print(f"{'GPU Iteration Time':18s}: {iter_times[-1]:.4f}s")
 
-        if "accuracy_metric" in results:
-            print('  {}: {:.2f}'.format(
-                self.ACCURACY_METRIC_NAME, results['accuracy_metric'] * 100))
-            del results['accuracy_metric']
+                if not self._args.use_synthetic_data:
+                    data_aggregator.aggregate_data(y_pred, y)
 
-        for key, val in sorted(results.items()):
-            if isinstance(val, float):
-                print("  {}: {:.2f}".format(key, val))
-            else:
-                print("  {}: {}".format(key, val))
+                if (self._args.num_iterations is not None and
+                        step_idx + 1 >= self._args.num_iterations):
+                    break
+
+            if (not self._args.debug_performance and
+                    step_idx % self._args.display_every !=
+                    0):  # avoids double printing
+                log_step(
+                    step_idx + 1,
+                    display_every=1,  # force print
+                    iter_time=(
+                        np.mean(iter_times[-self._args.display_every:]) * 1000
+                    )
+                )
+
+        with timed_section("Metric Computation"):
+
+            if not self._args.use_synthetic_data:
+                metric, metric_units = self.evaluate_model(
+                    data_aggregator.predicted_dict,
+                    data_aggregator.expected_dict, bypass_data_to_eval
+                )
+                print(f"- {metric_units:35s}: {metric:.2f}")
+
+            metrics = dict()
+
+            if not self._args.use_synthetic_data:
+                metrics["Total Samples Processed"] = (
+                    data_aggregator.total_samples_processed
+                )
+
+            # Skipping last batch. Might have different batch_size
+            run_times = np.array(iter_times)
+            run_times = run_times[self._args.num_warmup_iterations:-1]
+
+            metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
+            metrics['Throughput (samples/sec)'] = np.mean(
+                self._args.batch_size / run_times
+            )
+            metrics['99th_percentile (ms)'] = np.percentile(
+                run_times, q=99, interpolation='lower'
+            ) * 1000
+            metrics['GPU Latency Mean (ms)'] = np.mean(run_times) * 1000
+            metrics['GPU Latency Median (ms)'] = np.median(run_times) * 1000
+            metrics['GPU Latency Min (ms)'] = np.min(run_times) * 1000
+            metrics['GPU Latency Max (ms)'] = np.max(run_times) * 1000
+
+            for key, val in sorted(metrics.items()):
+                if isinstance(val, int):
+                    print(f"- {key:35s}: {val}")
+                else:
+                    print(f"- {key:35s}: {val:.2f}")
+
+        print()  # visual spacing

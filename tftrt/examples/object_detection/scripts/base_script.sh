@@ -10,12 +10,9 @@ MODEL_DIR=""
 # Default Argument Values
 NVIDIA_TF32_OVERRIDE=""
 
-BATCH_SIZE=8
-MAX_WORKSPACE_SIZE=$((2 ** (32 + 1)))  # + 1 necessary compared to python
-INPUT_SIZE=640
-
 BYPASS_ARGUMENTS=""
 TF_AUTO_JIT_XLA_FLAG=""
+BATCH_SIZE=8
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -37,6 +34,12 @@ do
         DATA_DIR="${arg#*=}"
         shift # Remove --data_dir= from processing
         ;;
+        --total_max_samples=*)
+        shift # Remove --total_max_samples= from processing
+        ;;
+        --output_tensors_name=*)
+        shift # Remove --output_tensors_name= from processing
+        ;;
         --input_saved_model_dir=*)
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
@@ -52,6 +55,11 @@ do
 done
 
 # ============== Set model specific parameters ============= #
+
+INPUT_SIZE=640
+MAX_WORKSPACE_SIZE=$((2 ** (32 + 1)))  # + 1 necessary compared to python
+MAX_SAMPLES=5000
+OUTPUT_TENSORS_NAME="boxes,classes,num_detections,scores"
 
 case ${MODEL_NAME} in
   "faster_rcnn_resnet50_coco" | "ssd_mobilenet_v1_fpn_coco")
@@ -73,6 +81,8 @@ echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
+echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
+echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
 echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
@@ -150,9 +160,11 @@ COMMAND="${PREPEND_COMMAND} python object_detection.py \
     --batch_size ${BATCH_SIZE} \
     --input_size ${INPUT_SIZE} \
     --max_workspace_size ${MAX_WORKSPACE_SIZE} \
+    --total_max_samples=${MAX_SAMPLES} \
+    --output_tensors_name=${OUTPUT_TENSORS_NAME} \
     ${BYPASS_ARGUMENTS}"
 
-COMMAND=$(echo "${COMMAND}" | tr -s " ")
+COMMAND=$(echo ${COMMAND} | sed 's/ *$//g')  # Trimming whitespaces
 
 echo -e "**Executing:**\n\n${COMMAND}\n"
 sleep 5
