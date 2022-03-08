@@ -1,0 +1,35 @@
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['__saved_model_init_op']:
+  The given SavedModel SignatureDef contains the following input(s):
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['__saved_model_init_op'] tensor_info:
+        dtype: DT_INVALID
+        shape: unknown_rank
+        name: NoOp
+  Method name is: 
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['input_ids'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1, -1)
+        name: serving_default_input_ids:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['prediction_logits'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, -1, 30522)
+        name: StatefulPartitionedCall:0
+    outputs['seq_relationship_logits'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 2)
+        name: StatefulPartitionedCall:1
+  Method name is: tensorflow/serving/predict
+
+Concrete Functions:
+  Function Name: 'serving'
+    Option #1
+      Callable with:
+        Argument #1
+          input_ids: TensorSpec(shape=(None, None), dtype=tf.int32, name='input_ids')
