@@ -22,6 +22,9 @@ import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
 
+from tensorflow.python.saved_model import signature_constants
+from tensorflow.python.saved_model import tag_constants
+
 __all__ = ["BaseBenchmarkRunner"]
 
 
@@ -100,28 +103,37 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         returns: TF function that is ready to run for inference
         """
 
+        def load_model_from_disk(
+            path,
+            tags=[tag_constants.SERVING],
+            signature_key=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+        ):
+            saved_model_loaded = tf.saved_model.load(export_dir=path, tags=tags)
+
+            graph_func = saved_model_loaded.signatures[signature_key]
+
+            # from tensorflow.python.framework import convert_to_constants
+            # graph_func = convert_to_constants.convert_variables_to_constants_v2(
+            #     graph_func
+            # )
+
+            # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
+            # it looks like if the original trackable object is released by
+            # the Python garbage collector once it goes out of scope, and
+            # the signature returned by the function does not maintain a
+            # back-reference to the original loaded object.
+            graph_func._backref_to_saved_model = saved_model_loaded
+
+            return graph_func
+
         if not self._args.use_tftrt:
 
             with timed_section("Loading TensorFlow native model"):
-
-                saved_model_loaded = tf.saved_model.load(
-                    export_dir=self._args.input_saved_model_dir,
-                    tags=self._args.model_tag.split(",")
+                graph_func = load_model_from_disk(
+                    path=self._args.input_saved_model_dir,
+                    tags=self._args.model_tag.split(","),
+                    signature_key=self._args.input_signature_key
                 )
-
-                graph_func = saved_model_loaded.signatures[
-                    self._args.input_signature_key]
-                # from tensorflow.python.framework import convert_to_constants
-                # graph_func = convert_to_constants.convert_variables_to_constants_v2(
-                #     graph_func
-                # )
-
-                # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
-                # it looks like if the original trackable object is released by
-                # the Python garbage collector once it goes out of scope, and
-                # the signature returned by the function does not maintain a
-                # back-reference to the original loaded object.
-                graph_func._backref_to_saved_model = saved_model_loaded
 
         else:
 
@@ -230,6 +242,13 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     print(
                         f"Converted graph saved to "
                         f"`{self._args.output_saved_model_dir}`"
+                    )
+                    # Engine cache is cleared while saving, we have to reload.
+                    # Failing to do so, would force TF-TRT to rebuild
+                    del converter
+                    del graph_func
+                    graph_func = load_model_from_disk(
+                        self._args.output_saved_model_dir
                     )
 
         if isinstance(graph_func.structured_outputs, (tuple, list)):
