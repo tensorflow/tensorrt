@@ -1,0 +1,36 @@
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['predict']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['input'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 224, 224, 3)
+        name: input_tensor:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['classes'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1)
+        name: ArgMax:0
+    outputs['probabilities'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 1001)
+        name: resnet50/output/softmax:0
+  Method name is: tensorflow/serving/predict
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['input'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 224, 224, 3)
+        name: input_tensor:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['classes'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1)
+        name: ArgMax:0
+    outputs['probabilities'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 1001)
+        name: resnet50/output/softmax:0
+  Method name is: tensorflow/serving/predict

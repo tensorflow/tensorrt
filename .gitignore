@@ -138,3 +138,6 @@ variables.data*
 
 # Local files
 /*.txt
+
+# Top Level Script Files
+/*.sh

@@ -4,18 +4,14 @@ nvidia-smi
 
 # Runtime Parameters
 MODEL_NAME=""
+DATA_DIR=""
 MODEL_DIR=""
 
 # Default Argument Values
 NVIDIA_TF32_OVERRIDE=""
 
-# TODO: remove when real dataloader is implemented
-DATA_DIR="/tmp"
-
 BYPASS_ARGUMENTS=""
 TF_AUTO_JIT_XLA_FLAG=""
-BATCH_SIZE=32
-SEQ_LEN=128
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -29,12 +25,13 @@ do
         NVIDIA_TF32_OVERRIDE="NVIDIA_TF32_OVERRIDE=0"
         shift # Remove --no_tf32 from processing
         ;;
-        --batch_size=*)
-        BATCH_SIZE="${arg#*=}"
-        shift # Remove --batch_size= from processing
-        ;;
         --data_dir=*)
+        DATA_DIR="${arg#*=}"
         shift # Remove --data_dir= from processing
+        ;;
+        --input_saved_model_dir=*)
+        MODEL_DIR="${arg#*=}"
+        shift # Remove --input_saved_model_dir= from processing
         ;;
         --total_max_samples=*)
         shift # Remove --total_max_samples= from processing
@@ -42,20 +39,9 @@ do
         --output_tensors_name=*)
         shift # Remove --output_tensors_name= from processing
         ;;
-        --input_saved_model_dir=*)
-        MODEL_DIR="${arg#*=}"
-        shift # Remove --input_saved_model_dir= from processing
-        ;;
         --use_xla_auto_jit)
         TF_AUTO_JIT_XLA_FLAG="TF_XLA_FLAGS=\"--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit\""
         shift # Remove --use_xla_auto_jit from processing
-        ;;
-        --vocab_size=*)
-        shift # Remove --vocab_size= from processing
-        ;;
-        --sequence_length=*)
-        SEQ_LEN="${arg#*=}"
-        shift # Remove --sequence_length= from processing
         ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
@@ -65,25 +51,49 @@ done
 
 # ============== Set model specific parameters ============= #
 
-MIN_SEGMENT_SIZE=5
-VOCAB_SIZE=-1
-MAX_WORKSPACE_SIZE=$((2 ** (32 + 1)))  # + 1 necessary compared to python
-MAX_SAMPLES=1
-OUTPUT_TENSORS_NAME="prediction_logits,seq_relationship_logits"
+INPUT_SIZE=224
+PREPROCESS_METHOD="vgg"
+NUM_CLASSES=1001
+MAX_SAMPLES=50000
+OUTPUT_TENSORS_NAME="logits"
 
 case ${MODEL_NAME} in
-  "bert_base_uncased" | "bert_large_uncased")
-    VOCAB_SIZE=30522
+  "inception_v3" | "inception_v4")
+    INPUT_SIZE=299
+    PREPROCESS_METHOD="inception"
     ;;
 
-  "bert_base_cased" | "bert_large_cased")
-    VOCAB_SIZE=28996
+  "mobilenet_v1" | "mobilenet_v2")
+    PREPROCESS_METHOD="inception"
     ;;
 
-  "bart_base" | "bart_large")
-    VOCAB_SIZE=50265
-    MIN_SEGMENT_SIZE=90
-    OUTPUT_TENSORS_NAME="encoder_last_hidden_state,logits"
+  "nasnet_large")
+    INPUT_SIZE=331
+    PREPROCESS_METHOD="inception"
+    ;;
+
+  "nasnet_mobile")
+    PREPROCESS_METHOD="inception"
+    ;;
+
+  "resnet_v1.5_50_tfv2" )
+    NUM_CLASSES=1000
+    OUTPUT_TENSORS_NAME="activation_49"
+    ;;
+
+  "vgg_16" | "vgg_19" )
+    NUM_CLASSES=1000
+    ;;
+
+  "resnet50-v1.5_tf1_ngc" )
+    NUM_CLASSES=1000
+    OUTPUT_TENSORS_NAME="classes"
+    PREPROCESS_METHOD="resnet50_v1_5_tf1_ngc_preprocess"
+    ;;
+
+  "resnet50v2_backbone" | "resnet50v2_sparse_backbone" )
+    INPUT_SIZE=256
+    OUTPUT_TENSORS_NAME="outputs"
     ;;
 esac
 
@@ -97,16 +107,15 @@ echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
 echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
 echo ""
-# Custom Transormer Task Flags
-echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
-echo "[*] SEQ_LEN: ${SEQ_LEN}"
-echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
+# Custom Image Classification Task Flags
+echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
+echo "[*] PREPROCESS_METHOD: ${PREPROCESS_METHOD}"
+echo "[*] NUM_CLASSES: ${NUM_CLASSES}"
 echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
 echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
-
 echo -e "********************************************************************\n"
 
 # ======================= ARGUMENT VALIDATION ======================= #
@@ -135,7 +144,7 @@ if [[ ! -d ${MODEL_DIR} ]]; then
     exit 1
 fi
 
-INPUT_SAVED_MODEL_DIR=${MODEL_DIR}/${MODEL_NAME}/pb_model
+INPUT_SAVED_MODEL_DIR=${MODEL_DIR}/${MODEL_NAME}
 
 if [[ ! -d ${INPUT_SAVED_MODEL_DIR} ]]; then
     echo "ERROR: the directory \`${INPUT_SAVED_MODEL_DIR}\` does not exist."
@@ -144,22 +153,21 @@ fi
 
 # %%%%%%%%%%%%%%%%%%%%%%% ARGUMENT VALIDATION %%%%%%%%%%%%%%%%%%%%%%% #
 
-BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" >/dev/null 2>&1 && pwd )"
+BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd ${BENCH_DIR}
 
 # Execute the example
 
 PREPEND_COMMAND="${TF_AUTO_JIT_XLA_FLAG} ${NVIDIA_TF32_OVERRIDE}"
 
-COMMAND="${PREPEND_COMMAND} python transformers.py \
+COMMAND="${PREPEND_COMMAND} python image_classification.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
     --output_saved_model_dir /tmp/$RANDOM \
-    --batch_size ${BATCH_SIZE} \
-    --vocab_size ${VOCAB_SIZE} \
-    --sequence_length=${SEQ_LEN} \
-    --max_workspace_size ${MAX_WORKSPACE_SIZE} \
+    --input_size ${INPUT_SIZE} \
+    --preprocess_method ${PREPROCESS_METHOD} \
+    --num_classes ${NUM_CLASSES} \
     --total_max_samples=${MAX_SAMPLES} \
     --output_tensors_name=${OUTPUT_TENSORS_NAME} \
     ${BYPASS_ARGUMENTS}"

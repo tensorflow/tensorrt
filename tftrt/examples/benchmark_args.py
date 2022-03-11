@@ -141,13 +141,6 @@ class BaseCommandLineAPI(object):
         )
 
         self._add_bool_argument(
-            name="skip_accuracy_testing",
-            default=False,
-            required=False,
-            help="If set to True, accuracy calculation will be skipped."
-        )
-
-        self._add_bool_argument(
             name="use_synthetic_data",
             default=False,
             required=False,
@@ -185,6 +178,15 @@ class BaseCommandLineAPI(object):
             type=int,
             default=5,
             help="Minimum number of TensorFlow ops in a TRT engine."
+        )
+
+        self._parser.add_argument(
+            "--num_build_batches",
+            type=int,
+            default=1,
+            help="How many iterations(batches) to use to build the TF-TRT "
+            "engines. If not supplied, only one batch will be used. This "
+            "parameter has only an effect if `--optimize_offline=True`"
         )
 
         self._parser.add_argument(

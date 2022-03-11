@@ -169,7 +169,11 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             print("\n[*] TF-TRT Converter Parameters:")
             print_dict(trt_converter_params)
 
-            converter = trt.TrtGraphConverterV2(**trt_converter_params)
+            try:
+                converter = trt.TrtGraphConverterV2(**trt_converter_params)
+            except TypeError:
+                del trt_converter_params["enable_sparse_compute"]
+                converter = trt.TrtGraphConverterV2(**trt_converter_params)
 
             def engine_build_input_fn(num_batches, model_phase):
                 dataset, _ = self.get_dataset_batches()
@@ -218,14 +222,14 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             except AttributeError:
                 pass
 
-            if strtobool(os.environ.get("TF_TRT_BENCHMARK_QUIT_AFTER_SUMMARY",
-                                        "0")):
+            if strtobool(os.environ.get("TF_TRT_BENCHMARK_EARLY_QUIT", "0")):
                 sys.exit(0)
 
-            if self._args.optimize_offline or self._args.use_dynamic_shape:
+            if self._args.optimize_offline:
 
                 offline_opt_input_fn = lambda: engine_build_input_fn(
-                    num_batches=1, model_phase="Building"
+                    num_batches=self._args.num_build_batches,
+                    model_phase="Building"
                 )
 
                 with timed_section("Building TensorRT engines"):
@@ -248,7 +252,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     del converter
                     del graph_func
                     graph_func = load_model_from_disk(
-                        self._args.output_saved_model_dir
+                        self._args.output_saved_model_dir,
+                        tags=self._args.model_tag.split(","),
+                        signature_key=self._args.input_signature_key
                     )
 
         if isinstance(graph_func.structured_outputs, (tuple, list)):

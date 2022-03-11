@@ -186,6 +186,12 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         # write coco detections to file
         tmp_dir = "/tmp/tmp_detection_results"
+
+        try:
+            shutil.rmtree(tmp_dir)
+        except FileNotFoundError:
+            pass
+
         os.makedirs(tmp_dir)
 
         coco_detections_path = os.path.join(tmp_dir, 'coco_detections.json')

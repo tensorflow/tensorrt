@@ -1,0 +1,27 @@
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['input'] tensor_info:
+        dtype: DT_UINT8
+        shape: (8, -1, -1, 3)
+        name: image_tensor:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['boxes'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (8, -1, -1)
+        name: detection_boxes:0
+    outputs['classes'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (8, -1)
+        name: detection_classes:0
+    outputs['num_detections'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (8)
+        name: num_detections:0
+    outputs['scores'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (8, -1)
+        name: detection_scores:0
+  Method name is: tensorflow/serving/predict
