@@ -219,7 +219,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         This computes overall accuracy, mAP,  etc.  Returns the
         metric value and a metric_units string naming the metric.
 
-        Note: script arguments can be accessed using `args.attr`
+        Note: script arguments can be accessed using `self._args.attr`
         """
 
         return (

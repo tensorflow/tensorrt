@@ -1,4 +1,4 @@
-#!# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -29,63 +29,31 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
+basedir = os.path.dirname(parentdir)
+sys.path.insert(0, basedir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
+from utils import (
+    dice_coef,
+    get_val_train_indices,
+    load_multipage_tiff,
+    preproc_samples
+)
+
 
 class CommandLineAPI(BaseCommandLineAPI):
-
-    ALLOWED_VOCAB_SIZES = [
-        30522,  # BERT Uncased
-        28996,  # BERT Cased
-        50265,  # BART
-    ]
 
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 
-        self._parser.add_argument(
-            "--sequence_length",
-            type=int,
-            default=128,
-            help="Input data sequence length."
+        self._add_bool_argument(
+            name="amp",
+            default=False,
+            required=False,
+            help="Whether the model was trained using mixed-precision"
         )
-
-        self._parser.add_argument(
-            "--vocab_size",
-            type=int,
-            required=True,
-            choices=self.ALLOWED_VOCAB_SIZES,
-            help="Size of the vocabulory used for training. Refer to "
-            "huggingface documentation."
-        )
-
-        # self._parser.add_argument(
-        #     "--validate_output",
-        #     action="store_true",
-        #     help="Validates that the model returns the correct value. This "
-        #     "only works with batch_size =32."
-        # )
-
-    def _validate_args(self, args):
-        super(CommandLineAPI, self)._validate_args(args)
-
-        # if args.validate_output and args.batch_size != 32:
-        #     raise ValueError("Output validation only supports batch size 32.")
-
-        # TODO: Remove when proper dataloading is implemented
-        if args.num_iterations is None:
-            raise ValueError(
-                "This benchmark does not currently support "
-                "--num_iterations=None"
-            )
-
-    def _post_process_args(self, args):
-        args = super(CommandLineAPI, self)._post_process_args(args)
-
-        return args
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
@@ -110,24 +78,33 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        if not self._args.use_synthetic_data:
-            raise NotImplementedError()
+        images = load_multipage_tiff(
+            os.path.join(args.data_dir, 'train-volume.tif')
+        )
+        masks = load_multipage_tiff(
+            os.path.join(args.data_dir, 'train-labels.tif')
+        )
+        _, val_indices = get_val_train_indices(len(images), 0)
 
-        tf.random.set_seed(10)
+        val_images = images[val_indices]
+        val_images = np.concatenate([val_images], axis=0)
 
-        input_data = tf.random.uniform(
-            shape=(1, self._args.sequence_length),
-            maxval=self._args.vocab_size,
-            dtype=tf.int32
+        val_masks = masks[val_indices]
+        val_masks = np.concatenate([val_masks], axis=0)
+
+        x, y = preproc_samples(
+            tf.convert_to_tensor(val_images),
+            tf.convert_to_tensor(val_masks),
+            tf.float16 if args.amp else tf.float32,
         )
 
-        dataset = tf.data.Dataset.from_tensor_slices(input_data)
-        dataset = dataset.repeat()
-        dataset = dataset.batch(self._args.batch_size)
-        dataset = dataset.take(count=1)  # loop over 1 batch
-        dataset = dataset.cache()
-        dataset = dataset.repeat()
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        dataset = tf.data.Dataset.from_tensor_slices((x, y))
+
+        dataset = dataset.repeat(600)
+
+        dataset = dataset.batch(args.batch_size, drop_remainder=False)
+
+        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
         return dataset, None
 
@@ -140,8 +117,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        x = data_batch
-        return x, None
+        x, y = data_batch
+        return x, y
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
@@ -153,6 +130,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         return predictions.numpy(), expected.numpy()
 
+
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
 
@@ -162,7 +140,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        return None, "Top-1 Accuracy %"
+        dice_score = dice_coef(predictions["data"], expected["data"])
+        return dice_score * 100, "DiceScore"
 
 
 if __name__ == '__main__':
