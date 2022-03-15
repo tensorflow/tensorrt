@@ -61,6 +61,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             print("[Benchmark] - Activating XLA JIT Auto Clustering")
             os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
 
+        if args.no_tf32:
+            print("[Benchmark] - Deactivating the use of TF32 format")
+            os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
+
         logging.getLogger("tensorflow").setLevel(logging.INFO)
         logging.disable(logging.WARNING)
 

@@ -8,8 +8,6 @@ DATA_DIR=""
 MODEL_DIR=""
 
 # Default Argument Values
-NVIDIA_TF32_OVERRIDE=""
-
 BYPASS_ARGUMENTS=""
 
 # Loop through arguments and process them
@@ -19,10 +17,6 @@ do
         --model_name=*)
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
-        ;;
-        --no_tf32)
-        NVIDIA_TF32_OVERRIDE="NVIDIA_TF32_OVERRIDE=0"
-        shift # Remove --no_tf32 from processing
         ;;
         --data_dir=*)
         DATA_DIR="${arg#*=}"
@@ -100,8 +94,6 @@ echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
-echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
-echo ""
 # Custom Image Classification Task Flags
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] PREPROCESS_METHOD: ${PREPROCESS_METHOD}"
@@ -151,10 +143,7 @@ BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd ${BENCH_DIR}
 
 # Execute the example
-
-PREPEND_COMMAND="${NVIDIA_TF32_OVERRIDE}"
-
-COMMAND="${PREPEND_COMMAND} python image_classification.py \
+COMMAND="python image_classification.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \

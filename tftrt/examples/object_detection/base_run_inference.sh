@@ -8,8 +8,6 @@ DATA_DIR=""
 MODEL_DIR=""
 
 # Default Argument Values
-NVIDIA_TF32_OVERRIDE=""
-
 BYPASS_ARGUMENTS=""
 BATCH_SIZE=8
 
@@ -20,10 +18,6 @@ do
         --model_name=*)
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
-        ;;
-        --no_tf32)
-        NVIDIA_TF32_OVERRIDE="NVIDIA_TF32_OVERRIDE=0"
-        shift # Remove --no_tf32 from processing
         ;;
         --batch_size=*)
         BATCH_SIZE="${arg#*=}"
@@ -69,8 +63,6 @@ echo "[*] MODEL_NAME: ${MODEL_NAME}"
 echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
-echo ""
-echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
 echo ""
 # Custom Object Detection Task Flags
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
@@ -142,10 +134,7 @@ if [[ ${DEPENDENCIES_STATUS} != 0 ]]; then
 fi
 
 # Step 2: Execute the example
-
-PREPEND_COMMAND="${NVIDIA_TF32_OVERRIDE}"
-
-COMMAND="${PREPEND_COMMAND} python object_detection.py \
+COMMAND="python object_detection.py \
     --data_dir ${VAL_DATA_DIR} \
     --calib_data_dir ${VAL_DATA_DIR} \
     --annotation_path ${ANNOTATIONS_DATA_FILE} \

@@ -7,14 +7,11 @@ MODEL_NAME=""
 MODEL_DIR=""
 
 # Default Argument Values
-NVIDIA_TF32_OVERRIDE=""
-
-# TODO: remove when real dataloader is implemented
-DATA_DIR="/tmp"
-
 BYPASS_ARGUMENTS=""
 BATCH_SIZE=32
 SEQ_LEN=128
+# TODO: remove when real dataloader is implemented
+DATA_DIR="/tmp"
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -23,10 +20,6 @@ do
         --model_name=*)
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
-        ;;
-        --no_tf32)
-        NVIDIA_TF32_OVERRIDE="NVIDIA_TF32_OVERRIDE=0"
-        shift # Remove --no_tf32 from processing
         ;;
         --batch_size=*)
         BATCH_SIZE="${arg#*=}"
@@ -90,8 +83,6 @@ echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
-echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
-echo ""
 # Custom Transormer Task Flags
 echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo "[*] SEQ_LEN: ${SEQ_LEN}"
@@ -142,10 +133,7 @@ BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" >/dev/null 2>&1 && pwd )"
 cd ${BENCH_DIR}
 
 # Execute the example
-
-PREPEND_COMMAND="${NVIDIA_TF32_OVERRIDE}"
-
-COMMAND="${PREPEND_COMMAND} python transformers.py \
+COMMAND="python transformers.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \

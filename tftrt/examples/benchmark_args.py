@@ -134,6 +134,13 @@ class BaseCommandLineAPI(object):
         )
 
         self._add_bool_argument(
+            name="no_tf32",
+            default=False,
+            required=False,
+            help="If set to True, the benchmark will force not using TF32."
+        )
+
+        self._add_bool_argument(
             name="use_xla",
             default=False,
             required=False,
