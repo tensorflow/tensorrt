@@ -13,7 +13,6 @@ NVIDIA_TF32_OVERRIDE=""
 DATA_DIR="/tmp"
 
 BYPASS_ARGUMENTS=""
-TF_AUTO_JIT_XLA_FLAG=""
 BATCH_SIZE=32
 SEQ_LEN=128
 
@@ -45,10 +44,6 @@ do
         --input_saved_model_dir=*)
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
-        ;;
-        --use_xla_auto_jit)
-        TF_AUTO_JIT_XLA_FLAG="TF_XLA_FLAGS=\"--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit\""
-        shift # Remove --use_xla_auto_jit from processing
         ;;
         --vocab_size=*)
         shift # Remove --vocab_size= from processing
@@ -104,7 +99,6 @@ echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
 echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
-echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
@@ -149,7 +143,7 @@ cd ${BENCH_DIR}
 
 # Execute the example
 
-PREPEND_COMMAND="${TF_AUTO_JIT_XLA_FLAG} ${NVIDIA_TF32_OVERRIDE}"
+PREPEND_COMMAND="${NVIDIA_TF32_OVERRIDE}"
 
 COMMAND="${PREPEND_COMMAND} python transformers.py \
     --data_dir ${DATA_DIR} \

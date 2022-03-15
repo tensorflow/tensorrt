@@ -57,6 +57,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
     def __init__(self, args):
         self._args = args
 
+        if args.use_xla_auto_jit:
+            print("[Benchmark] - Activating XLA JIT Auto Clustering")
+            os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
+
         logging.getLogger("tensorflow").setLevel(logging.INFO)
         logging.disable(logging.WARNING)
 

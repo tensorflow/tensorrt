@@ -141,6 +141,14 @@ class BaseCommandLineAPI(object):
         )
 
         self._add_bool_argument(
+            name="use_xla_auto_jit",
+            default=False,
+            required=False,
+            help="If set to True, the benchmark will use XLA JIT Auto "
+            "Clustering Compilation."
+        )
+
+        self._add_bool_argument(
             name="use_synthetic_data",
             default=False,
             required=False,
