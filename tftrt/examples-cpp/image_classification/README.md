@@ -1,11 +1,14 @@
 <!-- #region -->
 
 
-# TensorFlow-TensorRT (TF-TRT) C++ Image Recognition Demo
+# TF-TRT C++ Image Recognition Demo
 
-This example shows how you can load a native TF Keras ResNet-50 model, convert it to a TF-TRT optimized model (via the TF-TRT Python API), then load and serve the model with the TF C++ API.
+This example shows how you can load a native TF Keras ResNet-50 model, convert it to a TF-TRT optimized model (via the TF-TRT Python API), save the model as a frozen graph, and then finally load and serve the model with the TF C++ API. The process can be demonstrated with the below workflow diagram:
 
-This example is built based upon Google TensorFlow C++ image classificaition example at https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/label_image.
+
+![TF-TRT C++ Inference workflow](TF-TRT_CPP_inference.png "TF-TRT C++ Inference")
+
+This example is built based upon the original Google's TensorFlow C++ image classification [example](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/label_image), on top of which we added the TF-TRT conversion part and adapted the C++ code for loading and inferencing with the TF-TRT model.
 
 ## Docker environment
 Docker images provide a convinient and repeatable environment for experimentation. This workflow was tested in the NVIDIA NGC TensorFlow 22.01 docker container that comes with a TensorFlow 2.x build. Tools required for building this example, such as Bazel, NVIDIA CUDA, CUDNN, NCCL libraries are all readily setup.
@@ -44,9 +47,9 @@ Start Jupyter lab with:
 jupyter lab -ip 0.0.0.0
 ```
 
-A Jupyter notebook for downloading the Keras ResNet-50 model and TF-TRT conversion is provided in `tf-trt-conversion.ipynb` for your  experimentation. By default, this script will produce a TF-TRT model at `/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/frozen_models_trt_fp32/frozen_models_trt_fp32.pb`.
+A Jupyter notebook for downloading the Keras ResNet-50 model and TF-TRT conversion is provided in `tf-trt-conversion.ipynb` for your  experimentation. By default, this notebook will produce a TF-TRT FP32 model at `/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/frozen_models_trt_fp32/frozen_models_trt_fp32.pb`.
 
-This script will load the native TensorFlow model downloaded above and convert it, by default, to an FP32 TF-TRT model. As part of the conversion, the script will also carry out benchmarking and print out the throughput statistics. 
+As part of the conversion, the notebook will also carry out benchmarking and print out the throughput statistics. 
 
 
 <!-- #endregion -->
