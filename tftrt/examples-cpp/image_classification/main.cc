@@ -302,11 +302,11 @@ int main(int argc, char* argv[]) {
   // These are the command-line flags the program can understand.
   // They define where the graph and input data is located, and what kind of
   // input the model expects.
-  string image =  "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/img0.JPG";
+  string image =  "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/data/img0.JPG";
   string graph =
-      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/resnet-50.pb";
+      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/data/resnet-50.pb";
   string labels =
-      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/imagenet_slim_labels.txt";
+      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/data/imagenet_slim_labels.txt";
   int32_t input_width = 224;
   int32_t input_height = 224;
   float input_mean = 127;
