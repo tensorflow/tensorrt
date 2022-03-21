@@ -73,9 +73,9 @@ bash ./tftrt-build.sh
 That should build a binary executable `tftrt_label_image` that you can then run like this:
 
 ```bash
-tensorflow-source/bazel-bin/tensorflow/examples/image-classification/tftrt_label_image \
---graph=/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/frozen_models_trt_fp32/frozen_models_trt_fp32.pb \
---image=/opt/tensorflow/tensorflow-source/tensorflow/examples/image-classification/data/img0.JPG
+tensorflow-source/bazel-bin/tensorflow/examples/image_classification/tftrt_label_image \
+--graph=/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/frozen_models_trt_fp32/frozen_models_trt_fp32.pb \
+--image=/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/data/img0.JPG
 ```
 
 This uses the default image `img0.JPG` which was download as part of the conversion notebook, and should
