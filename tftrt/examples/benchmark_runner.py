@@ -5,6 +5,8 @@
 import os
 
 import abc
+import copy
+import json
 import logging
 import sys
 import time
@@ -57,6 +59,14 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
     def __init__(self, args):
         self._args = args
 
+        if args.use_xla_auto_jit:
+            print("[Benchmark] - Activating XLA JIT Auto Clustering")
+            os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
+
+        if args.no_tf32:
+            print("[Benchmark] - Deactivating the use of TF32 format")
+            os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
+
         logging.getLogger("tensorflow").setLevel(logging.INFO)
         logging.disable(logging.WARNING)
 
@@ -95,6 +105,31 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
     def _debug_print(self, msg):
         if self._args.debug:
             print(f"[DEBUG] {msg}")
+
+    def _export_runtime_metrics_to_json(self, metric_dict):
+
+        metric_dict = {
+          # Creating a copy to avoid modifying the original
+          "results": copy.deepcopy(metric_dict),
+          "runtime_arguments": vars(self._args)
+        }
+
+        json_path = self._args.export_metrics_json_path
+        if json_path is not None:
+            try:
+                with open(json_path, 'w') as json_f:
+                    json_string = json.dumps(
+                        metric_dict,
+                        default=lambda o: o.__dict__,
+                        sort_keys=True,
+                        indent=4
+                    )
+                    print(json_string, file=json_f)
+            except Exception as e:
+                print(
+                    "[ERROR] Impossible to save JSON File at path: "
+                    f"{json_path}.\nError: {str(e)}"
+                )
 
     def _get_graph_func(self):
         """Retreives a frozen SavedModel and applies TF-TRT
@@ -381,16 +416,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
         with timed_section("Metric Computation"):
 
+            metrics = dict()
+
             if not self._args.use_synthetic_data:
                 metric, metric_units = self.evaluate_model(
                     data_aggregator.predicted_dict,
                     data_aggregator.expected_dict, bypass_data_to_eval
                 )
-                print(f"- {metric_units:35s}: {metric:.2f}")
+                metrics["Metric"] = {metric_units: metric}
 
-            metrics = dict()
-
-            if not self._args.use_synthetic_data:
                 metrics["Total Samples Processed"] = (
                     data_aggregator.total_samples_processed
                 )
@@ -411,10 +445,18 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             metrics['GPU Latency Min (ms)'] = np.min(run_times) * 1000
             metrics['GPU Latency Max (ms)'] = np.max(run_times) * 1000
 
-            for key, val in sorted(metrics.items()):
+            self._export_runtime_metrics_to_json(metrics)
+
+            def log_value(key, val):
                 if isinstance(val, int):
                     print(f"- {key:35s}: {val}")
                 else:
                     print(f"- {key:35s}: {val:.2f}")
+
+            for key, val in sorted(metrics.items()):
+                if isinstance(val, dict):
+                    log_value(*list(val.items())[0])
+                else:
+                    log_value(key, val)
 
         print()  # visual spacing

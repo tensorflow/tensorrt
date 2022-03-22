@@ -1,0 +1,209 @@
+2022-01-24 13:50:46.193890: I tensorflow/stream_executor/platform/default/dso_loader.cc:54] Successfully opened dynamic library libcudart.so.11.0
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['__saved_model_init_op']:
+  The given SavedModel SignatureDef contains the following input(s):
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['__saved_model_init_op'] tensor_info:
+        dtype: DT_INVALID
+        shape: unknown_rank
+        name: NoOp
+  Method name is: 
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['box_targets_2'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 208, 336, 12)
+        name: serving_default_box_targets_2:0
+    inputs['box_targets_3'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 104, 168, 12)
+        name: serving_default_box_targets_3:0
+    inputs['box_targets_4'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 52, 84, 12)
+        name: serving_default_box_targets_4:0
+    inputs['box_targets_5'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 26, 42, 12)
+        name: serving_default_box_targets_5:0
+    inputs['box_targets_6'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 13, 21, 12)
+        name: serving_default_box_targets_6:0
+    inputs['cropped_gt_masks'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 100, 116, 116)
+        name: serving_default_cropped_gt_masks:0
+    inputs['gt_boxes'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 100, 4)
+        name: serving_default_gt_boxes:0
+    inputs['gt_classes'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 100, 1)
+        name: serving_default_gt_classes:0
+    inputs['image_info'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 5)
+        name: serving_default_image_info:0
+    inputs['images'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 832, 1344, 3)
+        name: serving_default_images:0
+    inputs['score_targets_2'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1, 208, 336, 3)
+        name: serving_default_score_targets_2:0
+    inputs['score_targets_3'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1, 104, 168, 3)
+        name: serving_default_score_targets_3:0
+    inputs['score_targets_4'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1, 52, 84, 3)
+        name: serving_default_score_targets_4:0
+    inputs['score_targets_5'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1, 26, 42, 3)
+        name: serving_default_score_targets_5:0
+    inputs['score_targets_6'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1, 13, 21, 3)
+        name: serving_default_score_targets_6:0
+    inputs['source_ids'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 1)
+        name: serving_default_source_ids:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['detection_boxes'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 100, 4)
+        name: StatefulPartitionedCall:0
+    outputs['detection_classes'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 100)
+        name: StatefulPartitionedCall:1
+    outputs['detection_masks'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 100, 28, 28)
+        name: StatefulPartitionedCall:2
+    outputs['detection_scores'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 100)
+        name: StatefulPartitionedCall:3
+    outputs['image_info'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 5)
+        name: StatefulPartitionedCall:4
+    outputs['num_detections'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1)
+        name: StatefulPartitionedCall:5
+    outputs['source_ids'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 1)
+        name: StatefulPartitionedCall:6
+  Method name is: tensorflow/serving/predict
+
+Defined Functions:
+  Function Name: '__call__'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='box_targets_4'), 'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='box_targets_3'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='images'), 'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='box_targets_5'), 'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='score_targets_2'), 'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='score_targets_6'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='image_info'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='score_targets_4'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='score_targets_3'), 'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='box_targets_2'), 'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='gt_boxes'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='score_targets_5'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='gt_classes'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='box_targets_6'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='cropped_gt_masks'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='source_ids'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='inputs/score_targets_2'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='inputs/score_targets_4'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='inputs/source_ids'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='inputs/score_targets_5'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='inputs/score_targets_3'), 'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='inputs/box_targets_5'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='inputs/image_info'), 'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='inputs/score_targets_6'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='inputs/cropped_gt_masks'), 'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='inputs/gt_boxes'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='inputs/box_targets_6'), 'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='inputs/box_targets_2'), 'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='inputs/box_targets_3'), 'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='inputs/box_targets_4'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='inputs/gt_classes'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='inputs/images'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='box_targets_2'), 'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='score_targets_6'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='source_ids'), 'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='box_targets_3'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='gt_classes'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='score_targets_5'), 'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='box_targets_4'), 'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='box_targets_5'), 'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='score_targets_2'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='box_targets_6'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='score_targets_4'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='image_info'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='cropped_gt_masks'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='images'), 'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='gt_boxes'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='score_targets_3'), }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='inputs/score_targets_6'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='inputs/image_info'), 'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='inputs/box_targets_4'), 'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='inputs/gt_boxes'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='inputs/score_targets_5'), 'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='inputs/box_targets_3'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='inputs/score_targets_3'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='inputs/score_targets_4'), 'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='inputs/box_targets_5'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='inputs/cropped_gt_masks'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='inputs/images'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='inputs/box_targets_6'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='inputs/source_ids'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='inputs/gt_classes'), 'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='inputs/score_targets_2'), 'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='inputs/box_targets_2'), }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+
+  Function Name: '_default_save_signature'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='gt_boxes'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='score_targets_5'), 'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='box_targets_5'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='box_targets_6'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='source_ids'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='images'), 'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='score_targets_2'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='score_targets_4'), 'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='box_targets_2'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='cropped_gt_masks'), 'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='score_targets_6'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='image_info'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='score_targets_3'), 'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='box_targets_3'), 'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='box_targets_4'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='gt_classes'), }
+
+  Function Name: 'call_and_return_all_conditional_losses'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='inputs/box_targets_5'), 'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='inputs/box_targets_2'), 'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='inputs/score_targets_6'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='inputs/score_targets_3'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='inputs/score_targets_4'), 'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='inputs/box_targets_3'), 'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='inputs/gt_boxes'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='inputs/source_ids'), 'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='inputs/score_targets_2'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='inputs/image_info'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='inputs/cropped_gt_masks'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='inputs/gt_classes'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='inputs/images'), 'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='inputs/box_targets_4'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='inputs/box_targets_6'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='inputs/score_targets_5'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='box_targets_4'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='box_targets_6'), 'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='box_targets_5'), 'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='gt_boxes'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='images'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='score_targets_3'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='score_targets_4'), 'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='score_targets_2'), 'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='box_targets_3'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='image_info'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='cropped_gt_masks'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='score_targets_5'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='gt_classes'), 'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='score_targets_6'), 'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='box_targets_2'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='source_ids'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='inputs/score_targets_6'), 'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='inputs/box_targets_2'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='inputs/box_targets_6'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='inputs/gt_classes'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='inputs/source_ids'), 'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='inputs/box_targets_4'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='inputs/score_targets_4'), 'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='inputs/gt_boxes'), 'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='inputs/box_targets_5'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='inputs/cropped_gt_masks'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='inputs/image_info'), 'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='inputs/box_targets_3'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='inputs/score_targets_3'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='inputs/score_targets_5'), 'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='inputs/score_targets_2'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='inputs/images'), }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'box_targets_3': TensorSpec(shape=(None, 104, 168, 12), dtype=tf.float32, name='box_targets_3'), 'box_targets_6': TensorSpec(shape=(None, 13, 21, 12), dtype=tf.float32, name='box_targets_6'), 'score_targets_6': TensorSpec(shape=(None, 13, 21, 3), dtype=tf.int32, name='score_targets_6'), 'score_targets_2': TensorSpec(shape=(None, 208, 336, 3), dtype=tf.int32, name='score_targets_2'), 'box_targets_4': TensorSpec(shape=(None, 52, 84, 12), dtype=tf.float32, name='box_targets_4'), 'box_targets_2': TensorSpec(shape=(None, 208, 336, 12), dtype=tf.float32, name='box_targets_2'), 'source_ids': TensorSpec(shape=(None, 1), dtype=tf.int64, name='source_ids'), 'score_targets_5': TensorSpec(shape=(None, 26, 42, 3), dtype=tf.int32, name='score_targets_5'), 'box_targets_5': TensorSpec(shape=(None, 26, 42, 12), dtype=tf.float32, name='box_targets_5'), 'score_targets_4': TensorSpec(shape=(None, 52, 84, 3), dtype=tf.int32, name='score_targets_4'), 'score_targets_3': TensorSpec(shape=(None, 104, 168, 3), dtype=tf.int32, name='score_targets_3'), 'gt_boxes': TensorSpec(shape=(None, 100, 4), dtype=tf.float32, name='gt_boxes'), 'gt_classes': TensorSpec(shape=(None, 100, 1), dtype=tf.float32, name='gt_classes'), 'image_info': TensorSpec(shape=(None, 5), dtype=tf.float32, name='image_info'), 'images': TensorSpec(shape=(None, 832, 1344, 3), dtype=tf.float32, name='images'), 'cropped_gt_masks': TensorSpec(shape=(None, 100, 116, 116), dtype=tf.float32, name='cropped_gt_masks'), }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None

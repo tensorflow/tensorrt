@@ -1,4 +1,4 @@
-#!# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -18,7 +18,7 @@
 import os
 import sys
 
-import numpy as np
+from functools import partial
 
 import tensorflow as tf
 
@@ -29,7 +29,8 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
+basedir = os.path.dirname(parentdir)
+sys.path.insert(0, basedir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
@@ -37,61 +38,26 @@ from benchmark_runner import BaseBenchmarkRunner
 
 class CommandLineAPI(BaseCommandLineAPI):
 
-    ALLOWED_VOCAB_SIZES = [
-        30522,  # BERT Uncased
-        28996,  # BERT Cased
-        50265,  # BART
-    ]
-
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 
-        self._parser.add_argument(
-            "--sequence_length",
-            type=int,
-            default=128,
-            help="Input data sequence length."
+        self._add_bool_argument(
+            name="amp",
+            default=False,
+            required=False,
+            help="Whether the model was trained using mixed-precision"
         )
 
         self._parser.add_argument(
-            "--vocab_size",
-            type=int,
-            required=True,
-            choices=self.ALLOWED_VOCAB_SIZES,
-            help="Size of the vocabulory used for training. Refer to "
-            "huggingface documentation."
+            "--test_filename",
+            type=str,
+            default="test.tfrecord",
+            help="Name of the output tensor, see `analysis.txt`"
         )
-
-        # self._parser.add_argument(
-        #     "--validate_output",
-        #     action="store_true",
-        #     help="Validates that the model returns the correct value. This "
-        #     "only works with batch_size =32."
-        # )
-
-    def _validate_args(self, args):
-        super(CommandLineAPI, self)._validate_args(args)
-
-        # if args.validate_output and args.batch_size != 32:
-        #     raise ValueError("Output validation only supports batch size 32.")
-
-        # TODO: Remove when proper dataloading is implemented
-        if args.num_iterations is None:
-            raise ValueError(
-                "This benchmark does not currently support "
-                "--num_iterations=None"
-            )
-
-    def _post_process_args(self, args):
-        args = super(CommandLineAPI, self)._post_process_args(args)
-
-        return args
-
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
-
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
@@ -110,24 +76,46 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        if not self._args.use_synthetic_data:
-            raise NotImplementedError()
+        feature_spec = {
+            "uid": tf.io.FixedLenFeature([], tf.int64),
+            "item_id": tf.io.FixedLenFeature([], tf.int64),
+            "cate_id": tf.io.FixedLenFeature([], tf.int64),
+            "long_hist_item": tf.io.FixedLenFeature([90], tf.int64),
+            "long_hist_cate": tf.io.FixedLenFeature([90], tf.int64),
+            "short_hist_item": tf.io.FixedLenFeature([10], tf.int64),
+            "short_hist_cate": tf.io.FixedLenFeature([10], tf.int64),
+            "short_neg_hist_item": tf.io.FixedLenFeature([10], tf.int64),
+            "short_neg_hist_cate": tf.io.FixedLenFeature([10], tf.int64),
+            "long_sequence_mask": tf.io.FixedLenFeature([90], tf.float32),
+            "short_sequence_mask": tf.io.FixedLenFeature([10], tf.float32),
+            "label": tf.io.FixedLenFeature([], tf.int64),
+        }
 
-        tf.random.set_seed(10)
+        def _remap_values(sample, out_type):
+            sample["short_sequence_mask"] = tf.cast(
+                sample["short_sequence_mask"], dtype=out_type
+            )
+            label = sample.pop("label")
+            return sample, label
 
-        input_data = tf.random.uniform(
-            shape=(1, self._args.sequence_length),
-            maxval=self._args.vocab_size,
-            dtype=tf.int32
+        dataset = tf.data.TFRecordDataset([
+            os.path.join(self._args.data_dir, self._args.test_filename)
+        ])
+
+        dataset = dataset.batch(self._args.batch_size, drop_remainder=False)
+
+        dataset = dataset.map(
+            map_func=partial(tf.io.parse_example, features=feature_spec),
+            num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
 
-        dataset = tf.data.Dataset.from_tensor_slices(input_data)
-        dataset = dataset.repeat()
-        dataset = dataset.batch(self._args.batch_size)
-        dataset = dataset.take(count=1)  # loop over 1 batch
-        dataset = dataset.cache()
-        dataset = dataset.repeat()
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        out_type = tf.float16 if self._args.amp else tf.float32
+        dataset = dataset.map(
+            map_func=partial(_remap_values, out_type=out_type),
+            num_parallel_calls=tf.data.experimental.AUTOTUNE
+        )
+
+        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
         return dataset, None
 
@@ -140,8 +128,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        x = data_batch
-        return x, None
+        x, y = data_batch
+        return x, y
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
@@ -153,6 +141,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         return predictions.numpy(), expected.numpy()
 
+
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
 
@@ -161,8 +150,11 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
+        auc = tf.keras.metrics.AUC(from_logits=True, num_thresholds=8000)
 
-        return None, "Top-1 Accuracy %"
+        auc_score = auc(expected["data"], predictions["data"][:, 0]).numpy()
+
+        return auc_score * 100, "ROC AUC"
 
 
 if __name__ == '__main__':

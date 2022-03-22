@@ -134,10 +134,25 @@ class BaseCommandLineAPI(object):
         )
 
         self._add_bool_argument(
+            name="no_tf32",
+            default=False,
+            required=False,
+            help="If set to True, the benchmark will force not using TF32."
+        )
+
+        self._add_bool_argument(
             name="use_xla",
             default=False,
             required=False,
             help="If set to True, the benchmark will use XLA JIT Compilation."
+        )
+
+        self._add_bool_argument(
+            name="use_xla_auto_jit",
+            default=False,
+            required=False,
+            help="If set to True, the benchmark will use XLA JIT Auto "
+            "Clustering Compilation."
         )
 
         self._add_bool_argument(
@@ -221,6 +236,14 @@ class BaseCommandLineAPI(object):
         )
 
         # =========================== DEBUG Flags ========================== #
+
+        self._parser.add_argument(
+            "--export_metrics_json_path",
+            type=str,
+            default=None,
+            help="If set, the script will export runtime metrics and arguments "
+            "to the set location in JSON format for further processing."
+        )
 
         self._add_bool_argument(
             name="debug",

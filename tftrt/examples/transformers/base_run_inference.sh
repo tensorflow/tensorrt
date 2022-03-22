@@ -7,15 +7,11 @@ MODEL_NAME=""
 MODEL_DIR=""
 
 # Default Argument Values
-NVIDIA_TF32_OVERRIDE=""
-
-# TODO: remove when real dataloader is implemented
-DATA_DIR="/tmp"
-
 BYPASS_ARGUMENTS=""
-TF_AUTO_JIT_XLA_FLAG=""
 BATCH_SIZE=32
 SEQ_LEN=128
+# TODO: remove when real dataloader is implemented
+DATA_DIR="/tmp"
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -24,10 +20,6 @@ do
         --model_name=*)
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
-        ;;
-        --no_tf32)
-        NVIDIA_TF32_OVERRIDE="NVIDIA_TF32_OVERRIDE=0"
-        shift # Remove --no_tf32 from processing
         ;;
         --batch_size=*)
         BATCH_SIZE="${arg#*=}"
@@ -45,10 +37,6 @@ do
         --input_saved_model_dir=*)
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
-        ;;
-        --use_xla_auto_jit)
-        TF_AUTO_JIT_XLA_FLAG="TF_XLA_FLAGS=\"--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit\""
-        shift # Remove --use_xla_auto_jit from processing
         ;;
         --vocab_size=*)
         shift # Remove --vocab_size= from processing
@@ -95,8 +83,6 @@ echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
-echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
-echo ""
 # Custom Transormer Task Flags
 echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo "[*] SEQ_LEN: ${SEQ_LEN}"
@@ -104,7 +90,6 @@ echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
 echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
-echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
@@ -148,10 +133,7 @@ BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" >/dev/null 2>&1 && pwd )"
 cd ${BENCH_DIR}
 
 # Execute the example
-
-PREPEND_COMMAND="${TF_AUTO_JIT_XLA_FLAG} ${NVIDIA_TF32_OVERRIDE}"
-
-COMMAND="${PREPEND_COMMAND} python transformers.py \
+COMMAND="python transformers.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \

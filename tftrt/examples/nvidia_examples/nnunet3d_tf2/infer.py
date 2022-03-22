@@ -1,4 +1,4 @@
-#!# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -13,12 +13,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 # =============================================================================
 
 import os
 import sys
 
+from glob import glob
+
 import numpy as np
+
+import nvidia.dali.fn as fn
+import nvidia.dali.ops as ops
+import nvidia.dali.plugin.tf as dali_tf
+from nvidia.dali.pipeline import Pipeline
 
 import tensorflow as tf
 
@@ -29,63 +37,18 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
+basedir = os.path.dirname(parentdir)
+sys.path.insert(0, basedir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
+from benchmark_utils import patch_dali_dataset
 
 
 class CommandLineAPI(BaseCommandLineAPI):
 
-    ALLOWED_VOCAB_SIZES = [
-        30522,  # BERT Uncased
-        28996,  # BERT Cased
-        50265,  # BART
-    ]
-
     def __init__(self):
         super(CommandLineAPI, self).__init__()
-
-        self._parser.add_argument(
-            "--sequence_length",
-            type=int,
-            default=128,
-            help="Input data sequence length."
-        )
-
-        self._parser.add_argument(
-            "--vocab_size",
-            type=int,
-            required=True,
-            choices=self.ALLOWED_VOCAB_SIZES,
-            help="Size of the vocabulory used for training. Refer to "
-            "huggingface documentation."
-        )
-
-        # self._parser.add_argument(
-        #     "--validate_output",
-        #     action="store_true",
-        #     help="Validates that the model returns the correct value. This "
-        #     "only works with batch_size =32."
-        # )
-
-    def _validate_args(self, args):
-        super(CommandLineAPI, self)._validate_args(args)
-
-        # if args.validate_output and args.batch_size != 32:
-        #     raise ValueError("Output validation only supports batch size 32.")
-
-        # TODO: Remove when proper dataloading is implemented
-        if args.num_iterations is None:
-            raise ValueError(
-                "This benchmark does not currently support "
-                "--num_iterations=None"
-            )
-
-    def _post_process_args(self, args):
-        args = super(CommandLineAPI, self)._post_process_args(args)
-
-        return args
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
@@ -110,24 +73,68 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        if not self._args.use_synthetic_data:
-            raise NotImplementedError()
+        def get_files(data_dir, pattern):
+            data = sorted(glob(os.path.join(data_dir, pattern)))
 
-        tf.random.set_seed(10)
+            assert data, f"No data found in {os.path.join(data_dir, pattern)}"
 
-        input_data = tf.random.uniform(
-            shape=(1, self._args.sequence_length),
-            maxval=self._args.vocab_size,
-            dtype=tf.int32
+            for file in data:
+                assert os.path.isfile(file), f"Not found: `{file}`"
+
+            return data
+
+        def get_reader(files):
+            return ops.readers.Numpy(
+                seed=0,
+                files=files,
+                device="cpu",
+                read_ahead=True,
+                shard_id=0,
+                pad_last_batch=True,
+                num_shards=1,
+                dont_use_mmap=True,
+                shuffle_after_epoch=False,
+            )
+
+        class EvalPipeline(Pipeline):
+
+            def __init__(self, imgs, lbls, batch_size):
+                super(EvalPipeline, self).__init__(
+                    batch_size=batch_size,
+                    num_threads=8,
+                    device_id=0,
+                    seed=0
+                )
+                self.input_x = get_reader(imgs)
+                self.input_y = get_reader(lbls)
+
+            def define_graph(self):
+                img, lbl = (
+                    self.input_x(name="ReaderX").gpu(),
+                    self.input_y(name="ReaderY").gpu()
+                )
+                img, lbl = (
+                    fn.reshape(img, layout="DHWC"),
+                    fn.reshape(lbl, layout="DHWC")
+                )
+                return img, lbl
+
+        x_files = get_files(self._args.data_dir, "*_x.npy")
+        y_files = get_files(self._args.data_dir, "*_y.npy")
+
+        pipeline = EvalPipeline(x_files, y_files, self._args.batch_size)
+
+        dataset = dali_tf.DALIDataset(
+            pipeline,
+            batch_size=self._args.batch_size,
+            device_id=0,
+            output_dtypes=(tf.float32, tf.uint8)
         )
 
-        dataset = tf.data.Dataset.from_tensor_slices(input_data)
-        dataset = dataset.repeat()
-        dataset = dataset.batch(self._args.batch_size)
-        dataset = dataset.take(count=1)  # loop over 1 batch
-        dataset = dataset.cache()
-        dataset = dataset.repeat()
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        dataset = patch_dali_dataset(dataset)
+
+        SAMPLES_IN_DATASET = 484
+        dataset = dataset.take(int(SAMPLES_IN_DATASET / self._args.batch_size))
 
         return dataset, None
 
@@ -140,8 +147,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        x = data_batch
-        return x, None
+        x, y = data_batch
+        return x, y
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
@@ -151,7 +158,11 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        return predictions.numpy(), expected.numpy()
+        predictions = np.argmax(predictions.numpy(), axis=-1)
+        expected = np.squeeze(expected.numpy(), axis=-1)
+
+        return predictions, expected
+
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
@@ -162,7 +173,23 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        return None, "Top-1 Accuracy %"
+        def get_stats(preds, target, class_idx):
+            tp = np.logical_and(preds == class_idx, target == class_idx).sum()
+            fn = np.logical_and(preds != class_idx, target == class_idx).sum()
+            fp = np.logical_and(preds == class_idx, target != class_idx).sum()
+            return tp, fn, fp
+
+        dice = []
+
+        for y_pred, y_true in zip(predictions["data"], expected["data"]):
+            class_dice = []
+            for i in range(1, 5):
+                tp, fn, fp = get_stats(y_pred, y_true, i)
+                score = 1 if tp == 0 else 2 * tp / (2*tp + fn + fp)
+                class_dice.append(score)
+            dice.append(np.mean(class_dice))
+
+        return np.mean(dice) * 100, "Dice score"
 
 
 if __name__ == '__main__':

@@ -1,0 +1,160 @@
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['__saved_model_init_op']:
+  The given SavedModel SignatureDef contains the following input(s):
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['__saved_model_init_op'] tensor_info:
+        dtype: DT_INVALID
+        shape: unknown_rank
+        name: NoOp
+  Method name is: 
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['attention_mask'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 384)
+        name: serving_default_attention_mask:0
+    inputs['cls_index'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1)
+        name: serving_default_cls_index:0
+    inputs['input_ids'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 384)
+        name: serving_default_input_ids:0
+    inputs['p_mask'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 384)
+        name: serving_default_p_mask:0
+    inputs['token_type_ids'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 384)
+        name: serving_default_token_type_ids:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['tf_electra_for_question_answering'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 4)
+        name: StatefulPartitionedCall:0
+    outputs['tf_electra_for_question_answering_1'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1, 4)
+        name: StatefulPartitionedCall:1
+    outputs['tf_electra_for_question_answering_2'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 16)
+        name: StatefulPartitionedCall:2
+    outputs['tf_electra_for_question_answering_3'] tensor_info:
+        dtype: DT_INT32
+        shape: (-1, 16)
+        name: StatefulPartitionedCall:3
+    outputs['tf_electra_for_question_answering_4'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1)
+        name: StatefulPartitionedCall:4
+    outputs['tf_electra_for_question_answering_5'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 384, 768)
+        name: StatefulPartitionedCall:5
+  Method name is: tensorflow/serving/predict
+
+Defined Functions:
+  Function Name: '__call__'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/0'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/1'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/2'), TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/3'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='inputs/4'), ]
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='input_ids'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='attention_mask'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='token_type_ids'), TensorSpec(shape=(None,), dtype=tf.int64, name='cls_index'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='p_mask'), ]
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='input_ids'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='attention_mask'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='token_type_ids'), TensorSpec(shape=(None,), dtype=tf.int64, name='cls_index'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='p_mask'), ]
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/0'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/1'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/2'), TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/3'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='inputs/4'), ]
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+
+  Function Name: '_default_save_signature'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='input_ids'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='attention_mask'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='token_type_ids'), TensorSpec(shape=(None,), dtype=tf.int64, name='cls_index'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='p_mask'), ]
+
+  Function Name: 'call_and_return_all_conditional_losses'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/0'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/1'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/2'), TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/3'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='inputs/4'), ]
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/0'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/1'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='inputs/2'), TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/3'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='inputs/4'), ]
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='input_ids'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='attention_mask'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='token_type_ids'), TensorSpec(shape=(None,), dtype=tf.int64, name='cls_index'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='p_mask'), ]
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          DType: list
+          Value: [TensorSpec(shape=(None, 384), dtype=tf.int64, name='input_ids'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='attention_mask'), TensorSpec(shape=(None, 384), dtype=tf.int64, name='token_type_ids'), TensorSpec(shape=(None,), dtype=tf.int64, name='cls_index'), TensorSpec(shape=(None, 384), dtype=tf.float32, name='p_mask'), ]
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None

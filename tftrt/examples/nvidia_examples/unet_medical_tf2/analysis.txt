@@ -1,0 +1,91 @@
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['__saved_model_init_op']:
+  The given SavedModel SignatureDef contains the following input(s):
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['__saved_model_init_op'] tensor_info:
+        dtype: DT_INVALID
+        shape: unknown_rank
+        name: NoOp
+  Method name is: 
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['input_1'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 572, 572, 1)
+        name: serving_default_input_1:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['output_1'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 388, 388, 2)
+        name: StatefulPartitionedCall:0
+  Method name is: tensorflow/serving/predict
+
+Defined Functions:
+  Function Name: '__call__'
+    Option #1
+      Callable with:
+        Argument #1
+          x: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='x')
+        Argument #2
+          DType: bool
+          Value: True
+    Option #2
+      Callable with:
+        Argument #1
+          input_1: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='input_1')
+        Argument #2
+          DType: bool
+          Value: True
+    Option #3
+      Callable with:
+        Argument #1
+          input_1: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='input_1')
+        Argument #2
+          DType: bool
+          Value: False
+    Option #4
+      Callable with:
+        Argument #1
+          x: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='x')
+        Argument #2
+          DType: bool
+          Value: False
+
+  Function Name: '_default_save_signature'
+    Option #1
+      Callable with:
+        Argument #1
+          input_1: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='input_1')
+
+  Function Name: 'call_and_return_all_conditional_losses'
+    Option #1
+      Callable with:
+        Argument #1
+          x: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='x')
+        Argument #2
+          DType: bool
+          Value: False
+    Option #2
+      Callable with:
+        Argument #1
+          x: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='x')
+        Argument #2
+          DType: bool
+          Value: True
+    Option #3
+      Callable with:
+        Argument #1
+          input_1: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='input_1')
+        Argument #2
+          DType: bool
+          Value: True
+    Option #4
+      Callable with:
+        Argument #1
+          input_1: TensorSpec(shape=(None, 572, 572, 1), dtype=tf.float32, name='input_1')
+        Argument #2
+          DType: bool
+          Value: False

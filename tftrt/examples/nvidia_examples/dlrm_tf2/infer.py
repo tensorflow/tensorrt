@@ -1,4 +1,4 @@
-#!# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -18,9 +18,9 @@
 import os
 import sys
 
-import numpy as np
-
 import tensorflow as tf
+
+from datasets import TfRawBinaryDataset
 
 # Allow import of top level python files
 import inspect
@@ -29,69 +29,15 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
+basedir = os.path.dirname(parentdir)
+sys.path.insert(0, basedir)
 
-from benchmark_args import BaseCommandLineAPI
+from benchmark_args import BaseCommandLineAPI as CommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
-
-
-class CommandLineAPI(BaseCommandLineAPI):
-
-    ALLOWED_VOCAB_SIZES = [
-        30522,  # BERT Uncased
-        28996,  # BERT Cased
-        50265,  # BART
-    ]
-
-    def __init__(self):
-        super(CommandLineAPI, self).__init__()
-
-        self._parser.add_argument(
-            "--sequence_length",
-            type=int,
-            default=128,
-            help="Input data sequence length."
-        )
-
-        self._parser.add_argument(
-            "--vocab_size",
-            type=int,
-            required=True,
-            choices=self.ALLOWED_VOCAB_SIZES,
-            help="Size of the vocabulory used for training. Refer to "
-            "huggingface documentation."
-        )
-
-        # self._parser.add_argument(
-        #     "--validate_output",
-        #     action="store_true",
-        #     help="Validates that the model returns the correct value. This "
-        #     "only works with batch_size =32."
-        # )
-
-    def _validate_args(self, args):
-        super(CommandLineAPI, self)._validate_args(args)
-
-        # if args.validate_output and args.batch_size != 32:
-        #     raise ValueError("Output validation only supports batch size 32.")
-
-        # TODO: Remove when proper dataloading is implemented
-        if args.num_iterations is None:
-            raise ValueError(
-                "This benchmark does not currently support "
-                "--num_iterations=None"
-            )
-
-    def _post_process_args(self, args):
-        args = super(CommandLineAPI, self)._post_process_args(args)
-
-        return args
-
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
-
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
@@ -110,24 +56,15 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        if not self._args.use_synthetic_data:
-            raise NotImplementedError()
-
-        tf.random.set_seed(10)
-
-        input_data = tf.random.uniform(
-            shape=(1, self._args.sequence_length),
-            maxval=self._args.vocab_size,
-            dtype=tf.int32
-        )
-
-        dataset = tf.data.Dataset.from_tensor_slices(input_data)
-        dataset = dataset.repeat()
-        dataset = dataset.batch(self._args.batch_size)
-        dataset = dataset.take(count=1)  # loop over 1 batch
-        dataset = dataset.cache()
-        dataset = dataset.repeat()
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        dataset = TfRawBinaryDataset(
+            data_path=os.path.join(self._args.data_dir, "test"),
+            batch_size=self._args.batch_size,
+            numerical_features=13,
+            categorical_features=[
+                19, 0, 21, 9, 20, 10, 22, 11, 1, 4, 2, 23, 14, 3, 6, 13, 7, 17,
+                15, 24, 8, 25, 18, 12, 5, 16
+            ]
+        ).op()
 
         return dataset, None
 
@@ -140,8 +77,14 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        x = data_batch
-        return x, None
+        (numerical, categorical), y = data_batch
+
+        x = {
+            "numerical_features": tf.cast(numerical, tf.float32),
+            "categorical_features": categorical
+        }
+
+        return x, y
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
@@ -162,7 +105,15 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        return None, "Top-1 Accuracy %"
+        auc_metric = tf.keras.metrics.AUC(
+            num_thresholds=8000,
+            curve='ROC',
+            summation_method='interpolation',
+            from_logits=True
+        )
+
+        auc = auc_metric(expected["data"], predictions["data"]).numpy()
+        return auc * 100, "ROC AUC"
 
 
 if __name__ == '__main__':

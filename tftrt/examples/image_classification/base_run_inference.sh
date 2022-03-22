@@ -8,10 +8,7 @@ DATA_DIR=""
 MODEL_DIR=""
 
 # Default Argument Values
-NVIDIA_TF32_OVERRIDE=""
-
 BYPASS_ARGUMENTS=""
-TF_AUTO_JIT_XLA_FLAG=""
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -20,10 +17,6 @@ do
         --model_name=*)
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
-        ;;
-        --no_tf32)
-        NVIDIA_TF32_OVERRIDE="NVIDIA_TF32_OVERRIDE=0"
-        shift # Remove --no_tf32 from processing
         ;;
         --data_dir=*)
         DATA_DIR="${arg#*=}"
@@ -38,10 +31,6 @@ do
         ;;
         --output_tensors_name=*)
         shift # Remove --output_tensors_name= from processing
-        ;;
-        --use_xla_auto_jit)
-        TF_AUTO_JIT_XLA_FLAG="TF_XLA_FLAGS=\"--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit\""
-        shift # Remove --use_xla_auto_jit from processing
         ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
@@ -105,8 +94,6 @@ echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
-echo "[*] NVIDIA_TF32_OVERRIDE: ${NVIDIA_TF32_OVERRIDE}"
-echo ""
 # Custom Image Classification Task Flags
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
 echo "[*] PREPROCESS_METHOD: ${PREPROCESS_METHOD}"
@@ -114,7 +101,6 @@ echo "[*] NUM_CLASSES: ${NUM_CLASSES}"
 echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
-echo "[*] TF_AUTO_JIT_XLA_FLAG: ${TF_AUTO_JIT_XLA_FLAG}"
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 echo -e "********************************************************************\n"
 
@@ -157,10 +143,7 @@ BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd ${BENCH_DIR}
 
 # Execute the example
-
-PREPEND_COMMAND="${TF_AUTO_JIT_XLA_FLAG} ${NVIDIA_TF32_OVERRIDE}"
-
-COMMAND="${PREPEND_COMMAND} python image_classification.py \
+COMMAND="python image_classification.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \

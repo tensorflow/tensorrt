@@ -1,0 +1,168 @@
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['__saved_model_init_op']:
+  The given SavedModel SignatureDef contains the following input(s):
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['__saved_model_init_op'] tensor_info:
+        dtype: DT_INVALID
+        shape: unknown_rank
+        name: NoOp
+  Method name is: 
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['long_sequence_features_cat_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 90)
+        name: serving_default_long_sequence_features_cat_id:0
+    inputs['long_sequence_features_item_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 90)
+        name: serving_default_long_sequence_features_item_id:0
+    inputs['long_sequence_mask'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 90)
+        name: serving_default_long_sequence_mask:0
+    inputs['short_neg_sequence_features_cat_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 10)
+        name: serving_default_short_neg_sequence_features_cat_id:0
+    inputs['short_neg_sequence_features_item_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 10)
+        name: serving_default_short_neg_sequence_features_item_id:0
+    inputs['short_sequence_features_cat_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 10)
+        name: serving_default_short_sequence_features_cat_id:0
+    inputs['short_sequence_features_item_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1, 10)
+        name: serving_default_short_sequence_features_item_id:0
+    inputs['short_sequence_mask'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 10)
+        name: serving_default_short_sequence_mask:0
+    inputs['target_item_features_cat_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1)
+        name: serving_default_target_item_features_cat_id:0
+    inputs['target_item_features_item_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1)
+        name: serving_default_target_item_features_item_id:0
+    inputs['user_features_user_id'] tensor_info:
+        dtype: DT_INT64
+        shape: (-1)
+        name: serving_default_user_features_user_id:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['sim_model'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 2)
+        name: StatefulPartitionedCall:0
+    outputs['sim_model_1'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 2)
+        name: StatefulPartitionedCall:1
+  Method name is: tensorflow/serving/predict
+
+Defined Functions:
+  Function Name: '__call__'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='inputs/short_sequence_mask'), 'long_sequence_features': {'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='inputs/long_sequence_features/item_id'), 'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='inputs/long_sequence_features/cat_id')}, 'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='inputs/long_sequence_mask'), 'short_neg_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_neg_sequence_features/cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_neg_sequence_features/item_id')}, 'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/user_features/user_id')}, 'target_item_features': {'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/target_item_features/item_id'), 'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/target_item_features/cat_id')}, 'short_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_sequence_features/cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_sequence_features/item_id')}, }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'long_sequence_features': {'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_item_id')}, 'target_item_features': {'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_cat_id'), 'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_item_id')}, 'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='short_sequence_mask'), 'short_sequence_features': {'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_item_id'), 'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_cat_id')}, 'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='long_sequence_mask'), 'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='user_features_user_id')}, 'short_neg_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_item_id')}, }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='user_features_user_id')}, 'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='long_sequence_mask'), 'short_neg_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_item_id')}, 'target_item_features': {'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_item_id'), 'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_cat_id')}, 'short_sequence_features': {'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_item_id'), 'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_cat_id')}, 'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='short_sequence_mask'), 'long_sequence_features': {'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_item_id')}, }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='inputs/long_sequence_mask'), 'short_neg_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_neg_sequence_features/cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_neg_sequence_features/item_id')}, 'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='inputs/short_sequence_mask'), 'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/user_features/user_id')}, 'long_sequence_features': {'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='inputs/long_sequence_features/cat_id'), 'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='inputs/long_sequence_features/item_id')}, 'target_item_features': {'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/target_item_features/item_id'), 'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/target_item_features/cat_id')}, 'short_sequence_features': {'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_sequence_features/item_id'), 'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_sequence_features/cat_id')}, }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+
+  Function Name: '_default_save_signature'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='short_sequence_mask'), 'long_sequence_features': {'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_item_id')}, 'target_item_features': {'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_item_id'), 'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_cat_id')}, 'short_sequence_features': {'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_item_id'), 'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_cat_id')}, 'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='user_features_user_id')}, 'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='long_sequence_mask'), 'short_neg_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_item_id')}, }
+
+  Function Name: 'call_and_return_all_conditional_losses'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'short_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_item_id')}, 'target_item_features': {'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_cat_id'), 'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_item_id')}, 'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='short_sequence_mask'), 'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='long_sequence_mask'), 'long_sequence_features': {'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_item_id'), 'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_cat_id')}, 'short_neg_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_item_id')}, 'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='user_features_user_id')}, }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'target_item_features': {'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_cat_id'), 'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='target_item_features_item_id')}, 'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='user_features_user_id')}, 'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='short_sequence_mask'), 'short_neg_sequence_features': {'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_item_id'), 'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_neg_sequence_features_cat_id')}, 'short_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='short_sequence_features_item_id')}, 'long_sequence_features': {'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_item_id'), 'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='long_sequence_features_cat_id')}, 'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='long_sequence_mask'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'long_sequence_features': {'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='inputs/long_sequence_features/cat_id'), 'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='inputs/long_sequence_features/item_id')}, 'target_item_features': {'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/target_item_features/item_id'), 'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/target_item_features/cat_id')}, 'short_neg_sequence_features': {'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_neg_sequence_features/cat_id'), 'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_neg_sequence_features/item_id')}, 'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='inputs/long_sequence_mask'), 'short_sequence_features': {'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_sequence_features/item_id'), 'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_sequence_features/cat_id')}, 'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='inputs/short_sequence_mask'), 'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/user_features/user_id')}, }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'user_features': {'user_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/user_features/user_id')}, 'long_sequence_mask': TensorSpec(shape=(None, 90), dtype=tf.float32, name='inputs/long_sequence_mask'), 'short_sequence_features': {'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_sequence_features/item_id'), 'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_sequence_features/cat_id')}, 'short_sequence_mask': TensorSpec(shape=(None, 10), dtype=tf.float32, name='inputs/short_sequence_mask'), 'long_sequence_features': {'cat_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='inputs/long_sequence_features/cat_id'), 'item_id': TensorSpec(shape=(None, 90), dtype=tf.int64, name='inputs/long_sequence_features/item_id')}, 'short_neg_sequence_features': {'item_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_neg_sequence_features/item_id'), 'cat_id': TensorSpec(shape=(None, 10), dtype=tf.int64, name='inputs/short_neg_sequence_features/cat_id')}, 'target_item_features': {'cat_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/target_item_features/cat_id'), 'item_id': TensorSpec(shape=(None,), dtype=tf.int64, name='inputs/target_item_features/item_id')}, }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
