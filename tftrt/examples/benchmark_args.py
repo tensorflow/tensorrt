@@ -237,6 +237,14 @@ class BaseCommandLineAPI(object):
 
         # =========================== DEBUG Flags ========================== #
 
+        self._parser.add_argument(
+            "--export_metrics_json_path",
+            type=str,
+            default=None,
+            help="If set, the script will export runtime metrics and arguments "
+            "to the set location in JSON format for further processing."
+        )
+
         self._add_bool_argument(
             name="debug",
             default=False,
