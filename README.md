@@ -38,6 +38,7 @@ If you want to use TF-TRT on NVIDIA Jetson platform, you can find
 the download links for the relevant Tensorflow pip packages here:
 https://docs.nvidia.com/deeplearning/dgx/index.html#installing-frameworks-for-jetson
 
+You can also use [NVIDIA's Tensorflow container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow)(tested and published monthly) packaged with a suite of NVIDIA's Deep Learning Software. 
 
 ## Installing TensorRT
 
