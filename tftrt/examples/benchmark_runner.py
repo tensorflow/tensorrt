@@ -78,7 +78,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         self._config_gpu_memory(self._args.gpu_mem_cap)
 
     def _config_gpu_memory(self, gpu_mem_cap):
-        gpus = tf.config.experimental.list_physical_devices('GPU')
+        try:
+            gpus = tf.config.list_physical_devices('GPU')
+        except AttributeError:
+            gpus = tf.config.experimental.list_physical_devices('GPU')
 
         if not gpus:
             raise RuntimeError("No GPUs has been found.")
@@ -90,15 +93,20 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         for gpu in gpus:
             try:
                 if not gpu_mem_cap:
-                    tf.config.experimental.set_memory_growth(gpu, True)
+                    try:
+                        tf.config.set_memory_growth(gpu, True)
+                    except AttributeError:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                        
                 else:
-                    tf.config.experimental.set_virtual_device_configuration(
-                        gpu, [
-                            tf.config.experimental.VirtualDeviceConfiguration(
-                                memory_limit=gpu_mem_cap
-                            )
-                        ]
-                    )
+                    try:
+                        set_virtual_device_configuration = tf.config.set_virtual_device_configuration
+                        device_config = tf.config.LogicalDeviceConfiguration(memory_limit=gpu_mem_cap)
+                    except AttributeError:
+                        set_virtual_device_configuration = tf.config.experimental.set_virtual_device_configuration
+                        device_config = tf.config.experimental.VirtualDeviceConfiguration(memory_limit=gpu_mem_cap)
+                        
+                    set_virtual_device_configuration(gpu, [device_config])
             except RuntimeError as e:
                 print('Can not set GPU memory config', e)
 
