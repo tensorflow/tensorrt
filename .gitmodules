@@ -1,3 +1,0 @@
-[submodule "tftrt/examples/third_party/cocoapi"]
-	path = tftrt/examples/third_party/cocoapi
-	url = https://github.com/NVIDIA/cocoapi.git

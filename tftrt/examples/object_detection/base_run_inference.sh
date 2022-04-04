@@ -130,7 +130,7 @@ python -c "from pycocotools.coco import COCO" > /dev/null 2>&1
 DEPENDENCIES_STATUS=$?
 
 if [[ ${DEPENDENCIES_STATUS} != 0 ]]; then
-    bash install_dependencies.sh
+    bash "../helper_scripts/install_pycocotools.sh"
 fi
 
 # Step 2: Execute the example
