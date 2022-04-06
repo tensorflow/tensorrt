@@ -6,8 +6,7 @@ Check out this [gentle introduction](https://www.youtube.com/watch?v=w7871kMiAs8
 # Examples for TensorRT in TensorFlow (TF-TRT)
 
 This repository contains a number of different examples
-that show how to use
-[TF-TRT](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/tensorrt).
+that show how to use TF-TRT.
 TF-TRT is a part of TensorFlow
 that optimizes TensorFlow graphs using
 [TensorRT](https://developer.nvidia.com/tensorrt).
