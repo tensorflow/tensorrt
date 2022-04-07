@@ -97,7 +97,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         tf.config.set_memory_growth(gpu, True)
                     except AttributeError:
                         tf.config.experimental.set_memory_growth(gpu, True)
-                        
+
                 else:
                     try:
                         set_virtual_device_configuration = tf.config.set_virtual_device_configuration
@@ -105,7 +105,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     except AttributeError:
                         set_virtual_device_configuration = tf.config.experimental.set_virtual_device_configuration
                         device_config = tf.config.experimental.VirtualDeviceConfiguration(memory_limit=gpu_mem_cap)
-                        
+
                     set_virtual_device_configuration(gpu, [device_config])
             except RuntimeError as e:
                 print('Can not set GPU memory config', e)
@@ -378,18 +378,40 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 )
 
             iter_times = []
+            memcopy_times = []
 
-            def log_step(step_idx, display_every, iter_time):
+            def log_step(step_idx, display_every, iter_time, memcpyHtoD_time):
                 if step_idx % display_every == 0:
                     print(
-                        f"  step {step_idx:04d}, iter_time(ms)={iter_time:.3f}"
+                        f"  step {step_idx:04d}, iter_time(ms)={iter_time:.3f}, memcpyHtoD_time(ms)={memcpyHtoD_time:.3f}"
                     )
 
             dataset = timed_dataset(
                 dataset, activate=self._args.debug_performance
             )
 
+            @force_gpu_resync
+            @tf.function()
+            def force_data_on_gpu(data, device="/gpu:0"):
+                with tf.device(device):
+                    if isinstance(data, (list, tuple)):
+                        output_data = list()
+                        for t in data:
+                            output_data.append(tf.identity(t))
+                    elif isinstance(data, dict):
+                        output_data = dict()
+                        for k, v in data.items():
+                            output_data[k] = tf.identity(v)
+                    else:
+                        output_data = tf.identity(data)
+                return output_data
+
             for step_idx, data_batch in enumerate(dataset):
+
+                start_time = time.time()
+                data_batch = force_data_on_gpu(data_batch)
+                memcopy_times.append(time.time() - start_time)
+
                 x, y = self.preprocess_model_inputs(data_batch)
 
                 start_time = time.time()
@@ -398,11 +420,14 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
                 if not self._args.debug_performance:
                     log_step(
-                        step_idx + 1, self._args.display_every,
-                        np.mean(iter_times[-self._args.display_every:]) * 1000
+                        step_idx + 1,
+                        display_every=self._args.display_every,
+                        iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000,
+                        memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000
                     )
                 else:
                     print(f"{'GPU Iteration Time':18s}: {iter_times[-1]:.4f}s")
+                    print(f"{'MemCopyHtoD Iteration Time':18s}: {iter_times[-1]:.4f}s")
 
                 if not self._args.use_synthetic_data:
                     data_aggregator.aggregate_data(y_pred, y)
@@ -411,15 +436,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         step_idx + 1 >= self._args.num_iterations):
                     break
 
-            if (not self._args.debug_performance and
-                    step_idx % self._args.display_every !=
-                    0):  # avoids double printing
+            if (
+                not self._args.debug_performance and
+                step_idx % self._args.display_every != 0
+            ):  # avoids double printing
                 log_step(
                     step_idx + 1,
                     display_every=1,  # force print
-                    iter_time=(
-                        np.mean(iter_times[-self._args.display_every:]) * 1000
-                    )
+                    iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000,
+                    memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000
                 )
 
         with timed_section("Metric Computation"):
@@ -440,26 +465,35 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             # Skipping last batch. Might have different batch_size
             run_times = np.array(iter_times)
             run_times = run_times[self._args.num_warmup_iterations:-1]
+            mem_times = np.array(memcopy_times)
+            mem_times = mem_times[self._args.num_warmup_iterations:-1]
 
             metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
             metrics['Throughput (samples/sec)'] = np.mean(
                 self._args.batch_size / run_times
             )
-            metrics['99th_percentile (ms)'] = np.percentile(
-                run_times, q=99, interpolation='lower'
-            ) * 1000
-            metrics['GPU Latency Mean (ms)'] = np.mean(run_times) * 1000
-            metrics['GPU Latency Median (ms)'] = np.median(run_times) * 1000
-            metrics['GPU Latency Min (ms)'] = np.min(run_times) * 1000
-            metrics['GPU Latency Max (ms)'] = np.max(run_times) * 1000
+
+            def timing_metrics(time_arr, log_prefix):
+                data = dict()
+                data[f"{log_prefix} 99th_percentile (ms)"] = np.percentile(
+                    time_arr, q=99, interpolation='lower'
+                ) * 1000
+                data[f"{log_prefix} Mean (ms)"] = np.mean(time_arr) * 1000
+                data[f"{log_prefix} Median (ms)"] = np.median(time_arr) * 1000
+                data[f"{log_prefix} Min (ms)"] = np.min(time_arr) * 1000
+                data[f"{log_prefix} Max (ms)"] = np.max(time_arr) * 1000
+                return data
+
+            metrics.update(timing_metrics(run_times, "GPU Latency"))
+            metrics.update(timing_metrics(mem_times, "MemCopyHtoD Time"))
 
             self._export_runtime_metrics_to_json(metrics)
 
             def log_value(key, val):
                 if isinstance(val, int):
-                    print(f"- {key:35s}: {val}")
+                    print(f"- {key:40s}: {val}")
                 else:
-                    print(f"- {key:35s}: {val:.2f}")
+                    print(f"- {key:40s}: {val:.2f}")
 
             for key, val in sorted(metrics.items()):
                 if isinstance(val, dict):
