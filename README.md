@@ -1,12 +1,12 @@
 # Documentation for TensorRT in TensorFlow (TF-TRT)
 
-The documentation on how to accelerate inference in TensorFlow with TensorRT (TF-TRT) is here: https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html
+TensorFlow-TensorRT (TF-TRT) is an integration of TensorFlow and TensorRT that leverages inference optimization on NVIDIA GPUs within the TensorFlow ecosystem. It provides a simple API that delivers substantial performance gains on NVIDIA GPUs with minimal effort. The documentation on how to accelerate inference in TensorFlow with TensorRT (TF-TRT) is here: https://docs.nvidia.com/deeplearning/dgx/tf-trt-user-guide/index.html
 
+Check out this [gentle introduction](https://www.youtube.com/watch?v=w7871kMiAs8) to TensorFlow TensorRT or watch this [quick walkthrough](https://www.youtube.com/watch?v=O-_K42EAlP0) example for more!
 # Examples for TensorRT in TensorFlow (TF-TRT)
 
 This repository contains a number of different examples
-that show how to use
-[TF-TRT](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/tensorrt).
+that show how to use TF-TRT.
 TF-TRT is a part of TensorFlow
 that optimizes TensorFlow graphs using
 [TensorRT](https://developer.nvidia.com/tensorrt).
@@ -38,6 +38,7 @@ If you want to use TF-TRT on NVIDIA Jetson platform, you can find
 the download links for the relevant Tensorflow pip packages here:
 https://docs.nvidia.com/deeplearning/dgx/index.html#installing-frameworks-for-jetson
 
+You can also use [NVIDIA's Tensorflow container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow)(tested and published monthly). 
 
 ## Installing TensorRT
 
