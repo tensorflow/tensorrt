@@ -14,7 +14,7 @@ Install object detection dependencies (from tftrt/examples/object_detection)
 
 ```bash
 git submodule update --init
-./install_dependencies.sh
+../helper_scripts/install_pycocotools.sh
 ```
 
 <a name="od"></a>
@@ -41,35 +41,35 @@ python object_detection.py \
 #### 1. faster_rcnn_resnet50_coco
 ```bash
 # Tensorflow - FP32
-./scripts/faster_rcnn_resnet50_coco.sh \
+./models/faster_rcnn_resnet50_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
 
 # Tensorflow - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/faster_rcnn_resnet50_coco.sh \
+./models/faster_rcnn_resnet50_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
-    
+
 # TF-TRT - FP32
-./scripts/faster_rcnn_resnet50_coco.sh \
+./models/faster_rcnn_resnet50_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"    
-    
+
 # TF-TRT - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/faster_rcnn_resnet50_coco.sh \
+./models/faster_rcnn_resnet50_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"
-    
+
 # TF-TRT - FP16
-./scripts/faster_rcnn_resnet50_coco.sh \
+./models/faster_rcnn_resnet50_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP16"
-    
+
 # TF-TRT - INT8
-./scripts/faster_rcnn_resnet50_coco.sh \
+./models/faster_rcnn_resnet50_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="INT8"
@@ -78,35 +78,35 @@ python object_detection.py \
 #### 2. ssd_inception_v2_coco
 ```bash
 # Tensorflow - FP32
-./scripts/ssd_inception_v2_coco.sh \
+./models/ssd_inception_v2_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
 
 # Tensorflow - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_inception_v2_coco.sh \
+./models/ssd_inception_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
-    
+
 # TF-TRT - FP32
-./scripts/ssd_inception_v2_coco.sh \
+./models/ssd_inception_v2_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"    
-    
+
 # TF-TRT - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_inception_v2_coco.sh \
+./models/ssd_inception_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"
-    
+
 # TF-TRT - FP16
-./scripts/ssd_inception_v2_coco.sh \
+./models/ssd_inception_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP16"
-    
+
 # TF-TRT - INT8
-./scripts/ssd_inception_v2_coco.sh \
+./models/ssd_inception_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="INT8"
@@ -115,35 +115,35 @@ python object_detection.py \
 #### 3. ssd_mobilenet_v1_coco
 ```bash
 # Tensorflow - FP32
-./scripts/ssd_mobilenet_v1_coco.sh \
+./models/ssd_mobilenet_v1_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
 
 # Tensorflow - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_mobilenet_v1_coco.sh \
+./models/ssd_mobilenet_v1_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
-    
+
 # TF-TRT - FP32
-./scripts/ssd_mobilenet_v1_coco.sh \
+./models/ssd_mobilenet_v1_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"    
-    
+
 # TF-TRT - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_mobilenet_v1_coco.sh \
+./models/ssd_mobilenet_v1_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"
-    
+
 # TF-TRT - FP16
-./scripts/ssd_mobilenet_v1_coco.sh \
+./models/ssd_mobilenet_v1_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP16"
-    
+
 # TF-TRT - INT8
-./scripts/ssd_mobilenet_v1_coco.sh \
+./models/ssd_mobilenet_v1_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="INT8"
@@ -152,35 +152,35 @@ python object_detection.py \
 #### 4. ssd_mobilenet_v1_fpn_coco
 ```bash
 # Tensorflow - FP32
-./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+./models/ssd_mobilenet_v1_fpn_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
 
 # Tensorflow - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+./models/ssd_mobilenet_v1_fpn_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
-    
+
 # TF-TRT - FP32
-./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+./models/ssd_mobilenet_v1_fpn_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"    
-    
+
 # TF-TRT - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+./models/ssd_mobilenet_v1_fpn_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"
-    
+
 # TF-TRT - FP16
-./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+./models/ssd_mobilenet_v1_fpn_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP16"
-    
+
 # TF-TRT - INT8
-./scripts/ssd_mobilenet_v1_fpn_coco.sh \
+./models/ssd_mobilenet_v1_fpn_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="INT8"
@@ -189,35 +189,35 @@ python object_detection.py \
 #### 5. ssd_mobilenet_v2_coco
 ```bash
 # Tensorflow - FP32
-./scripts/ssd_mobilenet_v2_coco.sh \
+./models/ssd_mobilenet_v2_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
 
 # Tensorflow - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_mobilenet_v2_coco.sh \
+./models/ssd_mobilenet_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
-    
+
 # TF-TRT - FP32
-./scripts/ssd_mobilenet_v2_coco.sh \
+./models/ssd_mobilenet_v2_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"    
-    
+
 # TF-TRT - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_mobilenet_v2_coco.sh \
+./models/ssd_mobilenet_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"
-    
+
 # TF-TRT - FP16
-./scripts/ssd_mobilenet_v2_coco.sh \
+./models/ssd_mobilenet_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP16"
-    
+
 # TF-TRT - INT8
-./scripts/ssd_mobilenet_v2_coco.sh \
+./models/ssd_mobilenet_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="INT8"
@@ -226,35 +226,35 @@ python object_detection.py \
 #### 6. ssd_resnet_50_fpn_coco
 ```bash
 # Tensorflow - FP32
-./scripts/ssd_resnet_50_fpn_coco.sh \
+./models/ssd_resnet_50_fpn_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
 
 # Tensorflow - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_resnet_50_fpn_coco.sh \
+./models/ssd_resnet_50_fpn_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
-    
+
 # TF-TRT - FP32
-./scripts/ssd_resnet_50_fpn_coco.sh \
+./models/ssd_resnet_50_fpn_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"    
-    
+
 # TF-TRT - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssd_resnet_50_fpn_coco.sh \
+./models/ssd_resnet_50_fpn_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"
-    
+
 # TF-TRT - FP16
-./scripts/ssd_resnet_50_fpn_coco.sh \
+./models/ssd_resnet_50_fpn_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP16"
-    
+
 # TF-TRT - INT8
-./scripts/ssd_resnet_50_fpn_coco.sh \
+./models/ssd_resnet_50_fpn_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="INT8"
@@ -263,35 +263,35 @@ python object_detection.py \
 #### 7. ssdlite_mobilenet_v2_coco
 ```bash
 # Tensorflow - FP32
-./scripts/ssdlite_mobilenet_v2_coco.sh \
+./models/ssdlite_mobilenet_v2_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
 
 # Tensorflow - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssdlite_mobilenet_v2_coco.sh \
+./models/ssdlite_mobilenet_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models
-    
+
 # TF-TRT - FP32
-./scripts/ssdlite_mobilenet_v2_coco.sh \
+./models/ssdlite_mobilenet_v2_coco/run_inference.sh \
     --use_xla --no_tf32 \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"    
-    
+
 # TF-TRT - TF32 (identical to FP32 on an NVIDIA Turing GPU or older)
-./scripts/ssdlite_mobilenet_v2_coco.sh \
+./models/ssdlite_mobilenet_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP32"
-    
+
 # TF-TRT - FP16
-./scripts/ssdlite_mobilenet_v2_coco.sh \
+./models/ssdlite_mobilenet_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="FP16"
-    
+
 # TF-TRT - INT8
-./scripts/ssdlite_mobilenet_v2_coco.sh \
+./models/ssdlite_mobilenet_v2_coco/run_inference.sh \
     --use_xla \
     --data_dir=/data/coco2017 --input_saved_model_dir=/models \
     --use_tftrt --precision="INT8"
