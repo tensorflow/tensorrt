@@ -280,7 +280,6 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         input_fn=tf.autograph.experimental.
                         do_not_convert(offline_opt_input_fn)
                     )
-                pass
 
             if self._args.output_saved_model_dir is not None:
 
