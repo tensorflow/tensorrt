@@ -18,6 +18,7 @@ from benchmark_utils import force_gpu_resync
 from benchmark_utils import print_dict
 from benchmark_utils import timed_section
 from benchmark_utils import timed_dataset
+from dataloading_utils import SyntheticDataset
 
 import numpy as np
 import tensorflow as tf
@@ -333,12 +334,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             if self._args.use_synthetic_data:
                 old_ds = dataset
                 try:
-                    dataset = dataset.take(count=1)  # loop over 1 batch
-                    dataset = dataset.cache()
-                    dataset = dataset.repeat()
-                    dataset = dataset.prefetch(
-                        buffer_size=tf.data.experimental.AUTOTUNE
-                    )
+                    dataset = SyntheticDataset(old_ds, device="/gpu:0")
                     self._debug_print(
                         "Model dataset has been replaced by a synthetic data "
                         "loader to minimize data loading jitter."
