@@ -374,11 +374,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             iter_times = []
             memcopy_times = []
+            dequeue_times = []
 
-            def log_step(step_idx, display_every, iter_time, memcpyHtoD_time):
+            def log_step(step_idx, display_every, iter_time, memcpyHtoD_time, dequeue_time):
                 if step_idx % display_every == 0:
                     print(
-                        f"  step {step_idx:04d}, iter_time(ms)={iter_time:.3f}, memcpyHtoD_time(ms)={memcpyHtoD_time:.3f}"
+                        f"step {step_idx:04d}, "
+                        f"iter_time(ms)={iter_time:08.3f}, "
+                        f"memcpyHtoD_time(ms)={memcpyHtoD_time:08.3f}, "
+                        f"dequeue_time(ms)={dequeue_time:08.3f}"
                     )
 
             dataset = timed_dataset(
@@ -401,7 +405,17 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         output_data = tf.identity(data)
                 return output_data
 
-            for step_idx, data_batch in enumerate(dataset):
+            step_idx = 0
+            ds_iter = iter(dataset)
+
+            while True:
+
+                try:
+                    start_time = time.time()
+                    data_batch = next(ds_iter)
+                    dequeue_times.append(time.time() - start_time)
+                except:
+                    break
 
                 start_time = time.time()
                 data_batch = force_data_on_gpu(data_batch)
@@ -418,11 +432,13 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         step_idx + 1,
                         display_every=self._args.display_every,
                         iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000,
-                        memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000
+                        memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000,
+                        dequeue_time=np.mean(dequeue_times[-self._args.display_every:]) * 1000
                     )
                 else:
-                    print(f"{'GPU Iteration Time':18s}: {iter_times[-1]:.4f}s")
-                    print(f"{'MemCopyHtoD Iteration Time':18s}: {iter_times[-1]:.4f}s")
+                    print(f"{'GPU Iteration Time':18s}: {iter_times[-1]:08.4f}s")
+                    print(f"{'Data MemCopyHtoD Time':18s}: {memcpyHtoD_time[-1]:08.4f}s")
+                    print(f"{'Data Dequeue Time':18s}: {dequeue_times[-1]:08.4f}s")
 
                 if not self._args.use_synthetic_data:
                     data_aggregator.aggregate_data(y_pred, y)
@@ -430,6 +446,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 if (self._args.num_iterations is not None and
                         step_idx + 1 >= self._args.num_iterations):
                     break
+
+                step_idx += 1
 
             if (
                 not self._args.debug_performance and
@@ -439,7 +457,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     step_idx + 1,
                     display_every=1,  # force print
                     iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000,
-                    memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000
+                    memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000,
+                    dequeue_time=np.mean(dequeue_times[-self._args.display_every:]) * 1000
                 )
 
         with timed_section("Metric Computation"):
@@ -458,14 +477,18 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 )
 
             # Skipping last batch. Might have different batch_size
-            run_times = np.array(iter_times)
-            run_times = run_times[self._args.num_warmup_iterations:-1]
-            mem_times = np.array(memcopy_times)
-            mem_times = mem_times[self._args.num_warmup_iterations:-1]
+            iter_times = np.array(iter_times)
+            iter_times = iter_times[self._args.num_warmup_iterations:-1]
+
+            memcopy_times = np.array(memcopy_times)
+            memcopy_times = memcopy_times[self._args.num_warmup_iterations:-1]
+
+            dequeue_times = np.array(dequeue_times)
+            dequeue_times = dequeue_times[self._args.num_warmup_iterations:-1]
 
             metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
-            metrics['Throughput (samples/sec)'] = np.mean(
-                self._args.batch_size / run_times
+            metrics['Throughput (samples/sec)'] = (
+                self._args.batch_size / np.mean(iter_times)
             )
 
             def timing_metrics(time_arr, log_prefix):
@@ -479,16 +502,17 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 data[f"{log_prefix} Max (ms)"] = np.max(time_arr) * 1000
                 return data
 
-            metrics.update(timing_metrics(run_times, "GPU Latency"))
-            metrics.update(timing_metrics(mem_times, "MemCopyHtoD Time"))
+            metrics.update(timing_metrics(iter_times, "GPU Latency"))
+            metrics.update(timing_metrics(dequeue_times, "Data Batch Dequeue Time"))
+            metrics.update(timing_metrics(memcopy_times, "Data MemCopyHtoD Time"))
 
             self._export_runtime_metrics_to_json(metrics)
 
             def log_value(key, val):
                 if isinstance(val, int):
-                    print(f"- {key:40s}: {val}")
+                    print(f"- {key:45s}: {val}")
                 else:
-                    print(f"- {key:40s}: {val:.2f}")
+                    print(f"- {key:45s}: {val:.2f}")
 
             for key, val in sorted(metrics.items()):
                 if isinstance(val, dict):
