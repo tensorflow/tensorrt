@@ -245,6 +245,14 @@ class BaseCommandLineAPI(object):
             "to the set location in JSON format for further processing."
         )
 
+        self._parser.add_argument(
+            "--tf_profile_export_path",
+            type=str,
+            default=None,
+            help="If set, the script will export tf.profile files for further "
+            "performance analysis."
+        )
+
         self._add_bool_argument(
             name="debug",
             default=False,
