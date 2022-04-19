@@ -20,6 +20,7 @@ from benchmark_utils import print_dict
 from benchmark_utils import timed_section
 
 from dataloading_utils import SyntheticDataset
+from dataloading_utils import ensure_dataset_on_gpu
 from dataloading_utils import get_dequeue_batch_fn
 from dataloading_utils import get_force_data_on_gpu_fn
 
@@ -352,6 +353,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         f"synthetic dataset. Performance numbers will be "
                         f"impacted.\nError: {str(e)}."
                     )
+            else:
+                dataset = ensure_dataset_on_gpu(dataset, device="GPU:0")
 
             @force_gpu_resync
             @tf.function(jit_compile=self._args.use_xla)

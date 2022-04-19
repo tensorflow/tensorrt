@@ -36,6 +36,18 @@ class SyntheticDataset(object):
             yield data_batch
 
 
+def ensure_dataset_on_gpu(dataset, device):
+    if device.lower() not in dataset._variant_tensor_attr.device.lower():
+        return dataset.apply(
+            tf.data.experimental.prefetch_to_device(
+                device=device,
+                buffer_size=tf.data.experimental.AUTOTUNE
+            )
+        )
+    else:
+        return dataset
+
+
 def get_dequeue_batch_fn(ds_iter):
 
     @force_gpu_resync
