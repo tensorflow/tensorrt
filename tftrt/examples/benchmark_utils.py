@@ -58,24 +58,6 @@ def timed_section(msg, activate=True, start_end_mode=True):
         yield
 
 
-def timed_dataset(ds, activate=True):
-    data_start_t = time.time()
-
-    for idx, data_batch in enumerate(ds):
-
-        if activate:
-            print(f"Step: {idx + 1}")
-            print(
-                f"{'Data Loading Time':18s}: {time.time() - data_start_t:.4f}s"
-            )
-
-        yield data_batch
-
-        if activate:
-            print("===============")
-            data_start_t = time.time()
-
-
 def _format_output_tensors(predictions, expected, batch_size):
 
     def dictionarize(data):
@@ -183,13 +165,33 @@ class DataAggregator(object):
             self._total_samples_processed += step_batch_size
             idx_stop = self._total_samples_processed
 
+            if self._args.debug_data_aggregation:
+                print(
+                    f"Start: {idx_start} - Stop: {idx_stop} - "
+                    f"Size: {idx_stop-idx_start} - Step Batch Size: {step_batch_size}"
+                )
+
             with timed_section("Numpy Copy Time",
                                activate=self._args.debug_performance,
                                start_end_mode=False):
                 for key, val in self._predicted.items():
+                    if self._args.debug_data_aggregation:
+                        print(
+                            f"\t-Key: {key} - "
+                            f"Storage Shape: {self._predicted[key][idx_start:idx_stop].shape} - "
+                            f"Preds: {y_pred[key].shape}"
+                        )
                     self._predicted[key][idx_start:idx_stop] = y_pred[key]
                 for key, val in self._expected.items():
+                    if self._args.debug_data_aggregation:
+                        print(
+                            f"\t-Key: {key} - "
+                            f"Storage Shape: {self._expected[key][idx_start:idx_stop].shape} - "
+                            f"Expected: {y[key].shape}"
+                        )
                     self._expected[key][idx_start:idx_stop] = y[key]
+
+            print("")
 
 
 def patch_dali_dataset(dataset):

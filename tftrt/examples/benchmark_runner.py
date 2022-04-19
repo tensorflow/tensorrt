@@ -18,13 +18,17 @@ from benchmark_utils import DataAggregator
 from benchmark_utils import force_gpu_resync
 from benchmark_utils import print_dict
 from benchmark_utils import timed_section
-from benchmark_utils import timed_dataset
+
 from dataloading_utils import SyntheticDataset
+from dataloading_utils import get_dequeue_batch_fn
+from dataloading_utils import get_force_data_on_gpu_fn
 
 import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
+
+from tensorflow.python.framework.errors_impl import OutOfRangeError
 
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
@@ -386,32 +390,6 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         f"dequeue_time(ms)={dequeue_time:08.3f}"
                     )
 
-            dataset = timed_dataset(
-                dataset, activate=self._args.debug_performance
-            )
-
-            @force_gpu_resync
-            @tf.function(jit_compile=self._args.use_xla)
-            def dequeue_batch(ds_iter):
-                return next(ds_iter)
-
-            @force_gpu_resync
-            @tf.function(jit_compile=self._args.use_xla)
-            def force_data_on_gpu(data, device="/gpu:0"):
-                with tf.device(device):
-                    if isinstance(data, (list, tuple)):
-                        output_data = list()
-                        for t in data:
-                            output_data.append(tf.identity(t))
-                    elif isinstance(data, dict):
-                        output_data = dict()
-                        for k, v in data.items():
-                            output_data[k] = tf.identity(v)
-                    else:
-                        output_data = tf.identity(data)
-
-                return output_data
-
             if self._args.tf_profile_export_path:
                 profiling_ctx = tf.profiler.experimental.Profile(
                     self._args.tf_profile_export_path
@@ -424,6 +402,12 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             step_idx = 0
             ds_iter = iter(dataset)
 
+            dequeue_batch_fn = get_dequeue_batch_fn(ds_iter)
+            force_data_on_gpu_fn = get_force_data_on_gpu_fn(
+                device="/gpu:0",
+                use_xla=self._args.use_xla
+            )
+
             with profiling_ctx:
 
                 while True:
@@ -431,7 +415,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     step_idx += 1
 
                     if (self._args.num_iterations is not None and
-                            step_idx >= self._args.num_iterations):
+                            step_idx > self._args.num_iterations):
                         break
 
                     with tracing_ctx('Inference Step', step_num=step_idx, _r=1):
@@ -439,15 +423,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         with tracing_ctx('Input Dequeueing', step_num=step_idx, _r=1):
                             try:
                                 start_time = time.time()
-                                data_batch = dequeue_batch(ds_iter)
+                                data_batch = dequeue_batch_fn()
                                 dequeue_times.append(time.time() - start_time)
-                            except:
+                            except (StopIteration, OutOfRangeError):
                                 print("[Exiting] Reached end of dataset ...")
                                 break
 
                         with tracing_ctx('Inputs MemcpyHtoD', step_num=step_idx, _r=1):
                             start_time = time.time()
-                            data_batch = force_data_on_gpu(data_batch)
+                            data_batch = force_data_on_gpu_fn(data_batch)
                             memcopy_times.append(time.time() - start_time)
 
                         with tracing_ctx('Inputs Preprocessing', step_num=step_idx, _r=1):

@@ -267,6 +267,14 @@ class BaseCommandLineAPI(object):
             help="If set to True, will print additional information."
         )
 
+        self._add_bool_argument(
+            name="debug_data_aggregation",
+            default=False,
+            required=False,
+            help="If set to True, will print additional information related to "
+            "data aggregation."
+        )
+
     def _add_bool_argument(
         self, name=None, default=False, required=False, help=None
     ):
