@@ -221,13 +221,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         x, y = data_batch
 
-        x = {
-            "image": x['image'],
-            "mixup_weight": x['mixup_weight'],
-            "cutmix_mask": x['cutmix_mask'],
-            "is_tr_split": x['is_tr_split']
-        }
-
         return x, y
 
     def postprocess_model_outputs(self, predictions, expected):

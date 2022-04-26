@@ -432,13 +432,13 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                                 print("[Exiting] Reached end of dataset ...")
                                 break
 
-                        with tracing_ctx('Inputs MemcpyHtoD', step_num=step_idx, _r=1):
-                            start_time = time.time()
-                            data_batch = force_data_on_gpu_fn(data_batch)
-                            memcopy_times.append(time.time() - start_time)
-
                         with tracing_ctx('Inputs Preprocessing', step_num=step_idx, _r=1):
                             x, y = self.preprocess_model_inputs(data_batch)
+
+                        with tracing_ctx('Inputs MemcpyHtoD', step_num=step_idx, _r=1):
+                            start_time = time.time()
+                            x = force_data_on_gpu_fn(x)
+                            memcopy_times.append(time.time() - start_time)
 
                         with tracing_ctx('GPU Inference', step_num=step_idx, _r=1):
                             start_time = time.time()
