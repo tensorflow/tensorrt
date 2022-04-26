@@ -10,7 +10,7 @@ python -c "from pycocotools.coco import COCO" > /dev/null 2>&1
 DEPENDENCIES_STATUS=$?
 
 if [[ ${DEPENDENCIES_STATUS} != 0 ]]; then
-    bash "../../helper_scripts/install_pycocotools.sh"
+    bash "${BASE_DIR}/../../helper_scripts/install_pycocotools.sh"
 fi
 
 python ${BASE_DIR}/infer.py \

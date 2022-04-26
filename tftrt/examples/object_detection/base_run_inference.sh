@@ -1,5 +1,7 @@
 #!/bin/bash
 
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 nvidia-smi
 
 # Runtime Parameters
@@ -130,7 +132,7 @@ python -c "from pycocotools.coco import COCO" > /dev/null 2>&1
 DEPENDENCIES_STATUS=$?
 
 if [[ ${DEPENDENCIES_STATUS} != 0 ]]; then
-    bash "../helper_scripts/install_pycocotools.sh"
+    bash "${BASE_DIR}/../helper_scripts/install_pycocotools.sh"
 fi
 
 # Step 2: Execute the example
