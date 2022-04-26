@@ -37,13 +37,19 @@ class SyntheticDataset(object):
 
 
 def ensure_dataset_on_gpu(dataset, device):
-    if device.lower() not in dataset._variant_tensor_attr.device.lower():
+    try:
+        ds_device = dataset._variant_tensor_attr.device.lower()
+    except AttributeError:
+        return dataset
+
+    if device.lower() not in ds_device:
         return dataset.apply(
             tf.data.experimental.prefetch_to_device(
                 device=device,
                 buffer_size=tf.data.experimental.AUTOTUNE
             )
         )
+
     else:
         return dataset
 
