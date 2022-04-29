@@ -48,6 +48,10 @@ limitations under the License.
 
 #include <fstream>
 #include <utility>
+#include <google/protobuf/map.h>
+#include <iostream>
+#include <stdint.h>
+#include <string>
 #include <vector>
 
 #include "tensorflow/cc/ops/const_op.h"
@@ -70,6 +74,12 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
+#include "tensorflow/cc/saved_model/loader.h"
+#include "tensorflow/core/framework/tensor.pb.h"
+#include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/init_main.h"
+
+#include "absl/strings/string_view.h"
 
 // These are all common classes it's handy to reference with no namespace.
 using tensorflow::Flag;
@@ -78,6 +88,51 @@ using tensorflow::Status;
 using tensorflow::string;
 using tensorflow::Tensor;
 using tensorflow::tstring;
+
+// Returns the name of nodes listed in the signature definition.
+std::vector<std::string>
+GetNodeNames(const google::protobuf::Map<std::string, tensorflow::TensorInfo>
+                 &signature) {
+  std::vector<std::string> names;
+  for (auto const &item : signature) {
+    absl::string_view name = item.second.name();
+    // Remove tensor suffix like ":0".
+    size_t last_colon = name.find_last_of(':');
+    if (last_colon != absl::string_view::npos) {
+      name.remove_suffix(name.size() - last_colon);
+    }
+    names.push_back(std::string(name));
+  }
+  return names;
+}
+
+// Loads a SavedModel from export_dir into the SavedModelBundle.
+tensorflow::Status LoadModel(const std::string &export_dir,
+                             tensorflow::SavedModelBundle *bundle,
+                             std::vector<std::string> *input_names,
+                             std::vector<std::string> *output_names) {
+
+  tensorflow::RunOptions run_options;
+  TF_RETURN_IF_ERROR(tensorflow::LoadSavedModel(tensorflow::SessionOptions(),
+                                                run_options, export_dir,
+                                                {"serve"}, bundle));
+
+  // Print the signature defs.
+  auto signature_map = bundle->GetSignatures();
+  for (const auto &name_and_signature_def : signature_map) {
+    const auto &name = name_and_signature_def.first;
+    const auto &signature_def = name_and_signature_def.second;
+    std::cerr << "Name: " << name << std::endl;
+    std::cerr << "SignatureDef: " << signature_def.DebugString() << std::endl;
+  }
+
+  // Extract input and output tensor names from the signature def.
+  const tensorflow::SignatureDef &signature = signature_map["serving_default"];
+  *input_names = GetNodeNames(signature.inputs());
+  *output_names = GetNodeNames(signature.outputs());
+
+  return tensorflow::Status::OK();
+}
 
 // Takes a file name, and loads a list of labels from it, one per line, and
 // returns a vector of the strings. It pads with empty strings so the length
@@ -302,30 +357,27 @@ int main(int argc, char* argv[]) {
   // These are the command-line flags the program can understand.
   // They define where the graph and input data is located, and what kind of
   // input the model expects.
-  string image = "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/frozen-graph/data/img0.JPG";
-  string graph =
-      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/frozen-graph/data/resnet-50.pb";
+  string image =  "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/saved-model/data/img0.JPG";
+  string export_dir =
+      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/saved-model/resnet50_saved_model_TFTRT_FP32_frozen";
   string labels =
-      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/frozen-graph/data/imagenet_slim_labels.txt";
+      "/opt/tensorflow/tensorflow-source/tensorflow/examples/image_classification/saved-model/data/imagenet_slim_labels.txt";
   int32_t input_width = 224;
   int32_t input_height = 224;
   float input_mean = 127;
   float input_std = 1;
-  string input_layer = "x";
-  string output_layer = "Identity";
   bool self_test = false;
   string root_dir = "";
+    
   std::vector<Flag> flag_list = {
       Flag("image", &image, "image to be processed"),
-      Flag("graph", &graph, "graph to be executed"),
+      Flag("export_dir", &export_dir, "frozen TF-TRT saved model to be executed"),
       Flag("labels", &labels, "name of file containing labels"),
       Flag("input_width", &input_width, "resize image to this width in pixels"),
       Flag("input_height", &input_height,
            "resize image to this height in pixels"),
       Flag("input_mean", &input_mean, "scale pixel values to this mean"),
       Flag("input_std", &input_std, "scale pixel values to this std deviation"),
-      Flag("input_layer", &input_layer, "name of input layer"),
-      Flag("output_layer", &output_layer, "name of output layer"),
       Flag("self_test", &self_test, "run a self test"),
       Flag("root_dir", &root_dir,
            "interpret image and graph file names relative to this directory"),
@@ -344,15 +396,38 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  // First we load and initialize the model.
-  std::unique_ptr<tensorflow::Session> session;
-  string graph_path = tensorflow::io::JoinPath(root_dir, graph);
-  Status load_graph_status = LoadGraph(graph_path, &session);
+  tensorflow::SavedModelBundle bundle;
+  std::vector<std::string> input_names;
+  std::vector<std::string> output_names;
+    
+  // Load the saved model from the provided path.
+  Status load_graph_status = LoadModel(export_dir, &bundle, &input_names, &output_names);
   if (!load_graph_status.ok()) {
     LOG(ERROR) << load_graph_status;
     return -1;
   }
+    
+  auto sig_map = bundle.GetSignatures();
+  auto model_def = sig_map.at("serving_default");
 
+  printf("Model Signature");
+  for (auto const& p : sig_map) {
+      printf("key: %s", p.first.c_str());
+  }
+
+  printf("Model Input Nodes");
+  for (auto const& p : model_def.inputs()) {
+      printf("key: %s value: %s", p.first.c_str(), p.second.name().c_str());
+  }
+
+  printf("Model Output Nodes");
+  for (auto const& p : model_def.outputs()) {
+      printf("key: %s value: %s", p.first.c_str(), p.second.name().c_str());
+  }
+    
+  auto input_name = model_def.inputs().at("input_2").name();
+  auto output_name = model_def.outputs().at("output_0").name();
+    
   // Get the image from disk as a float array of numbers, resized and normalized
   // to the specifications the main graph expects.
   std::vector<Tensor> resized_tensors;
@@ -368,28 +443,15 @@ int main(int argc, char* argv[]) {
 
   // Actually run the image through the model.
   std::vector<Tensor> outputs;
-  Status run_status = session->Run({{input_layer, resized_tensor}},
-                                   {output_layer}, {}, &outputs);
-  if (!run_status.ok()) {
-    LOG(ERROR) << "Running model failed: " << run_status;
+    
+  // fill the input tensors with data
+  tensorflow::Status status;
+  status = bundle.session->Run({ {input_name, resized_tensor}},                                   
+                                   {output_name}, {}, &outputs);
+  if (!status.ok()) {
+    std::cerr << "Inference failed: " << status;
     return -1;
-  }
-
-  // This is for automated testing to make sure we get the expected result with
-  // the default settings. We know that label 653 (military uniform) should be
-  // the top label for the Admiral Hopper image.
-  if (self_test) {
-    bool expected_matches;
-    Status check_status = CheckTopLabel(outputs, 653, &expected_matches);
-    if (!check_status.ok()) {
-      LOG(ERROR) << "Running check failed: " << check_status;
-      return -1;
-    }
-    if (!expected_matches) {
-      LOG(ERROR) << "Self-test failed!";
-      return -1;
-    }
-  }
+  }    
 
   // Do something interesting with the results we've generated.
   Status print_status = PrintTopLabels(outputs, labels);
@@ -397,33 +459,6 @@ int main(int argc, char* argv[]) {
     LOG(ERROR) << "Running print failed: " << print_status;
     return -1;
   }
-
-  // Run benchmarking
-  int N_warmup_run = 50;
-  int N_run = 1000;
-  int BATCH_SIZE = 1;
-  std::vector<double> elapsed_time;
-
-  for (int i=0; i<N_warmup_run; i++){
-      Status run_status = session->Run({{input_layer, resized_tensor}},
-                                   {output_layer}, {}, &outputs);
-  }
-  
-  std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-  std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
-
-  for (int i=0; i<N_run; i++){
-      start_time = std::chrono::steady_clock::now();
-      Status run_status = session->Run({{input_layer, resized_tensor}},
-                                   {output_layer}, {}, &outputs);
-      end_time = std::chrono::steady_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-      elapsed_time.push_back(double(duration));
-      if (i % 50 == 0){
-        LOG(INFO) << "Step " << i << ": " << accumulate( elapsed_time.begin(), elapsed_time.end(), 0.0)/elapsed_time.size() << " ms";
-      }
-  }
-  LOG(INFO) << "Throughput: " << 1000 * N_run * BATCH_SIZE / accumulate(elapsed_time.begin(), elapsed_time.end(), 0.0) << " images/s";
-    
+                                  
   return 0;
 }
