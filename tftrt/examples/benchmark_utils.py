@@ -191,7 +191,7 @@ class DataAggregator(object):
                         )
                     self._expected[key][idx_start:idx_stop] = y[key]
 
-            print("")
+            print()
 
 
 def patch_dali_dataset(dataset):
