@@ -78,14 +78,13 @@ def preproc_samples(inputs, labels, precision):
 
 
 def dice_coef(predict, target, axis=1, eps=1e-6):
+    from scipy.special import softmax
 
-    predict = tf.convert_to_tensor(predict)
-    predict = tf.keras.activations.softmax(predict, axis=-1)
+    predict = softmax(predict, axis=-1)
 
-    target = tf.convert_to_tensor(target)
-
-    intersection = tf.math.reduce_sum(predict * target, axis=axis)
-    union = tf.math.reduce_sum(predict*predict + target*target, axis=axis)
+    intersection = np.sum(predict * target, axis=axis)
+    union = np.sum(predict*predict + target*target, axis=axis)
 
     dice = (2.*intersection + eps) / (union+eps)
-    return tf.math.reduce_mean(dice).numpy()
+
+    return np.mean(dice)
