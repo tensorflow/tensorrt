@@ -49,7 +49,7 @@ def timed_section(msg, activate=True, start_end_mode=True):
         total_time = time.time() - start_time
 
         if start_end_mode:
-            print(f"[END] `{msg}` - Duration: {total_time:.1f}s")
+            print(f"[END] {msg} - Duration: {total_time:.1f}s")
             print("=" * 80, "\n")
         else:
             print(f"{msg:18s}: {total_time:.4f}s")

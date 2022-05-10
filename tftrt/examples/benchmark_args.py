@@ -257,6 +257,14 @@ class BaseCommandLineAPI(object):
         )
 
         self._parser.add_argument(
+            "--export_metrics_csv_path",
+            type=str,
+            default=None,
+            help="If set, the script will export runtime metrics and arguments "
+            "to the set location in CSV format for further processing."
+        )
+
+        self._parser.add_argument(
             "--tf_profile_export_path",
             type=str,
             default=None,
