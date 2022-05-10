@@ -25,6 +25,8 @@ from dataloading_utils import get_dequeue_batch_fn
 from dataloading_utils import get_force_data_on_gpu_fn
 
 import numpy as np
+import scipy as sp
+import scipy.stats
 import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
@@ -500,11 +502,14 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
             metrics['Throughput (samples/sec)'] = (
-                self._args.batch_size / np.mean(iter_times)
-            )
+                self._args.batch_size / sp.stats.trim_mean(
+                    iter_times, self._args.trim_mean_percentage))
 
             def timing_metrics(time_arr, log_prefix):
                 data = dict()
+                data[f"{log_prefix} Trim Mean [{self._args.trim_mean_percentage * 100}%] (ms)"] = (
+                    sp.stats.trim_mean(time_arr, self._args.trim_mean_percentage) * 1000
+                )
                 data[f"{log_prefix} 99th_percentile (ms)"] = np.percentile(
                     time_arr, q=99, interpolation='lower'
                 ) * 1000
@@ -522,9 +527,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             def log_value(key, val):
                 if isinstance(val, int):
-                    print(f"- {key:45s}: {val}")
+                    print(f"- {key:50s}: {val}")
                 else:
-                    print(f"- {key:45s}: {val:.2f}")
+                    print(f"- {key:50s}: {val:.2f}")
 
             for key, val in sorted(metrics.items()):
                 if isinstance(val, dict):

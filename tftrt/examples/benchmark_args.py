@@ -120,8 +120,19 @@ class BaseCommandLineAPI(object):
         self._parser.add_argument(
             "--num_warmup_iterations",
             type=int,
-            default=100,
+            default=200,
             help="Number of initial iterations skipped from timing."
+        )
+
+        self._parser.add_argument(
+            "--trim_mean_percentage",
+            type=float,
+            default=0.1,
+            required=False,
+            help="Percentage used to trim step timing distribution from both "
+            "tails (fastest and slowest steps). 0.1 (default value) means that "
+            "10% of the fastest and slowest iteration will be removed for "
+            "model throughput computation."
         )
 
         self._parser.add_argument(
