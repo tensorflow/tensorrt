@@ -75,16 +75,10 @@ def get_force_data_on_gpu_fn(device="/gpu:0", use_xla=False):
     def force_data_on_gpu_fn(data):
         with tf.device(device):
             if isinstance(data, (list, tuple)):
-                output_data = list()
-                for t in data:
-                    output_data.append(tf.identity(t))
+                return tf.identity_n(data)
             elif isinstance(data, dict):
-                output_data = dict()
-                for k, v in data.items():
-                    output_data[k] = tf.identity(v)
+                return dict(zip(data.keys(), tf.identity_n(list(data.values()))))
             else:
-                output_data = tf.identity(data)
-
-        return output_data
+                return tf.identity(data)
 
     return force_data_on_gpu_fn
