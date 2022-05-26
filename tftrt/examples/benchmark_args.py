@@ -379,12 +379,6 @@ class BaseCommandLineAPI(object):
                     )
 
     def _post_process_args(self, args):
-
-        if args.num_iterations is None:
-            args.num_iterations = (
-                max((args.total_max_samples // args.batch_size) + 1, 1000)
-            )
-
         return args
 
     def parse_args(self):
