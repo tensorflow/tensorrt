@@ -1,4 +1,5 @@
 <!-- #region -->
+<img src="https://developer.download.nvidia.com//notebooks/dlsw-notebooks/tftrt_cpp_saved-model/nvidia_logo.png" style="width: 90px; float: right;">
 
 
 # TF-TRT C++ Image Recognition Demo
