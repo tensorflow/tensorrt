@@ -13,7 +13,9 @@ tf_cc_binary(
     srcs = [
         "main.cpp",
         "runner.cpp",
-        "runner.h"
+        "runner.h",
+        "datasets/base.h",
+        "datasets/synthetic.h"
     ],
     linkopts = select({
         "//tensorflow:android": [

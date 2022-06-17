@@ -9,14 +9,32 @@
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/util/command_line_flags.h"
 #include "runner.h"
+#include "datasets/synthetic.h"
 
 using tensorflow::Flag;
+
+template <typename F, typename ... Args>
+double timed(F&& f, Args&&...args) {
+    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+    std::forward<F>(f)(std::forward<Args>(args)...);
+    std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    return static_cast<double>(duration);
+}
+
+void dequeue(datasets::BaseDataset& dataset, int offset, int batch_size, Tensor* input) {
+    *input = dataset.getTensor(offset, batch_size);
+}
+
+void infer(Runner& runner, Tensor& input, const string& input_layer, const string& output_layer, Status* result) {
+    *result = runner.runInference(input, input_layer, output_layer);
+}
 
 int main(int argc, char* argv[]) {
     // Parse arguments
     string graph =
         "/opt/tensorflow/tensorflow-source/tensorflow/examples/benchmark_runner/toy_model/frozen/frozen_model.pb";
-    int32_t batch_size = 32;
+    int32_t batch_size = 1024;
     string input_layer = "x";
     string output_layer = "Identity";
     int32_t warmup_iters = 50;
@@ -49,39 +67,39 @@ int main(int argc, char* argv[]) {
     Runner runner;
     Status status = runner.loadSavedModel(graph);
     if (!status.ok()) {
-        LOG(ERROR) << status << std::endl;
+        LOG(ERROR) << status;
         return -1;
     }
 
-    // Synthetic data
-    tensorflow::Input::Initializer inputTensor(1.0f, tensorflow::TensorShape({batch_size, 28, 28, 1}));
-    Tensor input = inputTensor.tensor;
-
-    // Warmup
-    for (int i = 0; i < warmup_iters; i++) {
-        status = runner.runInference(input, input_layer, output_layer);
-        if (!status.ok()) {
-            LOG(ERROR) << status << std::endl;
-            return -1;
-        }
-    }
+    // Setup dataset
+    datasets::SyntheticDataset dataset = {batch_size, 28, 28, 1};
 
     // Run benchmarking
-    std::vector<double> elapsed_time;
-    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-    std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+    std::vector<double> dequeue_time;
+    std::vector<double> memcpyHtoD_time;
+    std::vector<double> infer_time;
+    std::vector<double> wall_time;
 
-    if (trace) {
-        runner.startTrace();
-    }
-    for (int i = 0; i < eval_iters; i++) {
+    std::chrono::steady_clock::time_point start_time;
+    std::chrono::steady_clock::time_point end_time;
+    for (int i = 0; i < warmup_iters + eval_iters; i++) {
+        if (i >= warmup_iters && trace) {
+            runner.startTrace();
+        }
         start_time = std::chrono::steady_clock::now();
-        status = runner.runInference(input, input_layer, output_layer);
+
+        Tensor input;
+        dequeue_time.push_back(timed(dequeue, dataset, i * batch_size, batch_size, &input));
+
+        Status inferStatus;
+        infer_time.push_back(timed(infer, runner, input, input_layer, output_layer, &inferStatus));
+
         end_time = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        elapsed_time.push_back(double(duration));
-        if (!status.ok()) {
-            LOG(ERROR) << status << std::endl;
+        wall_time.push_back((double)duration);
+        
+        if (!inferStatus.ok()) {
+            LOG(ERROR) << inferStatus;
             return -1;
         }
     }
@@ -89,7 +107,10 @@ int main(int argc, char* argv[]) {
         runner.stopTrace();
         runner.printRunStats();
     }
-    LOG(INFO) << "Throughput: " << 1000 * eval_iters * batch_size / accumulate(elapsed_time.begin(), elapsed_time.end(), 0.0) << " images/s" << std::endl;
+    LOG(INFO) << "Mean wall clock time (ms): " << accumulate(wall_time.begin() + warmup_iters, wall_time.end(), 0.0) / eval_iters;
+    LOG(INFO) << "Mean dequeue time (ms): " << accumulate(dequeue_time.begin() + warmup_iters, dequeue_time.end(), 0.0) / eval_iters;
+    LOG(INFO) << "Mean GPU time (ms): " << accumulate(infer_time.begin() + warmup_iters, infer_time.end(), 0.0) / eval_iters;
+    LOG(INFO) << "Throughput (ims/s): " << 1000 * eval_iters * batch_size / accumulate(infer_time.begin() + warmup_iters, infer_time.end(), 0.0);
 
     return 0;
 }
