@@ -1,32 +1,25 @@
 # Benchmark Runner
 
-This straightforward program uses TF's C++ API to serve a frozen CNN and measure throughput.
+This straightforward example uses TF's C++ API to serve a frozen CNN and measure throughput. Built off of the [example here](https://github.com/tensorflow/tensorrt/tree/fb0a2cf638c8707041e42451c601247f04c7e6d8/tftrt/examples/cpp/image-classification).
 
 ## Docker Environment
 
 Pull the image:
 
 ```
-docker pull nvcr.io/nvidia/tensorflow:22.03-tf2-py3
+docker pull nvcr.io/nvidia/tensorflow:22.05-tf2-py3
 ```
 
 Start the container:
 
 ```
-docker run --gpus all --rm -it -p 8888:8888 --name TFTRT_CPP nvcr.io/nvidia/tensorflow:22.03-tf2-py3
+docker run --gpus all --rm -it -p 8888:8888 --name TFTRT_CPP nvcr.io/nvidia/tensorflow:22.05-tf2-py3
 ```
 
 Clone the repo:
 
 ```
-git clone https://github.com/nvkevihu/tensorrt
-cd tensorrt
-```
-
-Link to the TF example source directory:
-
-```
-ln -s /workspace/tensorrt/tftrt/examples-cpp/benchmark_runner /opt/tensorflow/tensorflow-source/tensorflow/examples/benchmark_runner
+git clone https://github.com/tensorflow/tensorrt
 ```
 
 ## Model Conversion
@@ -40,22 +33,14 @@ python3 tf2_save_model.py
 ## Building
 
 ```
-cd /opt/tensorflow/tensorflow-source/tensorflow/examples/benchmark_runner
-cp tftrt-build.sh /opt/tensorflow
-cd /opt/tensorflow 
-bash ./tftrt-build.sh
+cd tensorrt/tftrt/examples/cpp/benchmark_runner
+mkdir build && cd build
+cmake ..
+make
 ```
 
 ## Running
 
-Measuring only throughput:
-
 ```
-/opt/tensorflow/tensorflow-source/bazel-bin/tensorflow/examples/benchmark_runner/tftrt_benchmark_runner
-```
-
-Profiling 20 iterations:
-
-```
-/opt/tensorflow/tensorflow-source/bazel-bin/tensorflow/examples/benchmark_runner/tftrt_benchmark_runner --eval_iters=20 --trace=true
+./tf_trt_benchmark_runner --model_path="/path/to/model/dir"
 ```
