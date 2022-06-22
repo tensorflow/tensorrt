@@ -23,7 +23,7 @@ using tensorflow::Flag;
 
 #define TFTRT_ENSURE_OK(x)                                                     \
   do {                                                                         \
-    tensorflow::Status s = x;                                                  \
+    Status s = x;                                                              \
     if (!s.ok()) {                                                             \
       std::cerr << __FILE__ << ":" << __LINE__ << " " << s.error_message()     \
                 << std::endl;                                                  \
@@ -32,7 +32,7 @@ using tensorflow::Flag;
   } while (0)
 
 // Get the name of the GPU.
-string getDeviceName(std::unique_ptr<tensorflow::Session>& session) {
+const string getDeviceName(std::unique_ptr<tensorflow::Session>& session) {
     string device_name = "";
     std::vector<tensorflow::DeviceAttributes> devices;
     Status status = session->ListDevices(&devices);
@@ -45,13 +45,13 @@ string getDeviceName(std::unique_ptr<tensorflow::Session>& session) {
     return device_name;
 }
 
-// Move tensors from the host to the device with `device_name`.
-Status moveToDevice(string& device_name,
-                    std::vector<Tensor>& tensors_host,
-                    std::vector<Tensor>* tensors_device) {
+// Move from the host to the device with `device_name`.
+Status moveToDevice(const string& device_name,
+                    Tensor& tensor_host,
+                    Tensor* tensor_device) {
     // Create identity graph
     tensorflow::Scope root = tensorflow::Scope::NewRootScope();
-    auto x = tensorflow::ops::Placeholder(root, tensorflow::DT_FLOAT);
+    auto x = tensorflow::ops::Placeholder(root, tensor_host.dtype());
     auto y = tensorflow::ops::Identity(root, x);
 
     tensorflow::GraphDef graphDef;
@@ -73,25 +73,28 @@ Status moveToDevice(string& device_name,
     TF_RETURN_IF_ERROR(session->MakeCallable(opts, &handle));
 
     // Execute graph
-    Status status = session->RunCallable(handle, tensors_host, tensors_device, nullptr);
+    std::vector<Tensor> tensors_device;
+    Status status = session->RunCallable(handle, {tensor_host}, &tensors_device, nullptr);
+    *tensor_device = tensors_device.front();
     session->ReleaseCallable(handle);
     return status;
 }
 
-// Returns the name of nodes listed in the signature definition.
-std::vector<std::string> getNodeNames(
+// Returns info for nodes listed in the signature definition.
+std::vector<tensorflow::TensorInfo> getNodeInfo(
     const google::protobuf::Map<std::string, tensorflow::TensorInfo>& signature) {
-  std::vector<std::string> names;
-  for (auto const &item : signature) {
-    names.push_back(item.second.name());
+  std::vector<tensorflow::TensorInfo> info;
+  for (const auto& item : signature) {
+    info.push_back(item.second);
   }
-  return names;
+  return info;
 }
 
+// Load the `SavedModel` located at `model_dir`.
 Status loadModel(const std::string& model_dir,
                  tensorflow::SavedModelBundle* bundle,
-                 std::vector<string>* input_names,
-                 std::vector<string>* output_names) {
+                 std::vector<tensorflow::TensorInfo>* input_info,
+                 std::vector<tensorflow::TensorInfo>* output_info) {
     tensorflow::RunOptions run_options;
     tensorflow::SessionOptions sess_options;
     sess_options.config.mutable_gpu_options()->force_gpu_compatible();
@@ -100,24 +103,44 @@ Status loadModel(const std::string& model_dir,
     // Get input and output names
     auto signature_map = bundle->GetSignatures();
     const tensorflow::SignatureDef& signature = signature_map["serving_default"];
-    *input_names = getNodeNames(signature.inputs());
-    *output_names = getNodeNames(signature.outputs());
+    *input_info = getNodeInfo(signature.inputs());
+    *output_info = getNodeInfo(signature.outputs());
 
-    return tensorflow::Status::OK();
+    return Status::OK();
+}
+
+// Create arbitrary inputs matching `input_info` and load them on the device.
+Status setupInputs(const string& device_name,
+                   int32_t batch_size,
+                   std::vector<tensorflow::TensorInfo>& input_info,
+                   std::vector<Tensor>* inputs) {
+    std::vector<Tensor> inputs_device;
+    for (const auto& info : input_info) {
+        auto shape = info.tensor_shape();
+        shape.mutable_dim(0)->set_size(batch_size);
+        Tensor input_host(info.dtype(), shape);
+        Tensor input_device;
+        TF_RETURN_IF_ERROR(moveToDevice(device_name, input_host, &input_device));
+        inputs_device.push_back(input_device);
+    }
+    *inputs = inputs_device;
+    return Status::OK();
 }
 
 // Configure a `CallableHandle` that feeds from and fetches to a device.
 Status setupCallable(std::unique_ptr<tensorflow::Session>& session,
-                     std::vector<string>& input_names,
-                     std::vector<string>& output_names,
-                     string& device_name,
+                     std::vector<tensorflow::TensorInfo>& input_info,
+                     std::vector<tensorflow::TensorInfo>& output_info,
+                     const string& device_name,
                      tensorflow::Session::CallableHandle* handle) {
     tensorflow::CallableOptions opts;
-    for (const auto& name : input_names) {
+    for (const auto& info : input_info) {
+        const string& name = info.name();
         opts.add_feed(name);
         opts.mutable_feed_devices()->insert({name, device_name});
     }
-    for (const auto& name : output_names) {
+    for (const auto& info : output_info) {
+        const string& name = info.name();
         opts.add_fetch(name);
         opts.mutable_fetch_devices()->insert({name, device_name});
     }
@@ -129,15 +152,11 @@ int main(int argc, char* argv[]) {
     // Parse arguments
     string model_path = "/path/to/model/";
     int32_t batch_size = 64;
-    int32_t image_size = 224;
-    int32_t image_channels = 3;
     int32_t warmup_iters = 50;
     int32_t eval_iters = 1000;
     std::vector<Flag> flag_list = {
         Flag("model_path", &model_path, "graph to be executed"),
         Flag("batch_size", &batch_size, "batch size to use for inference"),
-        Flag("image_size", &image_size, "size of the input image"),
-        Flag("image_channels", &image_channels, "number of channels for the input image"),
         Flag("warmup_iters", &warmup_iters, "number of warmup iterations to run"),
         Flag("eval_iters", &eval_iters, "number of timed iterations to run"),
     };
@@ -157,47 +176,53 @@ int main(int argc, char* argv[]) {
 
     // Setup session
     tensorflow::SavedModelBundle bundle;
-    std::vector<string> input_names;
-    std::vector<string> output_names;
-    TFTRT_ENSURE_OK(loadModel(model_path, &bundle, &input_names, &output_names));
+    std::vector<tensorflow::TensorInfo> input_info;
+    std::vector<tensorflow::TensorInfo> output_info;
+    TFTRT_ENSURE_OK(loadModel(model_path, &bundle, &input_info, &output_info));
 
     // Create inputs and move to device
-    Tensor input(tensorflow::DT_FLOAT, {batch_size, image_size, image_size, image_channels});
-    std::vector<Tensor> inputs_host = {input};
+    const string device_name = getDeviceName(bundle.session);
     std::vector<Tensor> inputs_device;
-    std::vector<Tensor> outputs;
-    string device_name = getDeviceName(bundle.session);
-    TFTRT_ENSURE_OK(moveToDevice(device_name, inputs_host, &inputs_device));
+    TFTRT_ENSURE_OK(setupInputs(device_name, batch_size, input_info, &inputs_device));
 
     // Configure to feed and fetch from device
     tensorflow::Session::CallableHandle handle;
-    TFTRT_ENSURE_OK(setupCallable(bundle.session, input_names, output_names, device_name, &handle));
+    TFTRT_ENSURE_OK(setupCallable(bundle.session, input_info, output_info, device_name, &handle));
 
     // Run benchmarking
+    std::vector<Tensor> outputs;
     std::vector<double> infer_time;
-
+    std::chrono::steady_clock::time_point eval_start_time;
     std::chrono::steady_clock::time_point start_time;
     std::chrono::steady_clock::time_point end_time;
     for (int i = 0; i < warmup_iters + eval_iters; i++) {
         if (i == warmup_iters) {
             LOG(INFO) << "Warmup done";
+            eval_start_time = std::chrono::steady_clock::now();
         }
 
         start_time = std::chrono::steady_clock::now();
         Status status = bundle.session->RunCallable(handle, inputs_device, &outputs, nullptr);
         end_time = std::chrono::steady_clock::now();
-        
+
         TFTRT_ENSURE_OK(status);
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        infer_time.push_back((double)duration);
+        double duration = (end_time - start_time).count() / 1e6;
+        infer_time.push_back(duration);
     }
     TFTRT_ENSURE_OK(bundle.session->ReleaseCallable(handle));
 
     // Print results
-    LOG(INFO) << "First inference time (ms): " << infer_time.front();
-    LOG(INFO) << "Last inference time (ms): " << infer_time.back();
-    LOG(INFO) << "Mean GPU time (ms): " << accumulate(infer_time.begin() + warmup_iters, infer_time.end(), 0.0) / eval_iters;
-    LOG(INFO) << "Throughput (ims/s): " << 1000 * eval_iters * batch_size / accumulate(infer_time.begin() + warmup_iters, infer_time.end(), 0.0);
+    std::sort(infer_time.begin() + warmup_iters, infer_time.end());
+    double total_compute_time = std::accumulate(infer_time.begin() + warmup_iters, infer_time.end(), 0.0);
+    double total_wall_time = (end_time - eval_start_time).count() / 1e6;
+    int32_t m = eval_iters / 2;
+    LOG(INFO) << "Total wall time (s): " << total_wall_time / 1e3;
+    LOG(INFO) << "Total GPU compute time (s): " << total_compute_time / 1e3;
+    LOG(INFO) << "Mean GPU compute time (ms): " << total_compute_time / eval_iters;
+    LOG(INFO) << "Median GPU compute time (ms): " << (eval_iters % 2 ? infer_time[m]
+                                                                     : (infer_time[m - 1] + infer_time[m]) / 2);
+    LOG(INFO) << "Throughput (ims/s): " << 1e3 * eval_iters * batch_size / total_compute_time;
+    LOG(INFO) << "First inference latency (ms): " << infer_time.front();
 
     return 0;
 }
