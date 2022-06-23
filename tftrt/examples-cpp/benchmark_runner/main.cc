@@ -185,7 +185,10 @@ int main(int argc, char* argv[]) {
   TFTRT_ENSURE_OK(
       LoadModel(model_path, signature_key, &bundle, &input_info, &output_info));
 
+  // TODO: Convert model w/ TRT and add flag for this behavior
+
   // Create inputs and move to device
+  // TODO: Measure H2D times over repeated calls and report metrics
   const string device_name = GetDeviceName(bundle.session);
   std::vector<Tensor> inputs_device;
   TFTRT_ENSURE_OK(
