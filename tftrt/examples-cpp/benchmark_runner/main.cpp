@@ -82,7 +82,7 @@ Status moveToDevice(const string& device_name,
 
 // Returns info for nodes listed in the signature definition.
 std::vector<tensorflow::TensorInfo> getNodeInfo(
-    const google::protobuf::Map<std::string, tensorflow::TensorInfo>& signature) {
+    const google::protobuf::Map<string, tensorflow::TensorInfo>& signature) {
   std::vector<tensorflow::TensorInfo> info;
   for (const auto& item : signature) {
     info.push_back(item.second);
@@ -91,7 +91,8 @@ std::vector<tensorflow::TensorInfo> getNodeInfo(
 }
 
 // Load the `SavedModel` located at `model_dir`.
-Status loadModel(const std::string& model_dir,
+Status loadModel(const string& model_dir,
+                 const string& signature_key,
                  tensorflow::SavedModelBundle* bundle,
                  std::vector<tensorflow::TensorInfo>* input_info,
                  std::vector<tensorflow::TensorInfo>* output_info) {
@@ -102,7 +103,7 @@ Status loadModel(const std::string& model_dir,
 
     // Get input and output names
     auto signature_map = bundle->GetSignatures();
-    const tensorflow::SignatureDef& signature = signature_map["serving_default"];
+    const tensorflow::SignatureDef& signature = signature_map[signature_key];
     *input_info = getNodeInfo(signature.inputs());
     *output_info = getNodeInfo(signature.outputs());
 
@@ -151,11 +152,13 @@ Status setupCallable(std::unique_ptr<tensorflow::Session>& session,
 int main(int argc, char* argv[]) {
     // Parse arguments
     string model_path = "/path/to/model/";
+    string signature_key = "serving_default";
     int32_t batch_size = 64;
     int32_t warmup_iters = 50;
     int32_t eval_iters = 1000;
     std::vector<Flag> flag_list = {
         Flag("model_path", &model_path, "graph to be executed"),
+        Flag("signature_key", &signature_key, "the serving signature to use"),
         Flag("batch_size", &batch_size, "batch size to use for inference"),
         Flag("warmup_iters", &warmup_iters, "number of warmup iterations to run"),
         Flag("eval_iters", &eval_iters, "number of timed iterations to run"),
@@ -178,7 +181,7 @@ int main(int argc, char* argv[]) {
     tensorflow::SavedModelBundle bundle;
     std::vector<tensorflow::TensorInfo> input_info;
     std::vector<tensorflow::TensorInfo> output_info;
-    TFTRT_ENSURE_OK(loadModel(model_path, &bundle, &input_info, &output_info));
+    TFTRT_ENSURE_OK(loadModel(model_path, signature_key, &bundle, &input_info, &output_info));
 
     // Create inputs and move to device
     const string device_name = getDeviceName(bundle.session);
@@ -215,13 +218,14 @@ int main(int argc, char* argv[]) {
     std::sort(infer_time.begin() + warmup_iters, infer_time.end());
     double total_compute_time = std::accumulate(infer_time.begin() + warmup_iters, infer_time.end(), 0.0);
     double total_wall_time = (end_time - eval_start_time).count() / 1e6;
-    int32_t m = eval_iters / 2;
+    int32_t m = warmup_iters + eval_iters / 2;
     LOG(INFO) << "Total wall time (s): " << total_wall_time / 1e3;
     LOG(INFO) << "Total GPU compute time (s): " << total_compute_time / 1e3;
     LOG(INFO) << "Mean GPU compute time (ms): " << total_compute_time / eval_iters;
     LOG(INFO) << "Median GPU compute time (ms): " << (eval_iters % 2 ? infer_time[m]
                                                                      : (infer_time[m - 1] + infer_time[m]) / 2);
-    LOG(INFO) << "Throughput (ims/s): " << 1e3 * eval_iters * batch_size / total_compute_time;
+    // Note: Throughput using GPU inference time, rather than wall time
+    LOG(INFO) << "Throughput (samples/s): " << 1e3 * eval_iters * batch_size / total_compute_time;
     LOG(INFO) << "First inference latency (ms): " << infer_time.front();
 
     return 0;
