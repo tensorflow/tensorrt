@@ -29,6 +29,8 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
 parentdir = os.path.dirname(currentdir)
+parentdir = os.path.dirname(parentdir)
+
 sys.path.insert(0, parentdir)
 
 from benchmark_args import BaseCommandLineAPI
@@ -36,17 +38,30 @@ from benchmark_runner import BaseBenchmarkRunner
 
 
 class CommandLineAPI(BaseCommandLineAPI):
-
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 
-        # self._parser.add_argument(
-        #     "--sequence_length",
-        #     type=int,
-        #     default=128,
-        #     help="Input data sequence length."
-        # )
+        self._parser.add_argument(
+            "--sequence_length",
+            type=int,
+            default=128,
+            help="Input data sequence length."
+        )
 
+        self._parser.add_argument(
+            "--vocab_size",
+            type=int,
+            required=True,
+            help="Size of the vocabulory used for training. Refer to "
+            "huggingface documentation."
+        )
+
+        # self._parser.add_argument(
+        #     "--validate_output",
+        #     action="store_true",
+        #     help="Validates that the model returns the correct value. This "
+        #     "only works with batch_size =32."
+        # )
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
@@ -71,7 +86,40 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         # - https://www.tensorflow.org/guide/data
         # dataset = tf.data....
 
-        return dataset, None
+        #if not self._args.use_synthetic_data:
+        if True:
+
+            raise NotImplementedError()
+        else:
+            tf.random.set_seed(10)
+
+            input_mask = tf.random.uniform(
+                shape=(1, self._args.sequence_length),
+                maxval=self._args.vocab_size,
+                dtype=tf.int32
+            )
+            input_type_ids = tf.random.uniform(
+                shape=(1, self._args.sequence_length),
+                maxval=self._args.vocab_size,
+                dtype=tf.int32
+            )
+            input_word_ids = tf.random.uniform(
+                shape=(1, self._args.sequence_length),
+                maxval=self._args.vocab_size,
+                dtype=tf.int32
+            )
+
+            ds_mask = tf.data.Dataset.from_tensor_slices(input_mask)
+            ds_typeids = tf.data.Dataset.from_tensor_slices(input_type_ids)
+            ds_wordids = tf.data.Dataset.from_tensor_slices(input_word_ids)
+            dataset = tf.data.Dataset.zip((ds_mask, ds_typeids, ds_wordids))
+            dataset = dataset.repeat()
+            dataset = dataset.batch(self._args.batch_size)
+            dataset = dataset.take(count=1)  # loop over 1 batch
+            dataset = dataset.cache()
+            dataset = dataset.repeat()
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+            return dataset, None
 
     def preprocess_model_inputs(self, data_batch):
         """This function prepare the `data_batch` generated from the dataset.
@@ -82,7 +130,12 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        x = data_batch
+        input_mask, input_type_ids, input_word_ids = data_batch
+        x =  {
+            "input_mask":input_mask,
+            "input_type_ids":input_type_ids,
+            "input_word_ids":input_word_ids
+        }
         return x, None
 
     def postprocess_model_outputs(self, predictions, expected):
@@ -118,30 +171,3 @@ if __name__ == '__main__':
 
     runner = BenchmarkRunner(args)
     runner.execute_benchmark()
-
-################ TO BE REMOVED - HIGH LEVEL CONCEPT #####################
-
-import time
-
-model_fn = load_my_model("/path/to/my/model")
-
-dataset, _ = get_dataset_batches()  # dataset, None
-
-ds_iter = iter(dataset)
-
-for idx, batch in enumerate(ds_iter):
-    print(f"Batch ID: {idx + 1} - Data: {batch}")
-
-    # - IF NEEDED - This transforms the inputs - Most cases it doesn't do anything
-    # let's say transforming a list into a dict() or reverse
-    batch = preprocess_model_inputs(batch)
-
-    start_t = time.time()
-    outputs = model_fn(batch)
-    print(f"Inference Time: {(time.time() - start_t)*1000:.1f}ms")  # 0.001
-
-    ## post my outputs to "measure accuracy"
-    ## note: we skip that
-
-print("Success")
-sys.exit(0)
