@@ -9,18 +9,30 @@ import tensorflow as tf
 
 from contextlib import contextmanager
 
-__all__ = ["DataAggregator", "force_gpu_resync", "print_dict", "timed_section"]
-
 
 def force_gpu_resync(func):
-    p = tf.constant(0.)  # Create small tensor to force GPU resync
+    try:
+        sync_device_fn = tf.experimental.sync_devices
+        print("[INFO] Using API `tf.experimental.sync_devices` to resync GPUs.")
 
-    def wrapper(*args, **kwargs):
-        rslt = func(*args, **kwargs)
-        (p + 1.).numpy()  # Sync the GPU
-        return rslt
+        def wrapper(*args, **kwargs):
+            rslt = func(*args, **kwargs)
+            sync_device_fn()
+            return rslt
 
-    return wrapper
+        return wrapper
+
+    except AttributeError:
+        print("[WARNING] Using deprecated API to resync GPUs. "
+              "Non negligeable overhead might be present.")
+        p = tf.constant(0.)  # Create small tensor to force GPU resync
+
+        def wrapper(*args, **kwargs):
+            rslt = func(*args, **kwargs)
+            (p + 1.).numpy()  # Sync the GPU
+            return rslt
+
+        return wrapper
 
 
 def print_dict(input_dict, prefix='  ', postfix='', redirect_to_str=False):
@@ -190,8 +202,6 @@ class DataAggregator(object):
                             f"Expected: {y[key].shape}"
                         )
                     self._expected[key][idx_start:idx_stop] = y[key]
-
-            print()
 
 
 def patch_dali_dataset(dataset):

@@ -15,8 +15,9 @@ import time
 
 from distutils.util import strtobool
 
+from benchmark_autotuner import auto_tf_func_tuner
+
 from benchmark_utils import DataAggregator
-from benchmark_utils import force_gpu_resync
 from benchmark_utils import print_dict
 from benchmark_utils import timed_section
 
@@ -383,16 +384,14 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             dataset, bypass_data_to_eval = self.get_dataset_batches()
 
             if self._args.use_synthetic_data:
-                old_ds = dataset
                 try:
-                    dataset = SyntheticDataset(old_ds, device="/gpu:0")
+                    dataset = SyntheticDataset(dataset, device="/gpu:0")
                     self._debug_print(
                         "Model dataset has been replaced by a synthetic data "
                         "loader to minimize data loading jitter."
                     )
 
                 except Exception as e:
-                    dataset = old_ds
                     print(
                         f"[ERROR] Impossible to transform the dataset into a "
                         f"synthetic dataset. Performance numbers will be "
@@ -401,8 +400,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             else:
                 dataset = ensure_dataset_on_gpu(dataset, device="GPU:0")
 
-            @force_gpu_resync
-            @tf.function(jit_compile=self._args.use_xla)
+            @auto_tf_func_tuner(
+                use_xla=self._args.use_xla,
+                use_synthetic_data=self._args.use_synthetic_data
+            )
             def infer_batch(x):
                 if isinstance(x, (tuple, list)):
                     model_out = graph_func(*x)
@@ -439,72 +440,112 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     )
 
             if self._args.tf_profile_export_path:
-                profiling_ctx = tf.profiler.experimental.Profile(
-                    self._args.tf_profile_export_path
-                )
+                def start_profiling():
+                    if self._args.tf_profile_verbose:
+                        profiler_opts = tf.profiler.experimental.ProfilerOptions(
+                            # Ajust TraceMe levels:
+                            # - 1: critical
+                            # - 2: info [default]
+                            # - 3: verbose
+                            host_tracer_level=2,
+                            # Enables python function call tracing
+                            # - 0: disable [default]
+                            # - 1: enable
+                            python_tracer_level=1,
+                            # Adjust device (TPU/GPU) tracer level:
+                            # - 0: disable
+                            # - 1: enable [default]
+                            device_tracer_level=1,
+                            # start profiling after 15 sec.
+                            # - Skip tf.function building
+                            # - Skip autotuning
+                            delay_ms=30000
+                        )
+                        print("[INFO] Using verbose TF Profiler.")
+                    else:
+                        profiler_opts = None
+
+                    profiling_ctx = tf.profiler.experimental.start(
+                        self._args.tf_profile_export_path,
+                        options=profiler_opts
+                    )
+
+                stop_profiling = tf.profiler.experimental.stop
+
                 tracing_ctx = tf.profiler.experimental.Trace
+
             else:
+                start_profiling = stop_profiling = lambda *a, **kw: None
                 profiling_ctx = contextlib.nullcontext()
                 tracing_ctx = lambda *a, **kw: contextlib.nullcontext()
 
             step_idx = 0
             ds_iter = iter(dataset)
 
-            dequeue_batch_fn = get_dequeue_batch_fn(ds_iter)
-            force_data_on_gpu_fn = get_force_data_on_gpu_fn(
-                device="/gpu:0",
-                use_xla=self._args.use_xla
+            dequeue_batch_fn = get_dequeue_batch_fn(
+              ds_iter,
+              use_xla=self._args.use_xla,
+              use_synthetic_data=self._args.use_synthetic_data
             )
 
-            with profiling_ctx:
+            force_data_on_gpu_fn = get_force_data_on_gpu_fn(
+                device="/gpu:0",
+                use_xla=self._args.use_xla,
+                use_synthetic_data=self._args.use_synthetic_data
+            )
 
-                while True:
+            while True:
 
-                    step_idx += 1
+                step_idx += 1
 
-                    if (self._args.num_iterations is not None and
-                            step_idx > self._args.num_iterations):
-                        break
+                if step_idx == self._args.num_warmup_iterations - 5:
+                    start_profiling()
 
-                    with tracing_ctx('Inference Step', step_num=step_idx, _r=1):
+                if (
+                    self._args.num_iterations is not None and
+                    step_idx > self._args.num_iterations
+                ):
+                    break
 
-                        with tracing_ctx('Input Dequeueing', step_num=step_idx, _r=1):
-                            try:
-                                start_time = time.time()
-                                data_batch = dequeue_batch_fn()
-                                dequeue_times.append(time.time() - start_time)
-                            except (StopIteration, OutOfRangeError):
-                                print("[Exiting] Reached end of dataset ...")
-                                break
+                with tracing_ctx('', step_num=step_idx, _r=1):
 
-                        with tracing_ctx('Inputs Preprocessing', step_num=step_idx, _r=1):
-                            x, y = self.preprocess_model_inputs(data_batch)
-
-                        with tracing_ctx('Inputs MemcpyHtoD', step_num=step_idx, _r=1):
+                    with tracing_ctx('Input Dequeueing'):
+                        try:
                             start_time = time.time()
-                            x = force_data_on_gpu_fn(x)
-                            memcopy_times.append(time.time() - start_time)
+                            data_batch = dequeue_batch_fn()
+                            dequeue_times.append(time.time() - start_time)
+                        except (StopIteration, OutOfRangeError):
+                            print("[Exiting] Reached end of dataset ...")
+                            break
 
-                        with tracing_ctx('GPU Inference', step_num=step_idx, _r=1):
-                            start_time = time.time()
-                            y_pred = infer_batch(x)
-                            iter_times.append(time.time() - start_time)
+                    with tracing_ctx('Inputs Preprocessing'):
+                        x, y = self.preprocess_model_inputs(data_batch)
 
-                    if not self._args.debug_performance:
-                        log_step(
-                            step_idx,
-                            display_every=self._args.display_every,
-                            iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000,
-                            memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000,
-                            dequeue_time=np.mean(dequeue_times[-self._args.display_every:]) * 1000
-                        )
-                    else:
-                        print(f"{'GPU Iteration Time':18s}: {iter_times[-1]:08.4f}s")
-                        print(f"{'Data MemCopyHtoD Time':18s}: {memcpyHtoD_time[-1]:08.4f}s")
-                        print(f"{'Data Dequeue Time':18s}: {dequeue_times[-1]:08.4f}s")
+                    with tracing_ctx('Inputs MemcpyHtoD'):
+                        start_time = time.time()
+                        x = force_data_on_gpu_fn(x)
+                        memcopy_times.append(time.time() - start_time)
 
-                    if not self._args.use_synthetic_data:
-                        data_aggregator.aggregate_data(y_pred, y)
+                    with tracing_ctx('GPU Inference'):
+                        start_time = time.time()
+                        y_pred = infer_batch(x)
+                        iter_times.append(time.time() - start_time)
+
+                if not self._args.debug_performance:
+                    log_step(
+                        step_idx,
+                        display_every=self._args.display_every,
+                        iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000,
+                        memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000,
+                        dequeue_time=np.mean(dequeue_times[-self._args.display_every:]) * 1000
+                    )
+                else:
+                    print(f"{'GPU Iteration Time':18s}: {iter_times[-1]:08.4f}s")
+                    print(f"{'Data MemCopyHtoD Time':18s}: {memcpyHtoD_time[-1]:08.4f}s")
+                    print(f"{'Data Dequeue Time':18s}: {dequeue_times[-1]:08.4f}s")
+
+                if not self._args.use_synthetic_data:
+                    data_aggregator.aggregate_data(y_pred, y)
 
             if (
                 not self._args.debug_performance and
@@ -517,6 +558,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000,
                     dequeue_time=np.mean(dequeue_times[-self._args.display_every:]) * 1000
                 )
+
+            if step_idx >= 100:
+                stop_profiling()
 
         with timed_section("Metric Computation"):
 

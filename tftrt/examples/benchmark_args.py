@@ -273,6 +273,13 @@ class BaseCommandLineAPI(object):
         )
 
         self._add_bool_argument(
+            name="tf_profile_verbose",
+            default=False,
+            required=False,
+            help="If set to True, will add extra information to the TF Profile."
+        )
+
+        self._add_bool_argument(
             name="debug",
             default=False,
             required=False,
@@ -376,6 +383,15 @@ class BaseCommandLineAPI(object):
                     raise ValueError(
                         "TF-TRT does not support dynamic shape mode with INT8 "
                         "calibration."
+                    )
+
+                if (
+                    args.tf_profile_verbose and
+                    args.tf_profile_export_path is None
+                ):
+                    raise ValueError(
+                        "`--tf_profile_verbose` can only be set if "
+                        "`--tf_profile_export_path=/path/to/export` is defined."
                     )
 
     def _post_process_args(self, args):
