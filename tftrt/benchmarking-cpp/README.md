@@ -33,14 +33,17 @@ python3 convert_model.py --model-dir /path/to/model/dir --output-dir /path/to/de
 ## Building
 
 ```
-cd tensorrt/tftrt/examples/cpp/benchmark_runner
-mkdir build && cd build
-cmake ..
-make
+/workspace/tensorrt/tftrt/benchmarking-cpp/build-scripts/setup.sh
+cd /opt/tensorflow
+./tftrt-build.sh
 ```
 
 ## Running
 
 ```
-./tf_trt_benchmark_runner --model_path="/path/to/dest/dir"
+/opt/tensorflow/tensorflow-source/bazel-bin/tensorflow/examples/benchmarking-cpp/tftrt_benchmark_runner --model_path="/path/to/dest/dir"
 ```
+
+## Profiling
+
+To profile, set the `--out_dir` flag. Run `tensorboard --logdir [out_dir]` to view results.
