@@ -8,6 +8,7 @@
 #include "tensorflow/cc/ops/image_ops.h"
 #include "tensorflow/cc/saved_model/loader.h"
 #include "tensorflow/compiler/tf2tensorrt/trt_convert_api.h"
+#include "tensorflow/core/common_runtime/device_mgr.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/graph/default_device.h"
@@ -32,54 +33,21 @@ using tensorflow::Tensor;
     }                                                                      \
   } while (0)
 
-// Get the name of the GPU.
-const string GetDeviceName(std::unique_ptr<tensorflow::Session>& session) {
-  string device_name = "";
-  std::vector<tensorflow::DeviceAttributes> devices;
-  Status status = session->ListDevices(&devices);
-  if (!status.ok()) {
-    return device_name;
-  }
+// Get the GPU and its default context.
+Status GetDevice(std::unique_ptr<tensorflow::Session>& session,
+                 tensorflow::Device** device,
+                 tensorflow::DeviceContext** device_context) {
+  const tensorflow::DeviceMgr* mgr;
+  TF_RETURN_IF_ERROR(session->LocalDeviceManager(&mgr));
+  std::vector<tensorflow::Device*> devices = mgr->ListDevices();
   for (const auto& d : devices) {
-    if (d.device_type() == "GPU" || d.device_type() == "gpu") {
-      device_name = d.name();
+    if (d->device_type() == "GPU" || d->device_type() == "gpu") {
+      auto* device_info = d->tensorflow_gpu_device_info();
+      *device_context = device_info->default_context;
+      *device = d;
     }
   }
-  return device_name;
-}
-
-// Move from the host to the device with `device_name`.
-Status MoveToDevice(const string& device_name, Tensor& tensor_host,
-                    Tensor* tensor_device) {
-  // Create identity graph
-  tensorflow::Scope root = tensorflow::Scope::NewRootScope();
-  auto x = tensorflow::ops::Placeholder(root, tensor_host.dtype());
-  auto y = tensorflow::ops::Identity(root, x);
-
-  tensorflow::GraphDef graphDef;
-  TF_RETURN_IF_ERROR(root.ToGraphDef(&graphDef));
-
-  // Create session with identity graph
-  std::unique_ptr<tensorflow::Session> session(
-      tensorflow::NewSession(tensorflow::SessionOptions()));
-  TF_RETURN_IF_ERROR(session->Create(graphDef));
-
-  // Configure to return output on device
-  tensorflow::Session::CallableHandle handle;
-  tensorflow::CallableOptions opts;
-  opts.add_feed("Placeholder:0");
-  opts.add_fetch("Identity:0");
-  opts.mutable_fetch_devices()->insert({"Identity:0", device_name});
-  opts.set_fetch_skip_sync(true);
-  TF_RETURN_IF_ERROR(session->MakeCallable(opts, &handle));
-
-  // Execute graph
-  std::vector<Tensor> tensors_device;
-  Status status =
-      session->RunCallable(handle, {tensor_host}, &tensors_device, nullptr);
-  *tensor_device = tensors_device.front();
-  session->ReleaseCallable(handle);
-  return status;
+  return Status::OK();
 }
 
 // Returns info for nodes listed in the signature definition.
@@ -113,16 +81,28 @@ Status LoadModel(const string& model_dir, const string& signature_key,
 }
 
 // Create arbitrary inputs matching `input_info` and load them on the device.
-Status SetupInputs(const string& device_name, int32_t batch_size,
+Status SetupInputs(tensorflow::Device* device,
+                   tensorflow::DeviceContext* device_context,
+                   int32_t batch_size,
                    std::vector<tensorflow::TensorInfo>& input_info,
                    std::vector<Tensor>* inputs) {
+  tensorflow::AllocatorAttributes attr;
+  tensorflow::Allocator* allocator = device->GetAllocator(attr);
+
   std::vector<Tensor> inputs_device;
   for (const auto& info : input_info) {
+    // Set input batch size
     auto shape = info.tensor_shape();
     shape.mutable_dim(0)->set_size(batch_size);
+
+    // Allocate memory and fill host tensor
     Tensor input_host(info.dtype(), shape);
-    Tensor input_device;
-    TF_RETURN_IF_ERROR(MoveToDevice(device_name, input_host, &input_device));
+    Tensor input_device(allocator, info.dtype(), shape);
+    std::fill_n((uint8_t*)input_host.data(), input_host.AllocatedBytes(), 1);
+
+    // Copy from host to device
+    TF_RETURN_IF_ERROR(device_context->CopyCPUTensorToDeviceSync(
+        &input_host, device, &input_device));
     inputs_device.push_back(input_device);
   }
   *inputs = inputs_device;
@@ -187,17 +167,21 @@ int main(int argc, char* argv[]) {
 
   // TODO: Convert model w/ TRT and add flag for this behavior
 
+  // Get device
+  tensorflow::Device* device;
+  tensorflow::DeviceContext* device_context;
+  TFTRT_ENSURE_OK(GetDevice(bundle.session, &device, &device_context));
+
   // Create inputs and move to device
   // TODO: Measure H2D times over repeated calls and report metrics
-  const string device_name = GetDeviceName(bundle.session);
   std::vector<Tensor> inputs_device;
-  TFTRT_ENSURE_OK(
-      SetupInputs(device_name, batch_size, input_info, &inputs_device));
+  TFTRT_ENSURE_OK(SetupInputs(device, device_context, batch_size, input_info,
+                              &inputs_device));
 
   // Configure to feed and fetch from device
   tensorflow::Session::CallableHandle handle;
   TFTRT_ENSURE_OK(SetupCallable(bundle.session, input_info, output_info,
-                                device_name, &handle));
+                                device->name(), &handle));
 
   // Run benchmarking
   std::vector<Tensor> outputs;
@@ -212,11 +196,12 @@ int main(int argc, char* argv[]) {
     }
 
     start_time = std::chrono::steady_clock::now();
-    Status status =
-        bundle.session->RunCallable(handle, inputs_device, &outputs, nullptr);
+    TFTRT_ENSURE_OK(
+        bundle.session->RunCallable(handle, inputs_device, &outputs, nullptr));
+    // Sync, as `set_fetch_skip_sync(false)` is currently not implemented
+    TFTRT_ENSURE_OK(device->Sync());
     end_time = std::chrono::steady_clock::now();
 
-    TFTRT_ENSURE_OK(status);
     double duration = (end_time - start_time).count() / 1e6;
     infer_time.push_back(duration);
   }
@@ -235,7 +220,7 @@ int main(int argc, char* argv[]) {
                                                                    : (infer_time[m - 1] + infer_time[m]) / 2);
   // Note: Throughput using GPU inference time, rather than wall time
   LOG(INFO) << "Throughput (samples/s): " << 1e3 * eval_iters * batch_size / total_compute_time;
-  LOG(INFO) << "First inference latency (ms): " << infer_time.front();
+  LOG(INFO) << "Engine build time + first inference latency (ms): " << infer_time.front();
 
   return 0;
 }

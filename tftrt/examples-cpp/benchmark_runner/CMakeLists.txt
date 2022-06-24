@@ -29,7 +29,7 @@ add_custom_target(tf_symlinks DEPENDS ${tf_framework_shared_lib} ${tf_shared_lib
 #-----------------------------------------------------------
 # Benchmark Runner Targets
 #-----------------------------------------------------------
-add_executable(tf_trt_benchmark_runner main.cpp)
+add_executable(tf_trt_benchmark_runner main.cc)
 
 target_link_libraries(tf_trt_benchmark_runner tensorflow_cc)
 target_link_libraries(tf_trt_benchmark_runner tensorflow_framework)
