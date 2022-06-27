@@ -24,6 +24,7 @@ import tensorflow as tf
 
 # Allow import of top level python files
 import inspect
+import test_dataset
 
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
@@ -89,7 +90,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         #if not self._args.use_synthetic_data:
         if True:
 
-            raise NotImplementedError()
+            dataset = get_dataset_cola(sequence_length=128, batch_size=32,
+                    vocab_size=32000, full_path_to_file='test_cola.tsv)
         else:
             tf.random.set_seed(10)
 
