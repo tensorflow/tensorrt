@@ -32,11 +32,10 @@ import scipy.stats
 import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
-
 from tensorflow.python.framework.errors_impl import OutOfRangeError
-
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
+
 
 __all__ = ["BaseBenchmarkRunner"]
 
@@ -202,16 +201,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         def load_model_from_disk(
             path,
             tags=[tag_constants.SERVING],
-            signature_key=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+            signature_key=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
+            precision="FP32"
         ):
             saved_model_loaded = tf.saved_model.load(export_dir=path, tags=tags)
 
             graph_func = saved_model_loaded.signatures[signature_key]
 
-            # from tensorflow.python.framework import convert_to_constants
-            # graph_func = convert_to_constants.convert_variables_to_constants_v2(
-            #     graph_func
-            # )
+            if precision == "FP16":
+                tf.config.optimizer.set_experimental_options({"auto_mixed_precision": True})
 
             # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
             # it looks like if the original trackable object is released by
@@ -228,7 +226,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 graph_func = load_model_from_disk(
                     path=self._args.input_saved_model_dir,
                     tags=self._args.model_tag.split(","),
-                    signature_key=self._args.input_signature_key
+                    signature_key=self._args.input_signature_key,
+                    precision=self._args.precision
                 )
 
         else:

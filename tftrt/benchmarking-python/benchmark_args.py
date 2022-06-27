@@ -18,7 +18,7 @@ from benchmark_utils import print_dict
 
 class BaseCommandLineAPI(object):
 
-    ALLOWED_TFTRT_PRECISION_MODES = ["FP32", "FP16", "INT8"]
+    ALLOWED_PRECISION_MODES = ["FP32", "FP16", "INT8"]
     SAMPLES_IN_VALIDATION_SET = None
 
     def __init__(self):
@@ -233,7 +233,7 @@ class BaseCommandLineAPI(object):
         self._parser.add_argument(
             "--precision",
             type=str,
-            choices=self.ALLOWED_TFTRT_PRECISION_MODES,
+            choices=self.ALLOWED_PRECISION_MODES,
             default="FP32",
             help="Precision mode to use. FP16 and INT8 modes only works if "
             "--use_tftrt is used."
@@ -350,20 +350,20 @@ class BaseCommandLineAPI(object):
                     "enabled (--use_tftrt)."
                 )
 
-            if args.precision != "FP32":
+            if args.precision == "INT8":
                 raise ValueError(
-                    "TensorRT must be enabled for FP16 or INT8 modes "
-                    "(--use_tftrt)."
+                    "TensorRT must be enabled for INT8 precision mode: "
+                    "`--use_tftrt`."
                 )
 
         else:
             if args.use_xla:
                 raise ValueError("--use_xla flag is not supported with TF-TRT.")
 
-            if args.precision not in self.ALLOWED_TFTRT_PRECISION_MODES:
+            if args.precision not in self.ALLOWED_PRECISION_MODES:
                 raise ValueError(
                     f"The received --precision={args.precision} is not "
-                    f"supported. Allowed: {self.ALLOWED_TFTRT_PRECISION_MODES}"
+                    f"supported. Allowed: {self.ALLOWED_PRECISION_MODES}"
                 )
 
             if args.precision == "INT8":
