@@ -70,7 +70,7 @@ def get_dataset_cola(sequence_length=128, batch_size=32,
      set_type = 'test'
      for (i,line) in enumerate(lines):
         # print("Working on line: {} with length {} \n".format(i,len(line)))
-        # print(line)
+        print(line)
         guid = i # (set_type, i)
         text_a = convert_to_unicode(line[1])
         encoded = tz.encode_plus(
@@ -108,9 +108,9 @@ def get_dataset_cola(sequence_length=128, batch_size=32,
 
      return dataset
 
-#dataset = get_dataset2()
-#ds_iter = iter(dataset)
-#import pprint
-#for batch in ds_iter:
-#    pprint.pprint(batch)
-#    break
+dataset = get_dataset()
+ds_iter = iter(dataset)
+import pprint
+for batch in ds_iter:
+    pprint.pprint(batch)
+    break
