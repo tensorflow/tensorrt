@@ -139,7 +139,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        return predictions.numpy(), expected.numpy()
+        predictions = {key: val.numpy() for key, val in predictions.items()}
+        expected = {"sim_model_1": expected.numpy()}
+
+        return predictions, expected
 
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
@@ -152,7 +155,11 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         """
         auc = tf.keras.metrics.AUC(from_logits=True, num_thresholds=8000)
 
-        auc_score = auc(expected["data"], predictions["data"][:, 0]).numpy()
+        logit_diff = (
+            predictions["sim_model_1"][:, 0] - predictions["sim_model_1"][:, 1]
+        )
+        auc_score = auc(expected["sim_model_1"], logit_diff).numpy()
+
 
         return auc_score * 100, "ROC AUC"
 
