@@ -114,17 +114,23 @@ Status SetupCallable(std::unique_ptr<tensorflow::Session>& session,
                      std::vector<tensorflow::TensorInfo>& input_info,
                      std::vector<tensorflow::TensorInfo>& output_info,
                      const string& device_name,
+                     bool input_from_device,
+                     bool output_to_host,
                      tensorflow::Session::CallableHandle* handle) {
   tensorflow::CallableOptions opts;
   for (const auto& info : input_info) {
     const string& name = info.name();
     opts.add_feed(name);
-    opts.mutable_feed_devices()->insert({name, device_name});
+    if (input_from_device) {
+      opts.mutable_feed_devices()->insert({name, device_name});
+    }
   }
   for (const auto& info : output_info) {
     const string& name = info.name();
     opts.add_fetch(name);
-    opts.mutable_fetch_devices()->insert({name, device_name});
+    if (!output_to_host) {
+      opts.mutable_fetch_devices()->insert({name, device_name});
+    }
   }
   opts.set_fetch_skip_sync(true);
   return session->MakeCallable(opts, handle);
@@ -137,12 +143,16 @@ int main(int argc, char* argv[]) {
   int32_t batch_size = 64;
   int32_t warmup_iters = 50;
   int32_t eval_iters = 1000;
+  bool input_from_device = true;
+  bool output_to_host = true;
   std::vector<Flag> flag_list = {
       Flag("model_path", &model_path, "graph to be executed"),
       Flag("signature_key", &signature_key, "the serving signature to use"),
       Flag("batch_size", &batch_size, "batch size to use for inference"),
       Flag("warmup_iters", &warmup_iters, "number of warmup iterations to run"),
       Flag("eval_iters", &eval_iters, "number of timed iterations to run"),
+      Flag("input_from_device", &input_from_device, "use inputs from device, rather than host"),
+      Flag("output_to_host", &output_to_host, "copy outputs to host after inference"),
   };
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
@@ -181,7 +191,7 @@ int main(int argc, char* argv[]) {
   // Configure to feed and fetch from device
   tensorflow::Session::CallableHandle handle;
   TFTRT_ENSURE_OK(SetupCallable(bundle.session, input_info, output_info,
-                                device->name(), &handle));
+                                device->name(), input_from_device, output_to_host, &handle));
 
   // Run benchmarking
   std::vector<Tensor> outputs;
