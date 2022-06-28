@@ -91,7 +91,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         if True:
 
             dataset = get_dataset_cola(sequence_length=128, batch_size=32,
-                    vocab_size=32000, full_path_to_file='test_cola.tsv)
+                    vocab_size=32000, full_path_to_file='test_cola.tsv')
         else:
             tf.random.set_seed(10)
 

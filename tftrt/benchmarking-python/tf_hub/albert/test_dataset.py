@@ -75,7 +75,7 @@ def get_dataset_cola(sequence_length=128, batch_size=32,
         text_a = convert_to_unicode(line[1])
         encoded = tz.encode_plus(
             text=text_a,  # the sentence to be encoded
-            add_special_tokens=True,  # Add [CLS] and [SEP]
+            add_special_tokens=False,  # Add [CLS] and [SEP]
             max_length=sequence_length,  # maximum length of a sentence
             pad_to_max_length=True,  # Add [PAD]s
             return_tensors='tf',  # ask the function to return PyTorch tensors
@@ -108,9 +108,9 @@ def get_dataset_cola(sequence_length=128, batch_size=32,
 
      return dataset
 
-dataset = get_dataset2()
-ds_iter = iter(dataset)
-import pprint
-for batch in ds_iter:
-    pprint.pprint(batch)
-    break
+#dataset = get_dataset2()
+#ds_iter = iter(dataset)
+#import pprint
+#for batch in ds_iter:
+#    pprint.pprint(batch)
+#    break
