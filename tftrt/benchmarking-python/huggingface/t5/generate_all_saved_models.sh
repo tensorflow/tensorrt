@@ -52,4 +52,8 @@ for MODEL_NAME in "${T5_MODELS[@]}"; do
     python generate_saved_models.py \
         --model_name=${MODEL_NAME} \
         --output_directory=${OUTPUT_DIR}
+
+    SAVED_MODEL_DIR="${OUTPUT_DIR}/model"
+    script -q -c "saved_model_cli show --dir ${SAVED_MODEL_DIR} --all" /dev/null | tee "${SAVED_MODEL_DIR}/analysis.txt"
+
 done
