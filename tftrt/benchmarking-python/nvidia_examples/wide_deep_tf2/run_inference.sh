@@ -11,8 +11,6 @@ pip install --no-deps \
     tensorflow-metadata~=0.24 \
     tfx-bsl~=0.24
 
-pip install pydot
-
 python ${BASE_DIR}/infer.py \
     --data_dir=/data/outbrain \
     --input_saved_model_dir=/models/nvidia_examples/wide_deep_tf2 \
