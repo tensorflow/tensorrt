@@ -67,6 +67,12 @@ Status LoadModel(const string& model_dir, const string& signature_key,
                  std::vector<tensorflow::TensorInfo>* output_info) {
   tensorflow::RunOptions run_options;
   tensorflow::SessionOptions sess_options;
+
+  tensorflow::OptimizerOptions* optimizer_options =
+      sess_options.config.mutable_graph_options()->mutable_optimizer_options();
+  optimizer_options->set_opt_level(tensorflow::OptimizerOptions::L0);
+  optimizer_options->set_global_jit_level(tensorflow::OptimizerOptions::OFF);
+
   sess_options.config.mutable_gpu_options()->force_gpu_compatible();
   TF_RETURN_IF_ERROR(tensorflow::LoadSavedModel(sess_options, run_options,
                                                 model_dir, {"serve"}, bundle));
