@@ -141,8 +141,8 @@ int main(int argc, char* argv[]) {
   string model_path = "/path/to/model/";
   string signature_key = "serving_default";
   int32_t batch_size = 64;
-  int32_t warmup_iters = 50;
-  int32_t eval_iters = 1000;
+  int32_t warmup_iters = 200;
+  int32_t eval_iters = 800;
   bool input_from_device = true;
   bool output_to_host = true;
   std::vector<Flag> flag_list = {
@@ -211,6 +211,10 @@ int main(int argc, char* argv[]) {
     // Sync, as `set_fetch_skip_sync(false)` is currently not implemented
     TFTRT_ENSURE_OK(device->Sync());
     end_time = std::chrono::steady_clock::now();
+
+    if ((i % 10) == 0) {
+      LOG(INFO) << "step: " << i;
+    }
 
     double duration = (end_time - start_time).count() / 1e6;
     infer_time.push_back(duration);
