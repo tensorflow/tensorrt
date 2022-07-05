@@ -34,7 +34,7 @@ add_executable(tf_trt_benchmark_runner main.cc)
 target_link_libraries(tf_trt_benchmark_runner tensorflow_cc)
 target_link_libraries(tf_trt_benchmark_runner tensorflow_framework)
 
-target_compile_options(tf_trt_benchmark_runner PRIVATE -D_GLIBCXX_USE_CXX11_ABI=0 -DGOOGLE_CUDA -DGOOGLE_TENSORRT)
+target_compile_options(tf_trt_benchmark_runner PRIVATE -D_GLIBCXX_USE_CXX11_ABI=1 -DGOOGLE_CUDA -DGOOGLE_TENSORRT)
 
 target_link_directories(tf_trt_benchmark_runner PRIVATE ${tf_python_dir})
 target_link_directories(tf_trt_benchmark_runner PRIVATE ${tf_dir})
