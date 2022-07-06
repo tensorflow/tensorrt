@@ -27,7 +27,7 @@ def get_cola_labels():
     return ["0","1"]
 
 def get_dataset_cola(sequence_length, batch_size,
-        vocab_size, full_path_to_file='test_cola.tsv'):
+        vocab_size, full_path_to_file):
      """Loads the data from the specified tsv file."""
      import tensorflow_hub as hub
 
@@ -37,15 +37,15 @@ def get_dataset_cola(sequence_length, batch_size,
      ds_typeids = []
      ds_wordids = []
      for (i, line) in enumerate(lines):
-        encoder_ips =  preprocessor(line)
+        encoder_ips =  preprocessor([line[1]])
         # dict_keys(['input_word_ids', 'input_type_ids', 'input_mask'])
         ds_mask.append(encoder_ips["input_mask"])
         ds_typeids.append(encoder_ips["input_type_ids"])
         ds_wordids.append(encoder_ips["input_word_ids"])
 
-     ds_mask = tf.data.Dataset.from_tensor_slices(input_mask)
-     ds_typeids = tf.data.Dataset.from_tensor_slices(guid_arr)
-     ds_wordids = tf.data.Dataset.from_tensor_slices(text_arr)
+     ds_mask = tf.data.Dataset.from_tensor_slices(tf.squeeze(ds_mask))
+     ds_typeids = tf.data.Dataset.from_tensor_slices(tf.squeeze(ds_typeids))
+     ds_wordids = tf.data.Dataset.from_tensor_slices(tf.squeeze(ds_wordids))
      dataset = tf.data.Dataset.zip((ds_mask, ds_typeids, ds_wordids))
 
      # dataset = dataset.repeat()

@@ -24,44 +24,8 @@ import tensorflow as tf
 
 # Allow import of top level python files
 import inspect
-import csv
-import tensorflow_datasets as tfds
-
+#import test_dataset
 from dataloading import get_dataset_cola
-
-def get_dataset(sequence_length=128, batch_size=32, vocab_size=32000):
-    tf.random.set_seed(10)
-
-    input_mask = tf.random.uniform(
-        shape=(1, sequence_length),
-        maxval=vocab_size,
-        dtype=tf.int32
-    )
-    input_type_ids = tf.random.uniform(
-        shape=(1, sequence_length),
-        maxval=vocab_size,
-        dtype=tf.int32
-    )
-    input_word_ids = tf.random.uniform(
-        shape=(1, sequence_length),
-        maxval=vocab_size,
-        dtype=tf.int32
-    )
-
-    ds_mask = tf.data.Dataset.from_tensor_slices(input_mask)
-    ds_typeids = tf.data.Dataset.from_tensor_slices(input_type_ids)
-    ds_wordids = tf.data.Dataset.from_tensor_slices(input_word_ids)
-    dataset = tf.data.Dataset.zip((ds_mask, ds_typeids, ds_wordids))
-    dataset = dataset.repeat()
-    dataset = dataset.batch(batch_size)
-    dataset = dataset.take(count=1)  # loop over 1 batch
-    dataset = dataset.cache()
-    dataset = dataset.repeat()
-    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-    return dataset
-
-
-
 
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
@@ -126,9 +90,20 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         #if not self._args.use_synthetic_data:
         if True:
-            fullpath = "".join([self._args.data_dir, 'test_cola.tsv'])
-            dataset = get_dataset_cola(sequence_length=self._args.sequence_length, batch_size=self._args.batch_size,
-                    vocab_size=self._args.vocab_size, full_path_to_file=self._args.data_dir)
+
+            #def load_text_op:
+            full_path_to_file_ = os.path.join(self._args.data_dir,'test_cola.tsv')
+            dataset = get_dataset_cola(sequence_length=self._args.sequence_length,
+                                       batch_size=self._args.batch_size,
+                                       vocab_size=32000,
+                                       full_path_to_file=full_path_to_file_)
+            # dataset = dataset.interleave(
+            #         load_text_op,
+            #         cycle_length=tf.data.experimental.AUTOTUNE,
+            #         block_length=8,
+            #         num_parallel_calls=tf.data.experimental.AUTOTUNE
+            #     )
+            return dataset, None
         else:
             tf.random.set_seed(10)
 
