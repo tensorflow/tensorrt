@@ -24,8 +24,8 @@ import tensorflow as tf
 
 # Allow import of top level python files
 import inspect
-#import test_dataset
 from dataloading import get_dataset_cola
+from dataloading import get_dataset_interleave
 
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
@@ -91,18 +91,13 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         #if not self._args.use_synthetic_data:
         if True:
 
-            #def load_text_op:
             full_path_to_file_ = os.path.join(self._args.data_dir,'test_cola.tsv')
-            dataset = get_dataset_cola(sequence_length=self._args.sequence_length,
-                                       batch_size=self._args.batch_size,
-                                       vocab_size=32000,
-                                       full_path_to_file=full_path_to_file_)
-            # dataset = dataset.interleave(
-            #         load_text_op,
-            #         cycle_length=tf.data.experimental.AUTOTUNE,
-            #         block_length=8,
-            #         num_parallel_calls=tf.data.experimental.AUTOTUNE
-            #     )
+            dataset = get_dataset_interleave(batch_size=self._args.batch_size,
+                                       filename=full_path_to_file_)
+            # dataset = get_dataset_cola(sequence_length=self._args.sequence_length,
+            #                batch_size=self._args.batch_size,
+            #                vocab_size=32000,
+            #                    full_path_to_file=full_path_to_file_)
             return dataset, None
         else:
             tf.random.set_seed(10)
@@ -143,14 +138,14 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-
-        input_mask, input_type_ids, input_word_ids = data_batch
-        x =  {
-            "input_mask":input_mask,
-            "input_type_ids":input_type_ids,
-            "input_word_ids":input_word_ids
-        }
-        return x, None
+        # We need to return x, if get_dataset_cola is the function running
+        # input_mask, input_type_ids, input_word_ids = data_batch
+        # x =  {
+        #     "input_mask":input_mask,
+        #     "input_type_ids":input_type_ids,
+        #     "input_word_ids":input_word_ids
+        # }
+        return data_batch, None
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the

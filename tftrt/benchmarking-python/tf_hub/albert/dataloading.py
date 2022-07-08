@@ -22,6 +22,21 @@ def read_tsv(input_file):
         lines.append(line)
       return lines
 
+def get_dataset_interleave(batch_size, filename):
+    import tensorflow_hub as hub
+    preprocessor = hub.KerasLayer("https://tfhub.dev/tensorflow/albert_en_preprocess/3")
+    def extract_actual_text(line):
+        line = tf.strings.regex_replace(line,"[0-9]\t","")
+        line =  tf.strings.regex_replace(line,"[0-9]","")
+        encoder_ips =  preprocessor([line])
+        encoder_ips = {key: tf.squeeze(value) for key, value in encoder_ips.items()}
+        return encoder_ips
+
+    dataset = tf.data.TextLineDataset(filename)
+    dataset = dataset.map(extract_actual_text)
+    dataset = dataset.batch(batch_size, drop_remainder=False)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+    return dataset
 
 def get_cola_labels():
     return ["0","1"]
@@ -48,11 +63,6 @@ def get_dataset_cola(sequence_length, batch_size,
      ds_wordids = tf.data.Dataset.from_tensor_slices(tf.squeeze(ds_wordids))
      dataset = tf.data.Dataset.zip((ds_mask, ds_typeids, ds_wordids))
 
-     # dataset = dataset.repeat()
      dataset = dataset.batch(batch_size, drop_remainder=False)
-     #dataset = dataset.take(count=1)  # loop over 1 batch
-     #dataset = dataset.cache()
-     #dataset = dataset.repeat()
      dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-
      return dataset
