@@ -343,6 +343,15 @@ class BaseCommandLineAPI(object):
                 f"({args.num_iterations} <= {args.num_warmup_iterations})"
             )
 
+        if (
+            args.tf_profile_verbose and
+            args.tf_profile_export_path is None
+        ):
+            raise ValueError(
+                "`--tf_profile_verbose` can only be set if "
+                "`--tf_profile_export_path=/path/to/export` is defined."
+            )
+
         if not args.use_tftrt:
             if args.use_dynamic_shape:
                 raise ValueError(
@@ -360,12 +369,6 @@ class BaseCommandLineAPI(object):
             if args.use_xla:
                 raise ValueError("--use_xla flag is not supported with TF-TRT.")
 
-            if args.precision not in self.ALLOWED_PRECISION_MODES:
-                raise ValueError(
-                    f"The received --precision={args.precision} is not "
-                    f"supported. Allowed: {self.ALLOWED_PRECISION_MODES}"
-                )
-
             if args.precision == "INT8":
 
                 if not args.calib_data_dir:
@@ -377,21 +380,6 @@ class BaseCommandLineAPI(object):
                     raise RuntimeError(
                         f"The path --calib_data_dir=`{args.calib_data_dir}` "
                         "doesn't exist or is not a directory"
-                    )
-
-                if args.use_dynamic_shape:
-                    raise ValueError(
-                        "TF-TRT does not support dynamic shape mode with INT8 "
-                        "calibration."
-                    )
-
-                if (
-                    args.tf_profile_verbose and
-                    args.tf_profile_export_path is None
-                ):
-                    raise ValueError(
-                        "`--tf_profile_verbose` can only be set if "
-                        "`--tf_profile_export_path=/path/to/export` is defined."
                     )
 
     def _post_process_args(self, args):
