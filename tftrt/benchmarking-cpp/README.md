@@ -4,12 +4,6 @@ This straightforward example uses TF's C++ API to serve a saved model and measur
 
 ## Docker Environment
 
-Pull the image:
-
-```
-docker pull nvcr.io/nvidia/tensorflow:22.06-tf2-py3
-```
-
 Start the container:
 
 ```
@@ -32,15 +26,39 @@ python3 convert_model.py --model-dir /path/to/model/dir --output-dir /path/to/de
 
 ## Building
 
+The binary relies on a modified Tensorflow, which will need to be rebuilt. Internal users can use a container with Tensorflow already modified and built, instead of building with Bazel, which will take much longer.
+
+### Bazel
+
+The `setup.sh` script applies the Tensorflow patch and prepares the container for the Bazel build.
+
 ```
-cd tensorrt/tftrt/examples/cpp/benchmark_runner
+/workspace/tensorrt/tftrt/benchmarking-cpp/build-scripts/setup.sh
+cd /opt/tensorflow
+./tftrt-build.sh
+```
+
+The binary will be located at `/opt/tensorflow/tensorflow-source/bazel-bin/tensorflow/examples/benchmarking-cpp/tftrt_benchmark_runner`.
+
+### Prebuilt
+
+For internal NVIDIA users, a container with a prebuilt modified Tensorflow is available. In the container, use CMake to build the binary without needing to rebuild Tensorflow:
+
+```
+cd /workspace/tensorrt/tftrt/benchmarking-cpp
 mkdir build && cd build
 cmake ..
 make
 ```
 
+The binary will be located at `/workspace/tensorrt/tftrt/benchmarking-cpp/tftrt_benchmark_runner`.
+
 ## Running
 
 ```
-./tf_trt_benchmark_runner --model_path="/path/to/dest/dir"
+./tftrt_benchmark_runner --model_path="/path/to/dest/dir"
 ```
+
+### Profiling
+
+To profile, set the `--out_dir` flag. Run `tensorboard --logdir [out_dir]` to view results.

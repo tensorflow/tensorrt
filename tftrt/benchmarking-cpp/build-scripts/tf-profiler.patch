@@ -1,0 +1,22 @@
+--- /opt/tensorflow/tensorflow-source/tensorflow/core/profiler/rpc/client/BUILD	2022-06-24 20:49:49.656963813 +0000
++++ /opt/tensorflow/tensorflow-source/tensorflow/core/profiler/rpc/client/BUILD_PATCHED	2022-06-24 20:49:35.416963948 +0000
+@@ -25,6 +25,7 @@
+     visibility = [
+         "//tensorflow/compiler/xla/python:__pkg__",
+         "//tensorflow/python/profiler/internal:__pkg__",
++        "//tensorflow:internal",
+     ],
+     deps = [
+         ":profiler_client_for_pybind",
+@@ -67,7 +68,10 @@
+ cc_library(
+     name = "profiler_client",
+     hdrs = ["profiler_client.h"],
+-    visibility = ["//tensorflow/compiler/xla:__subpackages__"],
++    visibility = [
++        "//tensorflow/compiler/xla:__subpackages__",
++        "//tensorflow:internal",
++    ],
+     deps = [
+         ":profiler_client_impl",
+         "//tensorflow/core:lib",

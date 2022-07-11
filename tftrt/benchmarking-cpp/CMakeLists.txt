@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(TF_TRT_Benchmark_Runner)
+project(TFTRT_Benchmark_Runner)
 
 #-------------------------------------------------------------
 # Configuration
@@ -29,19 +29,19 @@ add_custom_target(tf_symlinks DEPENDS ${tf_framework_shared_lib} ${tf_shared_lib
 #-----------------------------------------------------------
 # Benchmark Runner Targets
 #-----------------------------------------------------------
-add_executable(tf_trt_benchmark_runner main.cc)
+add_executable(tftrt_benchmark_runner main.cc)
 
-target_link_libraries(tf_trt_benchmark_runner tensorflow_cc)
-target_link_libraries(tf_trt_benchmark_runner tensorflow_framework)
+target_link_libraries(tftrt_benchmark_runner tensorflow_cc)
+target_link_libraries(tftrt_benchmark_runner tensorflow_framework)
 
-target_compile_options(tf_trt_benchmark_runner PRIVATE -D_GLIBCXX_USE_CXX11_ABI=1 -DGOOGLE_CUDA -DGOOGLE_TENSORRT)
+target_compile_options(tftrt_benchmark_runner PRIVATE -D_GLIBCXX_USE_CXX11_ABI=1 -DGOOGLE_CUDA -DGOOGLE_TENSORRT)
 
-target_link_directories(tf_trt_benchmark_runner PRIVATE ${tf_python_dir})
-target_link_directories(tf_trt_benchmark_runner PRIVATE ${tf_dir})
+target_link_directories(tftrt_benchmark_runner PRIVATE ${tf_python_dir})
+target_link_directories(tftrt_benchmark_runner PRIVATE ${tf_dir})
 
-target_compile_options(tf_trt_benchmark_runner PRIVATE -O2 -Wl,-rpath=${tf_python_dir})
+target_compile_options(tftrt_benchmark_runner PRIVATE -O2 -Wl,-rpath=${tf_python_dir})
 
-target_include_directories(tf_trt_benchmark_runner PRIVATE ${tf_python_dir}/include)
-target_include_directories(tf_trt_benchmark_runner PRIVATE ${trt_include_path})
+target_include_directories(tftrt_benchmark_runner PRIVATE ${tf_python_dir}/include)
+target_include_directories(tftrt_benchmark_runner PRIVATE ${trt_include_path})
 
-add_dependencies(tf_trt_benchmark_runner tf_symlinks)
+add_dependencies(tftrt_benchmark_runner tf_symlinks)

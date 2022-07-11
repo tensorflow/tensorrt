@@ -7,7 +7,6 @@
 #include "tensorflow/cc/ops/const_op.h"
 #include "tensorflow/cc/ops/image_ops.h"
 #include "tensorflow/cc/saved_model/loader.h"
-#include "tensorflow/compiler/tf2tensorrt/trt_convert_api.h"
 #include "tensorflow/core/common_runtime/device_mgr.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/tensor.h"
@@ -15,6 +14,9 @@
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/profiler/lib/profiler_session.h"
+#include "tensorflow/core/profiler/lib/traceme.h"
+#include "tensorflow/core/profiler/rpc/client/capture_profile.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
@@ -142,6 +144,24 @@ Status SetupCallable(std::unique_ptr<tensorflow::Session>& session,
   return session->MakeCallable(opts, handle);
 }
 
+// Start the profiling session.
+Status StartProfiling(std::unique_ptr<tensorflow::ProfilerSession>& profiler) {
+  profiler = tensorflow::ProfilerSession::Create(
+      tensorflow::ProfilerSession::DefaultOptions()
+  );
+  return profiler->Status();
+}
+
+// Tear down the profiler and export tensorboard logs.
+Status StopProfiling(std::unique_ptr<tensorflow::ProfilerSession>& profiler,
+                     const string& out_dir) {
+  tensorflow::profiler::XSpace xspace;
+  TF_RETURN_IF_ERROR(profiler->CollectData(&xspace));
+  tensorflow::profiler::ExportToTensorBoard(xspace, out_dir);
+  profiler.reset();
+  return Status::OK();
+}
+
 int main(int argc, char* argv[]) {
   // Parse arguments
   string model_path = "/path/to/model/";
@@ -151,6 +171,7 @@ int main(int argc, char* argv[]) {
   int32_t eval_iters = 800;
   bool input_from_device = true;
   bool output_to_host = true;
+  string out_dir = "";
   std::vector<Flag> flag_list = {
       Flag("model_path", &model_path, "graph to be executed"),
       Flag("signature_key", &signature_key, "the serving signature to use"),
@@ -159,6 +180,7 @@ int main(int argc, char* argv[]) {
       Flag("eval_iters", &eval_iters, "number of timed iterations to run"),
       Flag("input_from_device", &input_from_device, "use inputs from device, rather than host"),
       Flag("output_to_host", &output_to_host, "copy outputs to host after inference"),
+      Flag("out_dir", &out_dir, "if set, runs the profiler and exports to this directory"),
   };
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
   const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
@@ -205,18 +227,29 @@ int main(int argc, char* argv[]) {
   std::chrono::steady_clock::time_point eval_start_time;
   std::chrono::steady_clock::time_point start_time;
   std::chrono::steady_clock::time_point end_time;
+  std::unique_ptr<tensorflow::ProfilerSession> profiler;
   for (int i = 0; i < warmup_iters + eval_iters; i++) {
     if (i == warmup_iters) {
       LOG(INFO) << "Warmup done";
+      if (!out_dir.empty()) {
+        StartProfiling(profiler);
+      }
       eval_start_time = std::chrono::steady_clock::now();
     }
 
-    start_time = std::chrono::steady_clock::now();
-    TFTRT_ENSURE_OK(
-        bundle.session->RunCallable(handle, inputs_device, &outputs, nullptr));
-    // Sync, as `set_fetch_skip_sync(false)` is currently not implemented
-    TFTRT_ENSURE_OK(device->Sync());
-    end_time = std::chrono::steady_clock::now();
+    {
+      tensorflow::profiler::TraceMe trace([&i, &warmup_iters]() {
+        return tensorflow::profiler::TraceMeEncode(
+          "gpu_compute", {{"iter", i - warmup_iters}}
+        );
+      }, 1);
+      start_time = std::chrono::steady_clock::now();
+      TFTRT_ENSURE_OK(
+          bundle.session->RunCallable(handle, inputs_device, &outputs, nullptr));
+      // Sync, as `set_fetch_skip_sync(false)` is currently not implemented
+      TFTRT_ENSURE_OK(device->Sync());
+      end_time = std::chrono::steady_clock::now();
+    }
 
     if ((i % 10) == 0) {
       LOG(INFO) << "step: " << i;
@@ -224,6 +257,9 @@ int main(int argc, char* argv[]) {
 
     double duration = (end_time - start_time).count() / 1e6;
     infer_time.push_back(duration);
+  }
+  if (!out_dir.empty()) {
+    StopProfiling(profiler, out_dir);
   }
   TFTRT_ENSURE_OK(bundle.session->ReleaseCallable(handle));
 
