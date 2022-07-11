@@ -67,6 +67,12 @@ Status LoadModel(const string& model_dir, const string& signature_key,
                  std::vector<tensorflow::TensorInfo>* output_info) {
   tensorflow::RunOptions run_options;
   tensorflow::SessionOptions sess_options;
+
+  tensorflow::OptimizerOptions* optimizer_options =
+      sess_options.config.mutable_graph_options()->mutable_optimizer_options();
+  optimizer_options->set_opt_level(tensorflow::OptimizerOptions::L0);
+  optimizer_options->set_global_jit_level(tensorflow::OptimizerOptions::OFF);
+
   sess_options.config.mutable_gpu_options()->force_gpu_compatible();
   TF_RETURN_IF_ERROR(tensorflow::LoadSavedModel(sess_options, run_options,
                                                 model_dir, {"serve"}, bundle));
@@ -141,8 +147,8 @@ int main(int argc, char* argv[]) {
   string model_path = "/path/to/model/";
   string signature_key = "serving_default";
   int32_t batch_size = 64;
-  int32_t warmup_iters = 50;
-  int32_t eval_iters = 1000;
+  int32_t warmup_iters = 200;
+  int32_t eval_iters = 800;
   bool input_from_device = true;
   bool output_to_host = true;
   std::vector<Flag> flag_list = {
@@ -211,6 +217,10 @@ int main(int argc, char* argv[]) {
     // Sync, as `set_fetch_skip_sync(false)` is currently not implemented
     TFTRT_ENSURE_OK(device->Sync());
     end_time = std::chrono::steady_clock::now();
+
+    if ((i % 10) == 0) {
+      LOG(INFO) << "step: " << i;
+    }
 
     double duration = (end_time - start_time).count() / 1e6;
     infer_time.push_back(duration);
