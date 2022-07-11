@@ -23,7 +23,7 @@ class CustomTestCase(unittest.TestCase):
             raise self.failureException('{} raised'.format(exc_type.__name__))
 
 
-_excludes_paths = ["tftrt/blog_posts/", "tftrt/examples/third_party"]
+_excludes_paths = ["tftrt/blog_posts/"]
 
 
 def list_all_py_files():

@@ -1,6 +1,6 @@
 # Benchmark Runner
 
-This straightforward example uses TF's C++ API to serve a saved model and measure throughput. Built off of the [example here](https://github.com/tensorflow/tensorrt/tree/fb0a2cf638c8707041e42451c601247f04c7e6d8/tftrt/examples/cpp/image-classification).
+This straightforward example uses TF's C++ API to serve a saved model and measure throughput. Built off of the [example here](https://github.com/tensorflow/tensorrt/tree/master/tftrt/benchmarking-python/cpp/image-classification).
 
 ## Docker Environment
 

@@ -10,7 +10,7 @@ validating accuracy (e.g. mAP).
 <a name="setup"></a>
 ## Setup
 
-Install object detection dependencies (from tftrt/examples/object_detection)
+Install object detection dependencies (from tftrt/benchmarking-python/object_detection)
 
 ```bash
 git submodule update --init

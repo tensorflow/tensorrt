@@ -16,8 +16,8 @@ performance of TF-TRT. For more information see
 
 ## Examples
 
-* [Image Classification](tftrt/examples/image_classification)
-* [Object Detection](tftrt/examples/object_detection)
+* [Image Classification](tftrt/benchmarking-python/image_classification)
+* [Object Detection](tftrt/benchmarking-python/object_detection)
 
 
 # Using TensorRT in TensorFlow (TF-TRT)
@@ -38,7 +38,7 @@ If you want to use TF-TRT on NVIDIA Jetson platform, you can find
 the download links for the relevant Tensorflow pip packages here:
 https://docs.nvidia.com/deeplearning/dgx/index.html#installing-frameworks-for-jetson
 
-You can also use [NVIDIA's Tensorflow container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow)(tested and published monthly). 
+You can also use [NVIDIA's Tensorflow container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow)(tested and published monthly).
 
 ## Installing TensorRT
 
