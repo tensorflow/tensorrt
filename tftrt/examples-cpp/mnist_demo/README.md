@@ -15,7 +15,7 @@ The MNIST inference example is based on https://github.com/bmzhao/saved-model-ex
 git clone https://github.com/tensorflow/tensorrt.git
 git clone https://github.com/tensorflow/tensorflow.git tensorflow-source
 mkdir bazel-cache
-docker run --gpus=all --rm -it --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v $PWD:/workspace -w /workspace -v $PWD/bazel-cache:/root/.cache/bazel nvcr.io/nvidia/tensorflow:21.06-tf2-py3
+docker run --gpus=all --rm -it --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v $PWD:/workspace -w /workspace -v $PWD/bazel-cache:/root/.cache/bazel nvcr.io/nvidia/tensorflow:22.06-tf2-py3
 
 # Inside the container
 cp /opt/tensorflow/nvbuild* /opt/tensorflow/bazel_build.sh .

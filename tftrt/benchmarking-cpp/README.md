@@ -7,13 +7,13 @@ This straightforward example uses TF's C++ API to serve a saved model and measur
 Pull the image:
 
 ```
-docker pull nvcr.io/nvidia/tensorflow:22.05-tf2-py3
+docker pull nvcr.io/nvidia/tensorflow:22.06-tf2-py3
 ```
 
 Start the container:
 
 ```
-docker run --rm --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -it --name TFTRT_CPP nvcr.io/nvidia/tensorflow:22.05-tf2-py3
+docker run --rm --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -it --name TFTRT_CPP nvcr.io/nvidia/tensorflow:22.06-tf2-py3
 ```
 
 Clone the repo:

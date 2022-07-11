@@ -34,7 +34,7 @@ add_executable(tf_trt_example main.cc mnist.h mnist.cc)
 target_link_libraries(tf_trt_example tensorflow_cc)
 target_link_libraries(tf_trt_example tensorflow_framework)
 
-target_compile_options(tf_trt_example PRIVATE -D_GLIBCXX_USE_CXX11_ABI=0 -DGOOGLE_CUDA -DGOOGLE_TENSORRT)
+target_compile_options(tf_trt_example PRIVATE -D_GLIBCXX_USE_CXX11_ABI=1 -DGOOGLE_CUDA -DGOOGLE_TENSORRT)
 
 target_link_directories(tf_trt_example PRIVATE ${tf_python_dir})
 target_link_directories(tf_trt_example PRIVATE ${tf_dir})
