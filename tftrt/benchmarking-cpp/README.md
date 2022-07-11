@@ -42,13 +42,7 @@ The binary will be located at `/opt/tensorflow/tensorflow-source/bazel-bin/tenso
 
 ### Prebuilt
 
-For internal NVIDIA users, a container with a prebuilt modified Tensorflow is available:
-
-```
-docker run --rm --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -it --name TFTRT_CPP gitlab-master.nvidia.com:5005/dl/dgx/tensorflow:cpp-tensorboard-patch-py3-base
-```
-
-Use CMake to build the binary without needing to rebuild Tensorflow:
+For internal NVIDIA users, a container with a prebuilt modified Tensorflow is available. In the container, use CMake to build the binary without needing to rebuild Tensorflow:
 
 ```
 cd /workspace/tensorrt/tftrt/benchmarking-cpp
