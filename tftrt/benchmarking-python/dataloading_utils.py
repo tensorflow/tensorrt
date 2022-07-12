@@ -8,32 +8,29 @@ import tensorflow as tf
 from benchmark_autotuner import auto_tf_func_tuner
 
 
-class SyntheticDataset(object):
-    def __iter__(self):
-        data = 0
-
-    def __init__(self, dataset, device):
-        dataset = dataset.take(count=1)  # loop over 1 batch
-        dataset = dataset.cache()
-        dataset = dataset.repeat()
-        dataset = dataset.prefetch(
-            buffer_size=tf.data.experimental.AUTOTUNE
-        )
-        dataset = dataset.apply(
-            tf.data.experimental.prefetch_to_device(
-                device,
-                buffer_size=tf.data.experimental.AUTOTUNE
-            )
-        )
-        self._ds = dataset
-        self._data_batch = next(iter(dataset))
-
-    def __iter__(self):
-        return iter(self._ds)
+def SyntheticDataset(dataset, device):
+    dataset = dataset.take(count=1)  # loop over 1 batch
+    dataset = dataset.cache()
+    dataset = dataset.repeat()
+    dataset = dataset.prefetch(
+        buffer_size=tf.data.experimental.AUTOTUNE
+    )
+    dataset = ensure_dataset_on_gpu(dataset, device)
+    return dataset
 
 
 def ensure_dataset_on_gpu(dataset, device):
-    if isinstance(dataset, SyntheticDataset):
+
+    # ensuring no tensor dtype == int32
+    input_batch = next(iter(dataset))
+    if isinstance(input_batch, dict):
+        input_batch = input_batch.values()
+    elif not isinstance(input_batch, (tuple, list)):
+        input_batch = [input_batch]
+
+    if any([t.dtype == tf.int32 for t in input_batch]):
+        print("[WARNING] The dataloader generates INT32 tensors. Prefetch to "
+              "GPU not supported")
         return dataset
 
     try:
