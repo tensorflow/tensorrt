@@ -33,8 +33,9 @@ import inspect
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
+
+benchmark_base_dir = os.path.dirname(currentdir)
+sys.path.insert(0, benchmark_base_dir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
