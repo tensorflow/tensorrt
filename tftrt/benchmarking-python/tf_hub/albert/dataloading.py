@@ -18,13 +18,14 @@
 import tensorflow as tf
 import tensorflow_text as text  # Registers the ops.
 
-def get_dataset_cola(batch_size, filename, tokenizer_dir):
+def get_dataset_cola(batch_size, filename, tokenizer_dir, sequence_length):
+# This function is used to load data from the file in filename
     preprocessor = tf.saved_model.load(tokenizer_dir)
 
     def extract_actual_text_fn(line):
         line = tf.strings.regex_replace(line,"[0-9]\t","")
         line =  tf.strings.regex_replace(line,"[0-9]","")
-        encoder_ips =  preprocessor([line])
+        encoder_ips = preprocessor([line])
         encoder_ips = {
             key: tf.squeeze(value) for key, value in encoder_ips.items()
         }

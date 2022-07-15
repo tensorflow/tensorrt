@@ -10,7 +10,8 @@ pip install tensorflow_text tensorflow_hub scipy==1.4.1
 
 python ${BASE_DIR}/infer.py \
     --data_dir=/workspace/tftrt/benchmarking-python/tf_hub/albert/data \
-    --input_saved_model_dir=/models/tf_hub/albert \
+    --tokenizer_dir=/models/tf_hub/albert/tokenizer \
+    --input_saved_model_dir=/models/tf_hub/albert/albert_base \
     --batch_size=1 \
     --vocab_size=32000 \
     --sequence_length=128 \
@@ -19,6 +20,7 @@ python ${BASE_DIR}/infer.py \
     --total_max_samples=1000 \
     --use_synthetic_data  \
     --num_iterations=1000  \
+    `# --use_random_data` \
     ${@}
 
 #     # Execute the example

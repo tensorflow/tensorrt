@@ -17,37 +17,55 @@
 
 import os
 import sys
-
 import numpy as np
-
 import tensorflow as tf
-
 # Allow import of top level python files
 import inspect
+
+from dataloading import get_dataset_cola
 
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
+parentdir = os.path.dirname(currentdir)
+parentdir = os.path.dirname(parentdir)
 
-benchmark_base_dir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, benchmark_base_dir)
+sys.path.insert(0, parentdir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
 
 class CommandLineAPI(BaseCommandLineAPI):
-
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 
-        # self._parser.add_argument(
-        #     "--sequence_length",
-        #     type=int,
-        #     default=128,
-        #     help="Input data sequence length."
-        # )
+        self._parser.add_argument(
+            "--sequence_length",
+            type=int,
+            default=128,
+            help="Input data sequence length."
+        )
 
+        self._parser.add_argument(
+            "--vocab_size",
+            type=int,
+            required=True,
+            help="Size of the vocabulary used for training. Refer to "
+            "tensorflow documentation."
+        )
+        self._add_bool_argument(
+            name="use_random_data",
+            default=False,
+            required=False,
+            help="If set to True, the benchmark will use tf.random to generate data"
+        )
+        self._parser.add_argument(
+            "--tokenizer_dir",
+            type=str,
+            required=True,
+            help="Provide the directory where the tokenizer's saved_model is stored"
+        )
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
@@ -66,13 +84,56 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        # seq = generate_a_sequence(self._args.sequence_length)
+        if not self._args.use_random_data:
+            dataset = get_dataset_cola(
+                            batch_size=self._args.batch_size,
+                            filename=os.path.join(self._args.data_dir,'test_cola.tsv'),
+                            tokenizer_dir=os.path.join(self._args.tokenizer_dir),
+                            sequence_length=self._args.sequence_length
+                            )
+            return dataset, None
+        else:
+            tf.random.set_seed(10)
 
-        # - https://www.tensorflow.org/guide/data_performance
-        # - https://www.tensorflow.org/guide/data
-        # dataset = tf.data....
+            input_mask = tf.random.uniform(
+                shape=(1, self._args.sequence_length),
+                maxval=self._args.vocab_size,
+                dtype=tf.int32
+            )
+            input_type_ids = tf.random.uniform(
+                shape=(1, self._args.sequence_length),
+                maxval=self._args.vocab_size,
+                dtype=tf.int32
+            )
+            input_word_ids = tf.random.uniform(
+                shape=(1, self._args.sequence_length),
+                maxval=self._args.vocab_size,
+                dtype=tf.int32
+            )
 
-        return dataset, None
+            ds_mask = tf.data.Dataset.from_tensor_slices(input_mask)
+            ds_typeids = tf.data.Dataset.from_tensor_slices(input_type_ids)
+            ds_wordids = tf.data.Dataset.from_tensor_slices(input_word_ids)
+            dataset = tf.data.Dataset.zip((ds_mask, ds_typeids, ds_wordids))
+
+            def map_dict_fn(input_mask, input_type_ids, input_word_ids):
+                return  {
+                    "input_mask":input_mask,
+                    "input_type_ids":input_type_ids,
+                    "input_word_ids":input_word_ids
+                }
+            dataset = dataset.map(
+                map_dict_fn,
+                num_parallel_calls=tf.data.AUTOTUNE
+            )
+
+            dataset = dataset.repeat()
+            dataset = dataset.batch(self._args.batch_size)
+            dataset = dataset.take(count=1)  # loop over 1 batch
+            dataset = dataset.cache()
+            dataset = dataset.repeat()
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+            return dataset, None
 
     def preprocess_model_inputs(self, data_batch):
         """This function prepare the `data_batch` generated from the dataset.
@@ -81,10 +142,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             y: data to be used for model evaluation
 
         Note: script arguments can be accessed using `self._args.attr`
-        """
 
-        x = data_batch
-        return x, None
+        return data_batch, None
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
@@ -109,7 +168,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         # NOTE: PLEASE ONLY MODIFY THE NAME OF THE ACCURACY METRIC
 
-        return None, "<ACCURACY METRIC NAME>"
+        return None, "Masked Language Model Accuracy"
 
 
 if __name__ == '__main__':
@@ -119,30 +178,3 @@ if __name__ == '__main__':
 
     runner = BenchmarkRunner(args)
     runner.execute_benchmark()
-
-################ TO BE REMOVED - HIGH LEVEL CONCEPT #####################
-
-import time
-
-model_fn = load_my_model("/path/to/my/model")
-
-dataset, _ = get_dataset_batches()  # dataset, None
-
-ds_iter = iter(dataset)
-
-for idx, batch in enumerate(ds_iter):
-    print(f"Batch ID: {idx + 1} - Data: {batch}")
-
-    # - IF NEEDED - This transforms the inputs - Most cases it doesn't do anything
-    # let's say transforming a list into a dict() or reverse
-    batch = preprocess_model_inputs(batch)
-
-    start_t = time.time()
-    outputs = model_fn(batch)
-    print(f"Inference Time: {(time.time() - start_t)*1000:.1f}ms")  # 0.001
-
-    ## post my outputs to "measure accuracy"
-    ## note: we skip that
-
-print("Success")
-sys.exit(0)
