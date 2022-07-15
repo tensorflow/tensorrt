@@ -141,7 +141,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             x: input of the model
             y: data to be used for model evaluation
 
-        Note: script arguments can be accessed using `self._args.attr`
+        Note: script arguments can be accessed using `self._args.attr` """
 
         return data_batch, None
 
