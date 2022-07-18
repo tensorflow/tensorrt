@@ -50,7 +50,7 @@ class YAPF_Style_Test(unittest.TestCase):
                 diff, changed = FormatCode(
                     code,
                     filename=file,
-                    style_config='setup.cfg',
+                    style_config='.style.yapf',
                     print_diff=True
                 )
 
@@ -71,7 +71,7 @@ class YAPF_Style_Test(unittest.TestCase):
 
         if self.badly_formatted_files:
             for filename in self.badly_formatted_files:
-                str_err += f"yapf -i --style=setup.cfg {filename}\n"
+                str_err += f"yapf -i --style=.style.yapf {filename}\n"
 
             str_err = "\n======================================================================================\n" \
                         f"Bad Coding Style: {len(self.badly_formatted_files)} file(s) need to be formatted, run the following commands to fix: \n" \

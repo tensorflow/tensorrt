@@ -1,10 +1,4 @@
-[tool:pytest]
-minversion = 6.0
-addopts = -ra -q -s
-testpaths =
-    tests
-
-[yapf]
+[style]
 based_on_style = google
 
 # The number of columns to use for indentation.
