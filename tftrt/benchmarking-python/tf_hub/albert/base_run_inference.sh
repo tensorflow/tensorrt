@@ -12,14 +12,15 @@ pip install tensorflow_text tensorflow_hub scipy==1.4.1
 
 # Runtime Parameters
 MODEL_NAME=""
-DATASET_NAME="realnewslike"
+DATASET_NAME=""
 
 # Default Argument Values
 BATCH_SIZE=32
 SEQ_LEN=128
+VOCAB_SIZE=33000
 
 NUM_ITERATIONS=1000
-OUTPUT_TENSOR_NAMES="encoder_last_hidden_state,logits,past_key_values"
+OUTPUT_TENSOR_NAMES="albert_encoder,albert_encoder_1,albert_encoder_2,albert_encoder_3,albert_encoder_4,albert_encoder_5,albert_encoder_6,albert_encoder_7,albert_encoder_8,albert_encoder_9,albert_encoder_10,albert_encoder_11,albert_encoder_12,albert_encoder_13"
 
 BYPASS_ARGUMENTS=""
 
@@ -47,6 +48,10 @@ do
         NUM_ITERATIONS="${arg#*=}"
         shift # Remove --num_iterations= from processing
         ;;
+        --vocab_size=*)
+        VOCAB_SIZE="${arg#*=}"
+        shift # Remove --vocab_size= from processing
+        ;;
         --output_tensors_name=*)
         OUTPUT_TENSOR_NAMES="${arg#*=}"
         shift # Remove --output_tensors_name= from processing
@@ -58,7 +63,7 @@ do
         --input_saved_model_dir=*)
         shift # Remove --input_saved_model_dir= from processing
         ;;
-        --tokenizer_model_dir=*)
+        --tokenizer_dir=*)
         shift # Remove --tokenizer_model_dir= from processing
         ;;
         --total_max_samples=*)
@@ -85,7 +90,7 @@ echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
 
-DATA_DIR="/data/c4/${DATASET_NAME}"
+DATA_DIR="/workspace/tftrt/benchmarking-python/tf_hub/albert/data"
 MODEL_DIR="/models/tf_hub/albert/${MODEL_NAME}/"
 TOKENIZER_DIR="/models/tf_hub/albert/tokenizer"
 
@@ -100,7 +105,7 @@ if [[ ! -d ${MODEL_DIR} ]]; then
 fi
 
 if [[ ! -d ${TOKENIZER_DIR} ]]; then
-    echo "ERROR: \`--tokenizer_model_dir=/path/to/directory\` does not exist. [Received: \`${TOKENIZER_DIR}\`]"
+    echo "ERROR: \`--tokenizer_dir=/path/to/directory\` does not exist. [Received: \`${TOKENIZER_DIR}\`]"
     exit 1
 fi
 
@@ -110,7 +115,7 @@ python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
     --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
-    --tokenizer_model_dir=${TOKENIZER_DIR}\
+    --tokenizer_dir=${TOKENIZER_DIR}\
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     `# The following is set because we will be running synthetic benchmarks` \
     --total_max_samples=1 \

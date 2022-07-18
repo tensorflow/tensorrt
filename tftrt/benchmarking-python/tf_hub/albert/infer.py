@@ -50,7 +50,7 @@ class CommandLineAPI(BaseCommandLineAPI):
         self._parser.add_argument(
             "--vocab_size",
             type=int,
-            required=True,
+            default=33000,
             help="Size of the vocabulary used for training. Refer to "
             "tensorflow documentation."
         )
@@ -63,7 +63,7 @@ class CommandLineAPI(BaseCommandLineAPI):
         self._parser.add_argument(
             "--tokenizer_dir",
             type=str,
-            required=True,
+            required=False,
             help="Provide the directory where the tokenizer's saved_model is stored"
         )
 
