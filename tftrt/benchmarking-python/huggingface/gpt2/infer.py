@@ -35,8 +35,6 @@ sys.path.insert(0, benchmark_base_dir)
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
-import dataloader
-
 
 class CommandLineAPI(BaseCommandLineAPI):
 
@@ -51,33 +49,18 @@ class CommandLineAPI(BaseCommandLineAPI):
         )
 
         self._parser.add_argument(
-            "--vocab_dir",
-            type=str,
-            required=True,
-            help="Directory containing the sentence piece model used by tokenizer. "
-            "Default to tokenizer_model_dir."
-        )
-
-        self._parser.add_argument(
             "--sequence_length",
             type=int,
-            default=128,
+            default=1024,
             help="Input data sequence length."
         )
 
         self._parser.add_argument(
             "--vocab_size",
             type=int,
-            default=512,
+            default=50257,
             help="Size of the vocabulory used for training. Refer to "
             "huggingface documentation."
-        )
-
-        self._add_bool_argument(
-            name="use_random_data",
-            default=False,
-            required=False,
-            help="If set to True, the dataloader will use `tf.random`."
         )
 
     def _validate_args(self, args):
@@ -105,20 +88,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        # if self._args.vocab_dir is None:
-        #     self._args.vocab_dir =  self._args.tokenizer_model_dir
 
-        # if not self._args.use_random_data:
-        #     dataset = dataloader.get_dataset_c4(
-        #         data_dir=self._args.data_dir,
-        #         vocab_dir=self._args.vocab_dir,
-        #         tokenizer_dir=self._args.tokenizer_model_dir,
-        #         sequence_length=self._args.sequence_length,
-        #         batch_size=self._args.batch_size,
-        #         vocab_size=self._args.vocab_size,
-        #     )
-
-        # else:
         tf.random.set_seed(12345)
 
         input_ids = tf.random.uniform(
@@ -126,7 +96,27 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             maxval=self._args.vocab_size,
             dtype=tf.int32
         )
-        dataset = tf.data.Dataset.from_tensor_slices(input_ids)
+        ds_inputs = tf.data.Dataset.from_tensor_slices(input_ids)
+
+        input_ids_1 = tf.random.uniform(
+            shape=(1, self._args.sequence_length),
+            maxval=self._args.vocab_size,
+            dtype=tf.int32
+        )
+        ds_inputs_1 = tf.data.Dataset.from_tensor_slices(input_ids_1)
+
+        input_ids_2 = tf.random.uniform(
+            shape=(1, self._args.sequence_length),
+            maxval=self._args.vocab_size,
+            dtype=tf.int32
+        )
+        ds_inputs_2 = tf.data.Dataset.from_tensor_slices(input_ids_2)
+
+        dataset = tf.data.Dataset.zip((
+            ds_inputs,
+            ds_inputs_1,
+            ds_inputs_2,
+        ))
 
         dataset = dataset.repeat()
         dataset = dataset.batch(self._args.batch_size)
@@ -145,9 +135,11 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-            x = {
-                "input_ids": data_batch[0]
-            }
+        x = {
+            "inputs": data_batch[0],
+            "inputs_1": data_batch[1],
+            "inputs_2": data_batch[2],
+        }
         return x, None
 
     def postprocess_model_outputs(self, predictions, expected):

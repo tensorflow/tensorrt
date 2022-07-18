@@ -7,12 +7,12 @@ set -x
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 python ${BASE_DIR}/infer.py \
-    --data_dir=/data/c4/realnewslike \
-    --input_saved_model_dir=/models/huggingface/t5/t5-small/saved_models/model \
-    --vocab_dir=/models/huggingface/t5/t5-small/saved_models/tokenizer \
-    --tokenizer_model_dir=/models/huggingface/t5/t5-small/saved_models/tokenizer \
+    --data_dir=/tmp \
+    --input_saved_model_dir=/workspace/tensorflow_tensorrt/tftrt/benchmarking-python/huggingface/gpt2/saved_models_temps/gpt2/saved_models/model \
+    --tokenizer_model_dir=/workspace/tensorflow_tensorrt/tftrt/benchmarking-python/huggingface/gpt2/saved_models_temps/gpt2/saved_models/tokenizer \
     --batch_size=32 \
-    --output_tensors_name="encoder_last_hidden_state,logits,past_key_values" \
+    --sequence_length=1024 \
+    --output_tensors_name="output_0" \
     `# The following is set because we will be running synthetic benchmarks` \
     --total_max_samples=1000 \
     --use_synthetic_data  \
