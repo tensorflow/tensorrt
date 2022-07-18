@@ -28,10 +28,6 @@ do
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
         ;;
-        # --dataset_name=*)
-        # DATASET_NAME="${arg#*=}"
-        # shift # Remove --dataset_name= from processing
-        # ;;
         --batch_size=*)
         BATCH_SIZE="${arg#*=}"
         shift # Remove --batch_size= from processing
@@ -49,9 +45,6 @@ do
         shift # Remove --output_tensors_name= from processing
         ;;
         ######### IGNORE ARGUMENTS BELOW
-        # --data_dir=*)
-        # shift # Remove --data_dir= from processing
-        # ;;
         --input_saved_model_dir=*)
         shift # Remove --input_saved_model_dir= from processing
         ;;
@@ -80,11 +73,8 @@ echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
 
-# MODEL_DIR="/models/huggingface/gpt2/saved_models/model"
-# TOKENIZER_DIR="/models/huggingface/gpt2/saved_models/tokenizer"
-
-MODEL_DIR="/workspace/tensorflow_tensorrt/tftrt/benchmarking-python/huggingface/gpt2/saved_models_temps/gpt2/saved_models/model"
-TOKENIZER_DIR="/workspace/tensorflow_tensorrt/tftrt/benchmarking-python/huggingface/gpt2/saved_models_temps/gpt2/saved_models/tokenizer"
+MODEL_DIR="/models/huggingface/gpt2/${MODEL_NAME}/model"
+TOKENIZER_DIR="/models/huggingface/gpt2/${MODEL_NAME}/tokenizer"
 
 
 if [[ ! -d ${MODEL_DIR} ]]; then
@@ -101,6 +91,7 @@ fi
 
 python ${BASE_DIR}/infer.py \
     --data_dir=/tmp \
+    --calib_data_dir=/tmp \
     --input_saved_model_dir=${MODEL_DIR} \
     --tokenizer_model_dir=${TOKENIZER_DIR} \
     --batch_size=${BATCH_SIZE} \

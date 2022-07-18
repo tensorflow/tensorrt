@@ -96,26 +96,25 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             maxval=self._args.vocab_size,
             dtype=tf.int32
         )
-        ds_inputs = tf.data.Dataset.from_tensor_slices(input_ids)
+        ds_input_ids = tf.data.Dataset.from_tensor_slices(input_ids)
 
-        input_ids_1 = tf.random.uniform(
+        attention_mask = tf.ones(
+            [1, self._args.sequence_length], 
+            dtype=tf.int32
+        )
+        ds_attention_mask = tf.data.Dataset.from_tensor_slices(attention_mask)
+
+        token_type_ids = tf.random.uniform(
             shape=(1, self._args.sequence_length),
             maxval=self._args.vocab_size,
             dtype=tf.int32
         )
-        ds_inputs_1 = tf.data.Dataset.from_tensor_slices(input_ids_1)
-
-        input_ids_2 = tf.random.uniform(
-            shape=(1, self._args.sequence_length),
-            maxval=self._args.vocab_size,
-            dtype=tf.int32
-        )
-        ds_inputs_2 = tf.data.Dataset.from_tensor_slices(input_ids_2)
+        ds_token_type_ids = tf.data.Dataset.from_tensor_slices(token_type_ids)
 
         dataset = tf.data.Dataset.zip((
-            ds_inputs,
-            ds_inputs_1,
-            ds_inputs_2,
+            ds_attention_mask,
+            ds_input_ids,
+            ds_token_type_ids,
         ))
 
         dataset = dataset.repeat()
@@ -136,9 +135,9 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
         x = {
-            "inputs": data_batch[0],
-            "inputs_1": data_batch[1],
-            "inputs_2": data_batch[2],
+            "attention_mask": data_batch[0],
+            "input_ids": data_batch[1],
+            "token_type_ids": data_batch[2],
         }
         return x, None
 
