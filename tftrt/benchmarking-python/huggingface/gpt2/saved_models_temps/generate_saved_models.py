@@ -24,6 +24,24 @@ if __name__ == "__main__":
 
     model = TFGPT2Model.from_pretrained('gpt2')
 
+    @tf.function
+    def infer_fn(inputs):
+        return model(inputs, use_cache=False)["last_hidden_state"]
+
+    infer_fn_concrete = infer_fn.get_concrete_function({
+        "input_ids": tf.TensorSpec([None, model.config.n_positions], dtype=tf.int32),
+        "attention_mask": tf.TensorSpec([None, model.config.n_positions], dtype=tf.int32),
+        "token_type_ids": tf.TensorSpec([None, model.config.n_positions], dtype=tf.int32),
+    })
+
+    # batch_size = 32
+    # inputs = {
+    #     "input_ids": tf.random.uniform([batch_size, model.config.n_positions], dtype=tf.int32, maxval=model.config.vocab_size),
+    #     "attention_mask": tf.ones([batch_size, model.config.n_positions], dtype=tf.int32),
+    #     "token_type_ids": tf.random.uniform([batch_size, model.config.n_positions], dtype=tf.int32, maxval=model.config.vocab_size),
+    # }
+    # data = infer_fn(inputs)
+
     try:
         shutil.rmtree(args.output_directory)
     except OSError: pass
@@ -39,9 +57,9 @@ if __name__ == "__main__":
         save_format="tf",
         overwrite=True,
         include_optimizer=False,
-        signatures=None,
+        signatures={"serving_default": infer_fn_concrete},
         options=None,
-        save_traces=True,
+        save_traces=False,
     )
 
     print(f"Saving `gpt2 tokenizer` in directory: `{tokenizer_dir}`.")
@@ -50,4 +68,3 @@ if __name__ == "__main__":
     data = tokenizer.save_pretrained(tokenizer_dir)
     print("Tokenizer Data Saved:")
     pprint(data)
-
