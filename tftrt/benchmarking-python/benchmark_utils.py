@@ -23,8 +23,10 @@ def force_gpu_resync(func):
         return wrapper
 
     except AttributeError:
-        print("[WARNING] Using deprecated API to resync GPUs. "
-              "Non negligeable overhead might be present.")
+        print(
+            "[WARNING] Using deprecated API to resync GPUs. "
+            "Non negligeable overhead might be present."
+        )
         p = tf.constant(0.)  # Create small tensor to force GPU resync
 
         def wrapper(*args, **kwargs):
@@ -214,6 +216,7 @@ def patch_dali_dataset(dataset):
         )
 
     def take(self, limit):
+
         class _Dataset(self.__class__):
 
             def __init__(self, _ds, _limit):

@@ -100,10 +100,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
             def __init__(self, imgs, lbls, batch_size):
                 super(EvalPipeline, self).__init__(
-                    batch_size=batch_size,
-                    num_threads=8,
-                    device_id=0,
-                    seed=0
+                    batch_size=batch_size, num_threads=8, device_id=0, seed=0
                 )
                 self.input_x = get_reader(imgs)
                 self.input_y = get_reader(lbls)
@@ -114,8 +111,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                     self.input_y(name="ReaderY").gpu()
                 )
                 img, lbl = (
-                    fn.reshape(img, layout="DHWC"),
-                    fn.reshape(lbl, layout="DHWC")
+                    fn.reshape(img,
+                               layout="DHWC"), fn.reshape(lbl, layout="DHWC")
                 )
                 return img, lbl
 
@@ -162,7 +159,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         expected = np.squeeze(expected.numpy(), axis=-1)
 
         return predictions, expected
-
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.

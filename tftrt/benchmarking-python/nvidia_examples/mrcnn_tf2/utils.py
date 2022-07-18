@@ -193,12 +193,15 @@ def process_boxes_classes_indices_for_training(data, use_category):
 
 def create_dummy_labels(args):
     labels = {
-        'cropped_gt_masks': tf.zeros(
-            (args.max_num_instances, args.gt_mask_size, args.gt_mask_size),
-            dtype=tf.float32
-        ),
-        'gt_boxes': tf.zeros((args.max_num_instances, 4), dtype=tf.float32),
-        'gt_classes': tf.zeros((args.max_num_instances, 1), dtype=tf.float32),
+        'cropped_gt_masks':
+            tf.zeros(
+                (args.max_num_instances, args.gt_mask_size, args.gt_mask_size),
+                dtype=tf.float32
+            ),
+        'gt_boxes':
+            tf.zeros((args.max_num_instances, 4), dtype=tf.float32),
+        'gt_classes':
+            tf.zeros((args.max_num_instances, 1), dtype=tf.float32),
     }
     x, y = args.image_size
 
@@ -206,12 +209,10 @@ def create_dummy_labels(args):
     y = y // 2**args.min_level
 
     for level in range(args.min_level, args.max_level + 1):
-        labels['score_targets_%d' % level] = tf.zeros(
-          (x, y, args.num_anchors), dtype=tf.int32
-        )
-        labels['box_targets_%d' % level] = tf.zeros(
-          (x, y, args.num_anchors * 4), dtype=tf.float32
-        )
+        labels['score_targets_%d' % level] = tf.zeros((x, y, args.num_anchors),
+                                                      dtype=tf.int32)
+        labels['box_targets_%d' % level
+              ] = tf.zeros((x, y, args.num_anchors * 4), dtype=tf.float32)
         x = x // 2
         y = y // 2
 
@@ -310,7 +311,9 @@ def dataset_parser(value, args):
                 max_level=args.max_level,
             )
             boxes = pad_to_fixed_size(boxes, -1, [args.max_num_instances, 4])
-            classes = pad_to_fixed_size(classes, -1, [args.max_num_instances, 1])
+            classes = pad_to_fixed_size(
+                classes, -1, [args.max_num_instances, 1]
+            )
 
             features = {
                 'source_ids': source_id,

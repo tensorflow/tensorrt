@@ -11,10 +11,22 @@ BASE_DOWNLOAD_PATH = "/tmp"
 _VARIANTS = ["en", "realnewslike", "en.noblocklist", "en.noclean"]
 
 _N_SHARDS_PER_SPLIT = {
-    "en": {"train": 1024, "validation": 8},
-    "realnewslike": {"train": 512, "validation": 1},
-    "en.noblocklist": {"train": 1024, "validation": 8},
-    "en.noclean": {"train": 7168, "validation": 64},
+    "en": {
+        "train": 1024,
+        "validation": 8
+    },
+    "realnewslike": {
+        "train": 512,
+        "validation": 1
+    },
+    "en.noblocklist": {
+        "train": 1024,
+        "validation": 8
+    },
+    "en.noclean": {
+        "train": 7168,
+        "validation": 64
+    },
 }
 
 # _DATA_URL = "https://huggingface.co/datasets/allenai/c4/resolve/1ddc917116b730e1859edef32896ec5c16be51d0/{name}/c4-{split}.{index:05d}-of-{n_shards:05d}.json.gz"
@@ -26,11 +38,11 @@ def download(url: str, fname: str):
     total = int(resp.headers.get('content-length', 0))
     # Can also replace 'file' with a io.BytesIO object
     with open(fname, 'wb') as file, tqdm(
-        desc=fname,
-        total=total,
-        unit='iB',
-        unit_scale=True,
-        unit_divisor=1024,
+            desc=fname,
+            total=total,
+            unit='iB',
+            unit_scale=True,
+            unit_divisor=1024,
     ) as bar:
         for data in resp.iter_content(chunk_size=1024):
             size = file.write(data)
@@ -52,7 +64,8 @@ if __name__ == "__main__":
 
         try:
             os.makedirs(variant_dir)
-        except FileExistsError: pass
+        except FileExistsError:
+            pass
 
         for split in ["train", "validation"]:
             if split == "train":
@@ -64,10 +77,7 @@ if __name__ == "__main__":
 
             for index in range(num_shards):
                 url = _DATA_URL.format(
-                    name=variant,
-                    split=split,
-                    index=index,
-                    n_shards=num_shards
+                    name=variant, split=split, index=index, n_shards=num_shards
                 )
 
                 filename = os.path.join(variant_dir, url.split("/")[-1])

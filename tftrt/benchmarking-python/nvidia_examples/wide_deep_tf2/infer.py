@@ -36,7 +36,6 @@ sys.path.insert(0, benchmark_base_dir)
 from benchmark_args import BaseCommandLineAPI as CommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
-
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
@@ -60,39 +59,62 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         """
 
         nvt_to_spark = {
-            "ad_id": "ad_id",
-            "ad_id_count": "ad_views_log_01scaled",
-            "ad_id_ctr": "pop_ad_id",
-            "advertiser_id": "ad_advertiser",
-            "advertiser_id_ctr": "pop_advertiser_id",
-            "campaign_id": "campaign_id",
-            "campaign_id_ctr": "pop_campain_id",
-            "clicked": "label",
-            "display_id": "display_id",
-            "document_id": "doc_event_id",
+            "ad_id":
+                "ad_id",
+            "ad_id_count":
+                "ad_views_log_01scaled",
+            "ad_id_ctr":
+                "pop_ad_id",
+            "advertiser_id":
+                "ad_advertiser",
+            "advertiser_id_ctr":
+                "pop_advertiser_id",
+            "campaign_id":
+                "campaign_id",
+            "campaign_id_ctr":
+                "pop_campain_id",
+            "clicked":
+                "label",
+            "display_id":
+                "display_id",
+            "document_id":
+                "doc_event_id",
             "document_id_document_id_promo_sim_categories":
                 "doc_event_doc_ad_sim_categories",
             "document_id_document_id_promo_sim_entities":
                 "doc_event_doc_ad_sim_entities",
             "document_id_document_id_promo_sim_topics":
                 "doc_event_doc_ad_sim_topics",
-            "document_id_promo": "doc_id",
-            "document_id_promo_count": "doc_views_log_01scaled",
-            "document_id_promo_ctr": "pop_document_id",
-            "geo_location": "event_geo_location",
-            "geo_location_country": "event_country",
-            "geo_location_state": "event_country_state",
-            "platform": "event_platform",
+            "document_id_promo":
+                "doc_id",
+            "document_id_promo_count":
+                "doc_views_log_01scaled",
+            "document_id_promo_ctr":
+                "pop_document_id",
+            "geo_location":
+                "event_geo_location",
+            "geo_location_country":
+                "event_country",
+            "geo_location_state":
+                "event_country_state",
+            "platform":
+                "event_platform",
             "publish_time_days_since_published":
                 "doc_event_days_since_published_log_01scaled",
             "publish_time_promo_days_since_published":
                 "doc_ad_days_since_published_log_01scaled",
-            "publisher_id": "doc_event_publisher_id",
-            "publisher_id_promo": "doc_ad_publisher_id",
-            "publisher_id_promo_ctr": "pop_publisher_id",
-            "source_id": "doc_event_source_id",
-            "source_id_promo": "doc_ad_source_id",
-            "source_id_promo_ctr": "pop_source_id",
+            "publisher_id":
+                "doc_event_publisher_id",
+            "publisher_id_promo":
+                "doc_ad_publisher_id",
+            "publisher_id_promo_ctr":
+                "pop_publisher_id",
+            "source_id":
+                "doc_event_source_id",
+            "source_id_promo":
+                "doc_ad_source_id",
+            "source_id_promo_ctr":
+                "pop_source_id",
         }
 
         spark_to_nvt = {val: key for key, val in nvt_to_spark.items()}
@@ -158,10 +180,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         x, y = data_batch
 
-        y = {
-            "y": y,
-            "display_ids": x.pop('display_id')
-        }
+        y = {"y": y, "display_ids": x.pop('display_id')}
 
         return x, y
 
@@ -176,7 +195,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         expected["display_ids"] = expected["display_ids"].numpy()
 
         return predictions.numpy(), expected
-
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
@@ -206,10 +224,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         pad_length = 30 - tf.reduce_max(display_ids_ads_count)
 
         preds = tf.RaggedTensor.from_value_rowids(predictions,
-                                                display_ids_idx).to_tensor()
+                                                  display_ids_idx).to_tensor()
 
         labels = tf.RaggedTensor.from_value_rowids(labels,
-                                                display_ids_idx).to_tensor()
+                                                   display_ids_idx).to_tensor()
 
         labels_mask = tf.math.reduce_max(labels, 1)
         preds_masked = tf.boolean_mask(preds, labels_mask)

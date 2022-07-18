@@ -39,6 +39,7 @@ from benchmark_runner import BaseBenchmarkRunner
 # %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 
+
 class BenchmarkRunner(BaseBenchmarkRunner):
 
     def get_dataset_batches(self):

@@ -10,6 +10,7 @@ from benchmark_utils import force_gpu_resync
 
 
 class _TFFunctionAutoTuner(object):
+
     def __init__(self, funcs, calls_per_func, skip_n_first):
         if not isinstance(funcs, (tuple, list)):
             raise ValueError("Argument `funcs` must be a list or tuple.")
@@ -33,17 +34,23 @@ class _TFFunctionAutoTuner(object):
             output = self._fns[fn_id](*arg, **kwargs)
             self._timings[fn_id].append(time.time() - start_t)
         except IndexError:
-            print("\n[DEBUG] AutoTuning is over... Collecting timing statistics:")
+            print(
+                "\n[DEBUG] AutoTuning is over... Collecting timing statistics:"
+            )
             perf_data = []
             for idx, fn_stat in enumerate(self._timings):
                 perf_data.append(np.mean(fn_stat[self._skip_n_first:]))
-                print(f"\t- [DEBUG] Function ID: {idx} - "
-                      f"Name: {self._fns[idx].__name__:40s} - "
-                      f"Average Exec Time: {perf_data[-1]}")
+                print(
+                    f"\t- [DEBUG] Function ID: {idx} - "
+                    f"Name: {self._fns[idx].__name__:40s} - "
+                    f"Average Exec Time: {perf_data[-1]}"
+                )
 
             best_fn_id = np.argmin(perf_data)
-            print(f"[DEBUG] Selecting function ID: {best_fn_id}. "
-                  f"Setting exec path to: `{self._fns[best_fn_id].__name__}`\n")
+            print(
+                f"[DEBUG] Selecting function ID: {best_fn_id}. "
+                f"Setting exec path to: `{self._fns[best_fn_id].__name__}`\n"
+            )
 
             self._best_fn = self._fns[best_fn_id]
             return self._best_fn(*arg, **kwargs)
@@ -58,6 +65,7 @@ class _TFFunctionAutoTuner(object):
 def _force_using_concrete_function(func):
     # `context` needs to be a closure of type list or dict for persistance
     context = []
+
     def _wrapper(*args, **kwargs):
         try:
             return context[0](*args, **kwargs)
@@ -65,6 +73,7 @@ def _force_using_concrete_function(func):
             print(f"[INFO] Building the concrete function")
             context.append(func.get_concrete_function(*args, **kwargs))
             return context[0](*args, **kwargs)
+
     return _wrapper
 
 
@@ -98,8 +107,10 @@ def auto_tf_func_tuner(
 
         funcs2autotune = [eager_function, tf_function]
         if use_synthetic_data:
-            print("[INFO] Allowing direct concrete_function call with "
-                  "synthetic data loader.")
+            print(
+                "[INFO] Allowing direct concrete_function call with "
+                "synthetic data loader."
+            )
             funcs2autotune.append(tf_concrete_function)
 
         return _TFFunctionAutoTuner(

@@ -12,9 +12,7 @@ def SyntheticDataset(dataset, device):
     dataset = dataset.take(count=1)  # loop over 1 batch
     dataset = dataset.cache()
     dataset = dataset.repeat()
-    dataset = dataset.prefetch(
-        buffer_size=tf.data.experimental.AUTOTUNE
-    )
+    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     dataset = ensure_dataset_on_gpu(dataset, device)
     return dataset
 
@@ -29,8 +27,10 @@ def ensure_dataset_on_gpu(dataset, device):
         input_batch = [input_batch]
 
     if any([t.dtype == tf.int32 for t in input_batch]):
-        print("[WARNING] The dataloader generates INT32 tensors. Prefetch to "
-              "GPU not supported")
+        print(
+            "[WARNING] The dataloader generates INT32 tensors. Prefetch to "
+            "GPU not supported"
+        )
         return dataset
 
     try:
@@ -46,8 +46,7 @@ def ensure_dataset_on_gpu(dataset, device):
         print(f"[INFO] Adding prefetch to device `{device}` to the dataset.")
         dataset = dataset.apply(
             tf.data.experimental.prefetch_to_device(
-                device=device,
-                buffer_size=tf.data.experimental.AUTOTUNE
+                device=device, buffer_size=tf.data.experimental.AUTOTUNE
             )
         )
         return dataset
@@ -69,7 +68,9 @@ def get_dequeue_batch_fn(ds_iter, use_xla=False, use_synthetic_data=False):
     return dequeue_batch_fn
 
 
-def get_force_data_on_gpu_fn(device="/gpu:0", use_xla=False, use_synthetic_data=False):
+def get_force_data_on_gpu_fn(
+    device="/gpu:0", use_xla=False, use_synthetic_data=False
+):
 
     @auto_tf_func_tuner(use_xla=use_xla, use_synthetic_data=use_synthetic_data)
     def force_data_on_gpu_fn(data):
@@ -77,7 +78,9 @@ def get_force_data_on_gpu_fn(device="/gpu:0", use_xla=False, use_synthetic_data=
             if isinstance(data, (list, tuple)):
                 return tf.identity_n(data)
             elif isinstance(data, dict):
-                return dict(zip(data.keys(), tf.identity_n(list(data.values()))))
+                return dict(
+                    zip(data.keys(), tf.identity_n(list(data.values())))
+                )
             else:
                 return tf.identity(data)
 

@@ -10,13 +10,7 @@ from transformers import AutoTokenizer
 from transformers import TFAutoModelWithLMHead
 from transformers import TFAutoModelForSeq2SeqLM
 
-SUPPORTED_MODELS = [
-    "t5-small",
-    "t5-base",
-    "t5-large",
-    "google/t5-v1_1-base"
-]
-
+SUPPORTED_MODELS = ["t5-small", "t5-base", "t5-large", "google/t5-v1_1-base"]
 
 if __name__ == "__main__":
 
@@ -48,12 +42,15 @@ if __name__ == "__main__":
 
     try:
         shutil.rmtree(args.output_directory)
-    except OSError: pass
+    except OSError:
+        pass
 
     model_dir = os.path.join(args.output_directory, "model")
     tokenizer_dir = os.path.join(args.output_directory, "tokenizer")
 
-    print(f"\n[INFO] Saving `{args.model_name} model` in directory: `{model_dir}`.")
+    print(
+        f"\n[INFO] Saving `{args.model_name} model` in directory: `{model_dir}`."
+    )
 
     tf.keras.models.save_model(
         model=model,
@@ -66,7 +63,9 @@ if __name__ == "__main__":
         save_traces=True
     )
 
-    print(f"\n[INFO] Saving `{args.model_name} tokenizer` in directory: `{tokenizer_dir}`.")
+    print(
+        f"\n[INFO] Saving `{args.model_name} tokenizer` in directory: `{tokenizer_dir}`."
+    )
 
     # Reload with `AutoTokenizer.from_pretrained(tokenizer_dir)`
     data = tokenizer.save_pretrained(tokenizer_dir)

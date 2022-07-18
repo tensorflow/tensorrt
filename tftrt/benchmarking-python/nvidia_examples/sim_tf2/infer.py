@@ -55,9 +55,11 @@ class CommandLineAPI(BaseCommandLineAPI):
             help="Name of the output tensor, see `analysis.txt`"
         )
 
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
+
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
@@ -144,7 +146,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         return predictions, expected
 
-
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
 
@@ -159,7 +160,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             predictions["sim_model_1"][:, 0] - predictions["sim_model_1"][:, 1]
         )
         auc_score = auc(expected["sim_model_1"], logit_diff).numpy()
-
 
         return auc_score * 100, "ROC AUC"
 

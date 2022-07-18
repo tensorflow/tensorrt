@@ -111,8 +111,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         def preprocess_fn(image):
             if self._args.input_size is not None:
                 image = tf.image.resize(
-                    image,
-                    size=(self._args.input_size, self._args.input_size)
+                    image, size=(self._args.input_size, self._args.input_size)
                 )
                 image = tf.cast(image, tf.uint8)
             return image

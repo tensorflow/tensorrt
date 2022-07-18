@@ -144,8 +144,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         """
 
         predict_file = os.path.join(
-            self._args.data_dir,
-            "squad/v1.1/dev-v1.1.json"
+            self._args.data_dir, "squad/v1.1/dev-v1.1.json"
         )
 
         vocab_file = os.path.join(
@@ -179,14 +178,22 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             batch_size=1
         )
 
-        all_unique_ids = tf.convert_to_tensor(
-            [f.unique_id for f in eval_features], dtype=tf.int32)
-        all_input_ids = tf.convert_to_tensor(
-            [f.input_ids for f in eval_features], dtype=tf.int32)
-        all_input_mask = tf.convert_to_tensor(
-            [f.input_mask for f in eval_features], dtype=tf.int32)
-        all_segment_ids = tf.convert_to_tensor(
-            [f.segment_ids for f in eval_features], dtype=tf.int32)
+        all_unique_ids = tf.convert_to_tensor([
+            f.unique_id for f in eval_features
+        ],
+                                              dtype=tf.int32)
+        all_input_ids = tf.convert_to_tensor([
+            f.input_ids for f in eval_features
+        ],
+                                             dtype=tf.int32)
+        all_input_mask = tf.convert_to_tensor([
+            f.input_mask for f in eval_features
+        ],
+                                              dtype=tf.int32)
+        all_segment_ids = tf.convert_to_tensor([
+            f.segment_ids for f in eval_features
+        ],
+                                               dtype=tf.int32)
 
         dataset = tf.data.Dataset.from_tensor_slices(
             (all_unique_ids, all_input_ids, all_input_mask, all_segment_ids)

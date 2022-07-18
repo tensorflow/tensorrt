@@ -343,10 +343,7 @@ class BaseCommandLineAPI(object):
                 f"({args.num_iterations} <= {args.num_warmup_iterations})"
             )
 
-        if (
-            args.tf_profile_verbose and
-            args.tf_profile_export_path is None
-        ):
+        if (args.tf_profile_verbose and args.tf_profile_export_path is None):
             raise ValueError(
                 "`--tf_profile_verbose` can only be set if "
                 "`--tf_profile_export_path=/path/to/export` is defined."

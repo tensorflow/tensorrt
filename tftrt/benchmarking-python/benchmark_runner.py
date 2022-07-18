@@ -36,7 +36,6 @@ from tensorflow.python.framework.errors_impl import OutOfRangeError
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
 
-
 __all__ = ["BaseBenchmarkRunner"]
 
 
@@ -71,7 +70,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
         if args.use_xla_auto_jit:
             print("[Benchmark] - Activating XLA JIT Auto Clustering")
-            os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
+            os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2"
+            os.environ["TF_XLA_FLAGS"] += " --tf_xla_cpu_global_jit"
 
         if args.no_tf32:
             print("[Benchmark] - Deactivating the use of TF32 format")
@@ -111,10 +111,14 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 else:
                     try:
                         set_virtual_device_configuration = tf.config.set_virtual_device_configuration
-                        device_config = tf.config.LogicalDeviceConfiguration(memory_limit=gpu_mem_cap)
+                        device_config = tf.config.LogicalDeviceConfiguration(
+                            memory_limit=gpu_mem_cap
+                        )
                     except AttributeError:
                         set_virtual_device_configuration = tf.config.experimental.set_virtual_device_configuration
-                        device_config = tf.config.experimental.VirtualDeviceConfiguration(memory_limit=gpu_mem_cap)
+                        device_config = tf.config.experimental.VirtualDeviceConfiguration(
+                            memory_limit=gpu_mem_cap
+                        )
 
                     set_virtual_device_configuration(gpu, [device_config])
             except RuntimeError as e:
@@ -133,9 +137,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 return
 
             metric_dict = {
-              # Creating a copy to avoid modifying the original
-              "results": copy.deepcopy(metric_dict),
-              "runtime_arguments": vars(self._args)
+                # Creating a copy to avoid modifying the original
+                "results": copy.deepcopy(metric_dict),
+                "runtime_arguments": vars(self._args)
             }
 
             with open(file_path, 'w') as json_f:
@@ -160,6 +164,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             data = {f"metric_{k}": v for k, v in metric_dict.items()}
 
+            # yapf: disable
             args_to_save = [
                 "batch_size",
                 "input_saved_model_dir",
@@ -172,6 +177,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 "use_xla",
                 "use_xla_auto_jit"
             ]
+            # yapf: enable
 
             runtime_arguments = vars(self._args)
             for key in args_to_save:
@@ -181,11 +187,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             if not os.path.isfile(file_path):
                 with open(file_path, 'w') as outcsv:
-                    writer = csv.DictWriter(outcsv, fieldnames=fieldnames, delimiter=',')
+                    writer = csv.DictWriter(
+                        outcsv, fieldnames=fieldnames, delimiter=','
+                    )
                     writer.writeheader()
 
             with open(file_path, 'a') as outcsv:
-                writer = csv.DictWriter(outcsv, fieldnames=fieldnames, delimiter=',')
+                writer = csv.DictWriter(
+                    outcsv, fieldnames=fieldnames, delimiter=','
+                )
                 writer.writerow(data)
 
         except Exception as e:
@@ -209,7 +219,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             graph_func = saved_model_loaded.signatures[signature_key]
 
             if precision == "FP16":
-                tf.config.optimizer.set_experimental_options({"auto_mixed_precision": True})
+                tf.config.optimizer.set_experimental_options({
+                    "auto_mixed_precision": True
+                })
 
             # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
             # it looks like if the original trackable object is released by
@@ -429,7 +441,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             memcopy_times = []
             dequeue_times = []
 
-            def log_step(step_idx, display_every, iter_time, memcpyHtoD_time, dequeue_time):
+            def log_step(
+                step_idx, display_every, iter_time, memcpyHtoD_time,
+                dequeue_time
+            ):
                 if step_idx % display_every == 0:
                     print(
                         f"step {step_idx:04d}, "
@@ -439,6 +454,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     )
 
             if self._args.tf_profile_export_path:
+
                 def start_profiling():
                     if self._args.tf_profile_verbose:
                         profiler_opts = tf.profiler.experimental.ProfilerOptions(
@@ -482,9 +498,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             ds_iter = iter(dataset)
 
             dequeue_batch_fn = get_dequeue_batch_fn(
-              ds_iter,
-              use_xla=self._args.use_xla,
-              use_synthetic_data=self._args.use_synthetic_data
+                ds_iter,
+                use_xla=self._args.use_xla,
+                use_synthetic_data=self._args.use_synthetic_data
             )
 
             force_data_on_gpu_fn = get_force_data_on_gpu_fn(
@@ -500,10 +516,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 if step_idx == self._args.num_warmup_iterations - 5:
                     start_profiling()
 
-                if (
-                    self._args.num_iterations is not None and
-                    step_idx > self._args.num_iterations
-                ):
+                if (self._args.num_iterations is not None and
+                        step_idx > self._args.num_iterations):
                     break
 
                 with tracing_ctx('', step_num=step_idx, _r=1):
@@ -534,28 +548,44 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     log_step(
                         step_idx,
                         display_every=self._args.display_every,
-                        iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000,
-                        memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000,
-                        dequeue_time=np.mean(dequeue_times[-self._args.display_every:]) * 1000
+                        iter_time=np.mean(
+                            iter_times[-self._args.display_every:]
+                        ) * 1000,
+                        memcpyHtoD_time=np.mean(
+                            memcopy_times[-self._args.display_every:]
+                        ) * 1000,
+                        dequeue_time=np.mean(
+                            dequeue_times[-self._args.display_every:]
+                        ) * 1000
                     )
                 else:
-                    print(f"{'GPU Iteration Time':18s}: {iter_times[-1]:08.4f}s")
-                    print(f"{'Data MemCopyHtoD Time':18s}: {memcpyHtoD_time[-1]:08.4f}s")
-                    print(f"{'Data Dequeue Time':18s}: {dequeue_times[-1]:08.4f}s")
+                    print(
+                        f"{'GPU Iteration Time':18s}: {iter_times[-1]:08.4f}s"
+                    )
+                    print(
+                        f"{'Data MemCopyHtoD Time':18s}: {memcpyHtoD_time[-1]:08.4f}s"
+                    )
+                    print(
+                        f"{'Data Dequeue Time':18s}: {dequeue_times[-1]:08.4f}s"
+                    )
 
                 if not self._args.use_synthetic_data:
                     data_aggregator.aggregate_data(y_pred, y)
 
-            if (
-                not self._args.debug_performance and
-                step_idx % self._args.display_every != 0
-            ):  # avoids double printing
+            if (not self._args.debug_performance and
+                    step_idx % self._args.display_every !=
+                    0):  # avoids double printing
                 log_step(
                     step_idx,
                     display_every=1,  # force print
-                    iter_time=np.mean(iter_times[-self._args.display_every:]) * 1000,
-                    memcpyHtoD_time=np.mean(memcopy_times[-self._args.display_every:]) * 1000,
-                    dequeue_time=np.mean(dequeue_times[-self._args.display_every:]) * 1000
+                    iter_time=np.mean(iter_times[-self._args.display_every:]) *
+                    1000,
+                    memcpyHtoD_time=np.mean(
+                        memcopy_times[-self._args.display_every:]
+                    ) * 1000,
+                    dequeue_time=np.mean(
+                        dequeue_times[-self._args.display_every:]
+                    ) * 1000
                 )
 
             if step_idx >= 100:
@@ -588,13 +618,17 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
             metrics['Throughput (samples/sec)'] = (
-                self._args.batch_size / sp.stats.trim_mean(
-                    iter_times, self._args.trim_mean_percentage))
+                self._args.batch_size /
+                sp.stats.trim_mean(iter_times, self._args.trim_mean_percentage)
+            )
 
             def timing_metrics(time_arr, log_prefix):
                 data = dict()
-                data[f"{log_prefix} Trim Mean [{self._args.trim_mean_percentage * 100}%] (ms)"] = (
-                    sp.stats.trim_mean(time_arr, self._args.trim_mean_percentage) * 1000
+                data[
+                    f"{log_prefix} Trim Mean [{self._args.trim_mean_percentage * 100}%] (ms)"
+                ] = (
+                    sp.stats.
+                    trim_mean(time_arr, self._args.trim_mean_percentage) * 1000
                 )
                 data[f"{log_prefix} 99th_percentile (ms)"] = np.percentile(
                     time_arr, q=99, interpolation='lower'
@@ -606,8 +640,12 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 return data
 
             metrics.update(timing_metrics(iter_times, "GPU Latency"))
-            metrics.update(timing_metrics(dequeue_times, "Data Batch Dequeue Time"))
-            metrics.update(timing_metrics(memcopy_times, "Data MemCopyHtoD Time"))
+            metrics.update(
+                timing_metrics(dequeue_times, "Data Batch Dequeue Time")
+            )
+            metrics.update(
+                timing_metrics(memcopy_times, "Data MemCopyHtoD Time")
+            )
 
             self._export_runtime_metrics_to_json(metrics)
             self._export_runtime_metrics_to_csv(metrics)

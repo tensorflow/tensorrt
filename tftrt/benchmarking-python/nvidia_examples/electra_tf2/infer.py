@@ -178,24 +178,40 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         def get_dataset_from_features(features, batch_size):
 
-            all_unique_ids = tf.convert_to_tensor(
-                [f.unique_id for f in features], dtype=tf.int64)
-            all_input_ids = tf.convert_to_tensor(
-                [f.input_ids for f in features], dtype=tf.int64)
-            all_input_mask = tf.convert_to_tensor(
-                [f.attention_mask for f in features], dtype=tf.int64)
-            all_segment_ids = tf.convert_to_tensor(
-                [f.token_type_ids for f in features], dtype=tf.int64)
-            all_start_pos = tf.convert_to_tensor(
-                [f.start_position for f in features], dtype=tf.int64)
-            all_end_pos = tf.convert_to_tensor(
-                [f.end_position for f in features], dtype=tf.int64)
-            all_cls_index = tf.convert_to_tensor(
-                [f.cls_index for f in features], dtype=tf.int64)
-            all_p_mask = tf.convert_to_tensor(
-                [f.p_mask for f in features], dtype=tf.float32)
-            all_is_impossible = tf.convert_to_tensor(
-                [f.is_impossible for f in features], dtype=tf.float32)
+            all_unique_ids = tf.convert_to_tensor([
+                f.unique_id for f in features
+            ],
+                                                  dtype=tf.int64)
+            all_input_ids = tf.convert_to_tensor([
+                f.input_ids for f in features
+            ],
+                                                 dtype=tf.int64)
+            all_input_mask = tf.convert_to_tensor([
+                f.attention_mask for f in features
+            ],
+                                                  dtype=tf.int64)
+            all_segment_ids = tf.convert_to_tensor([
+                f.token_type_ids for f in features
+            ],
+                                                   dtype=tf.int64)
+            all_start_pos = tf.convert_to_tensor([
+                f.start_position for f in features
+            ],
+                                                 dtype=tf.int64)
+            all_end_pos = tf.convert_to_tensor([
+                f.end_position for f in features
+            ],
+                                               dtype=tf.int64)
+            all_cls_index = tf.convert_to_tensor([
+                f.cls_index for f in features
+            ],
+                                                 dtype=tf.int64)
+            all_p_mask = tf.convert_to_tensor([f.p_mask for f in features],
+                                              dtype=tf.float32)
+            all_is_impossible = tf.convert_to_tensor([
+                f.is_impossible for f in features
+            ],
+                                                     dtype=tf.float32)
 
             dataset = tf.data.Dataset.from_tensor_slices((
                 all_unique_ids, all_input_ids, all_input_mask, all_segment_ids,
@@ -309,7 +325,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         return predictions, expected
 
-
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
 
@@ -322,9 +337,11 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         result = []
         for i, unique_id in enumerate(np.squeeze(expected["unique_ids"])):
             start_logits = predictions['tf_electra_for_question_answering'][i]
-            start_top_index = predictions['tf_electra_for_question_answering_1'][i]
+            start_top_index = predictions['tf_electra_for_question_answering_1'
+                                         ][i]
             end_logits = predictions['tf_electra_for_question_answering_2'][i]
-            end_top_index = predictions['tf_electra_for_question_answering_3'][i]
+            end_top_index = predictions['tf_electra_for_question_answering_3'][i
+                                                                              ]
             cls_logits = predictions['tf_electra_for_question_answering_4'][i]
 
             result.append(
@@ -346,9 +363,11 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         )
 
         output_prediction_file = os.path.join(
-            self._args.output_dir, "predictions.json")
+            self._args.output_dir, "predictions.json"
+        )
         output_nbest_file = os.path.join(
-            self._args.output_dir, "nbest_predictions.json")
+            self._args.output_dir, "nbest_predictions.json"
+        )
 
         with open(output_prediction_file, "w") as f:
             f.write(json.dumps(answers, indent=4) + "\n")

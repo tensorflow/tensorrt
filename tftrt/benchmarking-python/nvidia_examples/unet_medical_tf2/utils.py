@@ -1,10 +1,7 @@
 import numpy as np
 
 from collections import deque
-from PIL import (
-    Image,
-    ImageSequence
-)
+from PIL import (Image, ImageSequence)
 
 import tensorflow as tf
 

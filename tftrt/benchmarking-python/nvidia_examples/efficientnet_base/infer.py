@@ -95,7 +95,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
             padded_center_crop_size = tf.cast(
                 ((image_size / (image_size+crop_padding)) *
-                tf.cast(tf.minimum(image_height, image_width), tf.float32)),
+                 tf.cast(tf.minimum(image_height, image_width), tf.float32)),
                 tf.int32
             )
 
@@ -244,14 +244,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         return (
             np.mean(
-                np.argmax(
-                    predictions["data"], 1) == np.argmax(expected["data"],
-                    axis=1
-                )
-            ) * 100.0,
-            "Top-1 Accuracy %"
+                np.argmax(predictions["data"], 1) ==
+                np.argmax(expected["data"], axis=1)
+            ) * 100.0, "Top-1 Accuracy %"
         )
-
 
 
 if __name__ == '__main__':

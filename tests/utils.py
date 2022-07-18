@@ -27,10 +27,7 @@ _excludes_paths = ["tftrt/blog_posts/"]
 
 
 def list_all_py_files():
-    for _dir in [
-        "tests",
-        os.path.join("tftrt", "benchmarking-python")
-    ]:
+    for _dir in ["tests", os.path.join("tftrt", "benchmarking-python")]:
         for _file in iglob(f"{_dir}/**/*.py", recursive=True):
             if any([path in _file for path in _excludes_paths]):
                 continue

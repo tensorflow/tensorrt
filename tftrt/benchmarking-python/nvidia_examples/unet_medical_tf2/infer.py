@@ -36,10 +36,7 @@ from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
 from utils import (
-    dice_coef,
-    get_val_train_indices,
-    load_multipage_tiff,
-    preproc_samples
+    dice_coef, get_val_train_indices, load_multipage_tiff, preproc_samples
 )
 
 
@@ -129,7 +126,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         """
 
         return predictions.numpy(), expected.numpy()
-
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.

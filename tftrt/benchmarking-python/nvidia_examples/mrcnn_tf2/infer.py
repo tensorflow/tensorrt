@@ -170,7 +170,9 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
 
-        dataset = dataset.batch(batch_size=args.batch_size, drop_remainder=False)
+        dataset = dataset.batch(
+            batch_size=args.batch_size, drop_remainder=False
+        )
 
         dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
@@ -230,7 +232,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         expected_np = {k: v.numpy() for k, v in expected.items()}
 
         return predictions_np, expected_np
-
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
