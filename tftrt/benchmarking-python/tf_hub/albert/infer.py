@@ -17,12 +17,12 @@
 
 import os
 import sys
+
 import numpy as np
 import tensorflow as tf
+
 # Allow import of top level python files
 import inspect
-
-from dataloading import get_dataset_cola
 
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
@@ -34,6 +34,8 @@ sys.path.insert(0, parentdir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
+
+from dataloading import get_dataset_cola
 
 
 class CommandLineAPI(BaseCommandLineAPI):
