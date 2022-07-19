@@ -169,7 +169,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             dataset = dataset.cache()
             dataset = dataset.repeat()
 
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset, None
 
     def preprocess_model_inputs(self, data_batch):

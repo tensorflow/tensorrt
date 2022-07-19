@@ -196,17 +196,17 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             tf.data.TFRecordDataset,
             cycle_length=10,
             block_length=1,
-            num_parallel_calls=tf.data.experimental.AUTOTUNE
+            num_parallel_calls=tf.data.AUTOTUNE
         )
 
         parse_record_fn = lambda record: parse_record(
             record=record, image_size=self._args.input_size
         )
         dataset = dataset.map(
-            parse_record_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE
+            parse_record_fn, num_parallel_calls=tf.data.AUTOTUNE
         )
         dataset = dataset.batch(self._args.batch_size, drop_remainder=False)
-        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
         return dataset, None
 

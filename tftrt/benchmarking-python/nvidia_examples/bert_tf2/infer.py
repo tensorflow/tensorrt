@@ -200,7 +200,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         )
 
         dataset = dataset.batch(self._args.batch_size, drop_remainder=False)
-        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
         bypass_data_to_eval = {
             "eval_features": eval_features,

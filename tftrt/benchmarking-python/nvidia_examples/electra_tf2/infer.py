@@ -220,9 +220,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             ))
 
             dataset = dataset.batch(batch_size, drop_remainder=False)
-            dataset = dataset.prefetch(
-                buffer_size=tf.data.experimental.AUTOTUNE
-            )
+            dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
             return dataset
 

@@ -103,9 +103,9 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         dataset = dataset.interleave(
             load_image_op,
-            cycle_length=tf.data.experimental.AUTOTUNE,
+            cycle_length=tf.data.AUTOTUNE,
             block_length=8,
-            num_parallel_calls=tf.data.experimental.AUTOTUNE
+            num_parallel_calls=tf.data.AUTOTUNE
         )
 
         def preprocess_fn(image):
@@ -118,12 +118,12 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         dataset = dataset.map(
             map_func=preprocess_fn,
-            num_parallel_calls=tf.data.experimental.AUTOTUNE,
+            num_parallel_calls=tf.data.AUTOTUNE,
         )
 
         dataset = dataset.batch(self._args.batch_size, drop_remainder=False)
 
-        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
         return dataset, None
 

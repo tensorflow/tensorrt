@@ -108,16 +108,16 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         dataset = dataset.map(
             map_func=partial(tf.io.parse_example, features=feature_spec),
-            num_parallel_calls=tf.data.experimental.AUTOTUNE
+            num_parallel_calls=tf.data.AUTOTUNE
         )
 
         out_type = tf.float16 if self._args.amp else tf.float32
         dataset = dataset.map(
             map_func=partial(_remap_values, out_type=out_type),
-            num_parallel_calls=tf.data.experimental.AUTOTUNE
+            num_parallel_calls=tf.data.AUTOTUNE
         )
 
-        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
         return dataset, None
 

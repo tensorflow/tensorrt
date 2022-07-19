@@ -12,7 +12,7 @@ def SyntheticDataset(dataset, device):
     dataset = dataset.take(count=1)  # loop over 1 batch
     dataset = dataset.cache()
     dataset = dataset.repeat()
-    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
     dataset = ensure_dataset_on_gpu(dataset, device)
     return dataset
 
@@ -46,7 +46,7 @@ def ensure_dataset_on_gpu(dataset, device):
         print(f"[INFO] Adding prefetch to device `{device}` to the dataset.")
         dataset = dataset.apply(
             tf.data.experimental.prefetch_to_device(
-                device=device, buffer_size=tf.data.experimental.AUTOTUNE
+                device=device, buffer_size=tf.data.AUTOTUNE
             )
         )
         return dataset
