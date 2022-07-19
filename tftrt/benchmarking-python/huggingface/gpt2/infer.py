@@ -106,7 +106,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         token_type_ids = tf.random.uniform(
             shape=(1, self._args.sequence_length),
-            maxval=self._args.vocab_size,
+            maxval=2,
             dtype=tf.int32
         )
         ds_token_type_ids = tf.data.Dataset.from_tensor_slices(token_type_ids)
