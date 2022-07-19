@@ -26,6 +26,8 @@ from dataloading_utils import ensure_dataset_on_gpu
 from dataloading_utils import get_dequeue_batch_fn
 from dataloading_utils import get_force_data_on_gpu_fn
 
+from versioning_utils import get_commit_id
+
 import numpy as np
 import scipy as sp
 import scipy.stats
@@ -36,7 +38,12 @@ from tensorflow.python.framework.errors_impl import OutOfRangeError
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
 
-__all__ = ["BaseBenchmarkRunner"]
+# The `__version__` number shall be updated everytime core benchmarking files
+# are updated.
+# Please update CHANGELOG.md with a description of what this version changed.
+__version__ = "1.0.0"
+
+__all__ = ["__version__", "BaseBenchmarkRunner"]
 
 
 class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
@@ -617,6 +624,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             dequeue_times = dequeue_times[self._args.num_warmup_iterations:-1]
 
             metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
+
+            metrics['__commit__'] = get_commit_id()
+            metrics['__version__'] = __version__
+
             metrics['Throughput (samples/sec)'] = (
                 self._args.batch_size /
                 sp.stats.trim_mean(iter_times, self._args.trim_mean_percentage)
@@ -651,7 +662,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             self._export_runtime_metrics_to_csv(metrics)
 
             def log_value(key, val):
-                if isinstance(val, int):
+                if isinstance(val, (int, str)):
                     print(f"- {key:50s}: {val}")
                 else:
                     print(f"- {key:50s}: {val:.2f}")
