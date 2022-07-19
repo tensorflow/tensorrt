@@ -12,7 +12,6 @@ pip install tensorflow_text tensorflow_hub scipy==1.4.1
 
 # Runtime Parameters
 MODEL_NAME=""
-DATASET_NAME=""
 
 # Default Argument Values
 BATCH_SIZE=32
@@ -31,10 +30,6 @@ do
         --model_name=*)
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
-        ;;
-        --dataset_name=*)
-        DATASET_NAME="${arg#*=}"
-        shift # Remove --dataset_name= from processing
         ;;
         --batch_size=*)
         BATCH_SIZE="${arg#*=}"
@@ -56,18 +51,17 @@ do
         OUTPUT_TENSOR_NAMES="${arg#*=}"
         shift # Remove --output_tensors_name= from processing
         ;;
-        ######### IGNORE ARGUMENTS BELOW
         --data_dir=*)
+        DATA_DIR="${arg#*=}"
         shift # Remove --data_dir= from processing
         ;;
         --input_saved_model_dir=*)
+        MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
         ;;
         --tokenizer_dir=*)
+        TOKENIZER_DIR="${arg#*=}"
         shift # Remove --tokenizer_model_dir= from processing
-        ;;
-        --total_max_samples=*)
-        shift # Remove --total_max_samples= from processing
         ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
@@ -77,9 +71,11 @@ done
 
 echo -e "\n********************************************************************"
 echo "[*] MODEL_NAME: ${MODEL_NAME}"
-echo "[*] DATASET_NAME: ${DATASET_NAME}"
 echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
+echo "[*] MODEL_DIR: ${MODEL_DIR}"
+echo "[*] TOKENIZER_DIR: ${TOKENIZER_DIR}"
+echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
 # Custom T5 Task Flags
@@ -90,9 +86,7 @@ echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
 
-DATA_DIR="/workspace/tftrt/benchmarking-python/tf_hub/albert/data"
-MODEL_DIR="/models/tf_hub/albert/${MODEL_NAME}/"
-TOKENIZER_DIR="/models/tf_hub/albert/tokenizer"
+MODEL_DIR="${MODEL_DIR}/${MODEL_NAME}/"
 
 if [[ ! -d ${DATA_DIR} ]]; then
     echo "ERROR: \`--data_dir=/path/to/directory\` does not exist. [Received: \`${DATA_DIR}\`]"

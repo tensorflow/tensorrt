@@ -9,14 +9,13 @@ mkdir -p ${BASE_BENCHMARK_DATA_EXPORT_DIR}
 #########################
 
 ALBERT_MODELS=(
-  # Historical Models
-  "albert_base"
-  # "albert_large"
-  # "albert_xlarge"
-  # "albert_xxlarge"
+    "albert_base"
+    "albert_large"
+    "albert_xlarge"
+    "albert_xxlarge"
 )
 
-RUN_ARGS="--debug --batch_size=32 --display_every=1"
+RUN_ARGS="--data_dir=/workspace/tftrt/benchmarking-python/tf_hub/albert/data --input_saved_model_dir=/models/tf_hub/albert --tokenizer_dir=/models/tf_hub/albert/tokenizer --debug --batch_size=32 --display_every=1"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 
