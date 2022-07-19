@@ -9,7 +9,8 @@ BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 pip install --no-deps \
     tensorflow-transform~=0.24 \
     tensorflow-metadata~=0.24 \
-    tfx-bsl~=0.24
+    tfx-bsl~=0.24 \
+    "pydot>=1.2,<2"  `# necessary for tensorflow_transform`
 
 python ${BASE_DIR}/infer.py \
     --data_dir=/data/outbrain \

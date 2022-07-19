@@ -143,3 +143,6 @@ variables.data*
 
 # Top Level Script Files
 /*.sh
+
+# Benchmark Result Dir
+/benchmark_data
