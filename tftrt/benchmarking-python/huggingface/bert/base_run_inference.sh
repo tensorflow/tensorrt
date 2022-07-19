@@ -83,6 +83,8 @@ echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
+echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
+echo ""
 # Custom Transormer Task Flags
 echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo "[*] SEQ_LEN: ${SEQ_LEN}"

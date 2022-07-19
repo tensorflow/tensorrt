@@ -47,18 +47,17 @@ do
         OUTPUT_TENSOR_NAMES="${arg#*=}"
         shift # Remove --output_tensors_name= from processing
         ;;
-        ######### IGNORE ARGUMENTS BELOW
         --data_dir=*)
+        DATA_DIR="${arg#*=}"
         shift # Remove --data_dir= from processing
         ;;
         --input_saved_model_dir=*)
+        MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
         ;;
         --tokenizer_model_dir=*)
+        TOKENIZER_DIR="${arg#*=}"
         shift # Remove --tokenizer_model_dir= from processing
-        ;;
-        --total_max_samples=*)
-        shift # Remove --total_max_samples= from processing
         ;;
         *)
         BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
@@ -71,6 +70,9 @@ echo "[*] MODEL_NAME: ${MODEL_NAME}"
 echo "[*] DATASET_NAME: ${DATASET_NAME}"
 echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
+echo "[*] MODEL_DIR: ${MODEL_DIR}"
+echo "[*] TOKENIZER_DIR: ${TOKENIZER_DIR}"
+echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
 # Custom T5 Task Flags
@@ -81,9 +83,9 @@ echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
 
-DATA_DIR="/data/c4/${DATASET_NAME}"
-MODEL_DIR="/models/huggingface/t5/${MODEL_NAME}/saved_models/model"
-TOKENIZER_DIR="/models/huggingface/t5/${MODEL_NAME}/saved_models/tokenizer"
+DATA_DIR="${DATA_DIR}/${DATASET_NAME}"
+MODEL_DIR="${MODEL_DIR}/${MODEL_NAME}/saved_models/model"
+TOKENIZER_DIR="${TOKENIZER_DIR}/${MODEL_NAME}/saved_models/tokenizer"
 
 if [[ ! -d ${DATA_DIR} ]]; then
     echo "ERROR: \`--data_dir=/path/to/directory\` does not exist. [Received: \`${DATA_DIR}\`]"

@@ -13,7 +13,7 @@ T5_MODELS=(
   "t5-v1_1-base"
 )
 
-RUN_ARGS="--dataset_name=realnewslike --debug --batch_size=32 --display_every=1"
+RUN_ARGS="--data_dir=/data/c4 --dataset_name=realnewslike --debug --batch_size=32 --display_every=1"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 
