@@ -2,8 +2,6 @@
 
 nvidia-smi
 
-set -x
-
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 #install packages for the rest of the script
