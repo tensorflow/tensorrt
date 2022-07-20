@@ -2,13 +2,11 @@
 
 nvidia-smi
 
-set -x
-
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Runtime Parameters
 MODEL_NAME=""
-# DATASET_NAME="realnewslike"
+DATASET_NAME=""
 
 # Default Argument Values
 BATCH_SIZE=32
@@ -28,6 +26,10 @@ do
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
         ;;
+        --dataset_name=*)
+        DATASET_NAME="${arg#*=}"
+        shift # Remove --dataset_name= from processing
+        ;;
         --batch_size=*)
         BATCH_SIZE="${arg#*=}"
         shift # Remove --batch_size= from processing
@@ -35,6 +37,10 @@ do
         --sequence_length=*)
         SEQ_LEN="${arg#*=}"
         shift # Remove --sequence_length= from processing
+        ;;
+        --vocab_size=*)
+        VOCAB_SIZE="${arg#*=}"
+        shift # Remove --vocab_size= from processing
         ;;
         --num_iterations=*)
         NUM_ITERATIONS="${arg#*=}"
@@ -44,11 +50,16 @@ do
         OUTPUT_TENSOR_NAMES="${arg#*=}"
         shift # Remove --output_tensors_name= from processing
         ;;
-        ######### IGNORE ARGUMENTS BELOW
+        --data_dir=*)
+        DATA_DIR="${arg#*=}"
+        shift # Remove --data_dir= from processing
+        ;;
         --input_saved_model_dir=*)
+        MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
         ;;
         --tokenizer_model_dir=*)
+        TOKENIZER_DIR="${arg#*=}"
         shift # Remove --tokenizer_model_dir= from processing
         ;;
         --total_max_samples=*)
@@ -62,20 +73,29 @@ done
 
 echo -e "\n********************************************************************"
 echo "[*] MODEL_NAME: ${MODEL_NAME}"
+echo "[*] DATASET_NAME: ${DATASET_NAME}"
 echo ""
-echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
+echo "[*] DATA_DIR: ${DATA_DIR}"
+echo "[*] MODEL_DIR: ${MODEL_DIR}"
+echo "[*] TOKENIZER_DIR: ${TOKENIZER_DIR}"
 echo ""
-# Custom T5 Task Flags
+# Custom gpt2 Task Flags
 echo "[*] SEQ_LEN: ${SEQ_LEN}"
+echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
 
-MODEL_DIR="/models/huggingface/gpt2/${MODEL_NAME}/model"
-TOKENIZER_DIR="/models/huggingface/gpt2/${MODEL_NAME}/tokenizer"
+DATA_DIR="${DATA_DIR}/${DATASET_NAME}"
+MODEL_DIR="${MODEL_DIR}/${MODEL_NAME}/model"
+TOKENIZER_DIR="${TOKENIZER_DIR}/${MODEL_NAME}/tokenizer"
 
+if [[ ! -d ${DATA_DIR} ]]; then
+    echo "ERROR: \`--data_dir=/path/to/directory\` does not exist. [Received: \`${DATA_DIR}\`]"
+    exit 1
+fi
 
 if [[ ! -d ${MODEL_DIR} ]]; then
     echo "ERROR: \`--input_saved_model_dir=/path/to/directory\` does not exist. [Received: \`${MODEL_DIR}\`]"
@@ -90,8 +110,8 @@ fi
 # Dataset Directory
 
 python ${BASE_DIR}/infer.py \
-    --data_dir=/tmp \
-    --calib_data_dir=/tmp \
+    --data_dir=${DATA_DIR} \
+    --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
     --tokenizer_model_dir=${TOKENIZER_DIR} \
     --batch_size=${BATCH_SIZE} \
