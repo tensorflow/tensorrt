@@ -1,4 +1,4 @@
-#!# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+#!# Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -35,9 +35,6 @@ sys.path.insert(0, parentdir)
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
-from dataloading import get_dataset_cola
-
-
 class CommandLineAPI(BaseCommandLineAPI):
 
     def __init__(self):
@@ -47,7 +44,7 @@ class CommandLineAPI(BaseCommandLineAPI):
             "--samples_per_input",
             type=int,
             default=128,
-            help="Input data sequence length."
+            help="Input number of samples per input to generate input random wave data."
         )
 
 
@@ -69,16 +66,21 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
+        # A single wave, 128 samples (8ms at 16kHz) long.
+        wave = np.array(
+                np.sin(
+                    np.linspace(-np.pi,
+                        np.pi,
+                        self._args.samples_per_input
+                        )
+                    ),
+                    dtype=np.float32
+                )
 
-        tf.random.set_seed(10)
+        # 16 such waves (2048 samples).
+        waves = np.expand_dims(np.tile(wave, 16), axis=0)
 
-
-        input = tf.random.uniform(
-            shape=(1, self._args.samples_per_input),
-            maxval=self._args.vocab_size,
-            dtype=tf.int32
-        )
-        dataset = dataset.batch(self._args.batch_size)
+        dataset = tf.data.Dataset.from_tensor_slices(waves)
         dataset = dataset.take(count=1)  # loop over 1 batch
         dataset = dataset.cache()
         dataset = dataset.repeat()
@@ -119,7 +121,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         # NOTE: PLEASE ONLY MODIFY THE NAME OF THE ACCURACY METRIC
 
-        return None, "GLUE Score"
+        return None, "Raw Pitch Accuracy"
 
 
 if __name__ == '__main__':
