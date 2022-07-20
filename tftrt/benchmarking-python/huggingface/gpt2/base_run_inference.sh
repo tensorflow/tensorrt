@@ -67,6 +67,7 @@ echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo "[*] TOKENIZER_DIR: ${TOKENIZER_DIR}"
+echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
 # Custom gpt2 Task Flags
 echo "[*] SEQ_LEN: ${SEQ_LEN}"
