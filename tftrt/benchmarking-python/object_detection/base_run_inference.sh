@@ -136,7 +136,7 @@ if [[ ${DEPENDENCIES_STATUS} != 0 ]]; then
 fi
 
 # Step 2: Execute the example
-COMMAND="python object_detection.py \
+COMMAND="python infer.py \
     --data_dir ${VAL_DATA_DIR} \
     --calib_data_dir ${VAL_DATA_DIR} \
     --annotation_path ${ANNOTATIONS_DATA_FILE} \

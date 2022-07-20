@@ -135,7 +135,7 @@ BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" >/dev/null 2>&1 && pwd )"
 cd ${BENCH_DIR}
 
 # Execute the example
-COMMAND="python transformers.py \
+COMMAND="python infer.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \

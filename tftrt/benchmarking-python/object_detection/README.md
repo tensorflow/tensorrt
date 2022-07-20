@@ -21,12 +21,12 @@ git submodule update --init
 
 ## Usage
 
-Run `python object_detection.py --help` to see what arguments are available.
+Run `python infer.py --help` to see what arguments are available.
 
 Example:
 
 ```
-python object_detection.py \
+python infer.py \
     --saved_model_dir input_saved_model \
     --data_dir /data/coco/val2017 \
     --annotation_path /data/coco/annotations/instances_val2017.json \
