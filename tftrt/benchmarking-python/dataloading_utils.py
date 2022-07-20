@@ -2,6 +2,7 @@
 # Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # -*- coding: utf-8 -*-
 
+import itertools
 import time
 import tensorflow as tf
 
@@ -9,12 +10,24 @@ from benchmark_autotuner import auto_tf_func_tuner
 
 
 def SyntheticDataset(dataset, device):
-    dataset = dataset.take(count=1)  # loop over 1 batch
-    dataset = dataset.cache()
-    dataset = dataset.repeat()
-    dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
-    dataset = ensure_dataset_on_gpu(dataset, device)
-    return dataset
+    data_batch = next(iter(dataset))
+
+    def copy_on_device(t):
+
+        if t.dtype != tf.int32:
+            with tf.device(device):
+                return tf.identity(t)
+
+        return t
+
+    if isinstance(data_batch, (tuple, list)):
+        data_batch = [copy_on_device(t) for t in data_batch]
+    elif isinstance(data_batch, dict):
+        data_batch = {k: copy_on_device(t) for k, t in data_batch.items()}
+    else:
+        data_batch = copy_on_device(data_batch)
+
+    return itertools.repeat(data_batch)
 
 
 def ensure_dataset_on_gpu(dataset, device):
