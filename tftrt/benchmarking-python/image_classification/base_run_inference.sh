@@ -77,7 +77,7 @@ case ${MODEL_NAME} in
   "resnet50-v1.5_tf1_ngc" )
     NUM_CLASSES=1000
     OUTPUT_TENSORS_NAME="classes"
-    PREPROCESS_METHOD="resnet50_v1_5_tf1_ngc_preprocess"
+    PREPROCESS_METHOD="resnet50_v1_5_tf1_ngc"
     ;;
 
   "resnet50v2_backbone" | "resnet50v2_sparse_backbone" )
@@ -143,7 +143,7 @@ BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd ${BENCH_DIR}
 
 # Execute the example
-COMMAND="python image_classification.py \
+COMMAND="python infer.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \

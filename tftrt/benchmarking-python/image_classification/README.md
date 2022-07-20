@@ -1,6 +1,6 @@
 # Image classification example
 
-The example script `image_classification.py` is for benchmarking and validating inference
+The example script `infer.py` is for benchmarking and validating inference
 on image classification models using TF-TRT in TensorFlow 2.0.
 
 You can enable TF-TRT integration by passing the `--use_tftrt` flag to the script.
@@ -53,13 +53,13 @@ comes with TF1.x), and then use that dataset in TFv2.x.
 
 ## Usage
 
-The main Python script is `image_classification.py`.  Assuming that the ImageNet
+The main Python script is `infer.py`.  Assuming that the ImageNet
 validation data are located under `/data/imagenet/train-val-tfrecord`, you can
 evaluate inference with TF-TRT integration using the pre-trained ResNet V1.5 50
 model as follows:
 
 ```
-python image_classification.py \
+python infer.py \
     --data_dir /data/imagenet/train-val-tfrecord \
     --calib_data_dir /data/imagenet/train-val-tfrecord \
     --saved_model_dir /models/resnet_v1.5_50_saved_model/ \

@@ -37,6 +37,8 @@ sys.path.insert(0, benchmark_base_dir)
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
+from dataloading import get_dataloader
+
 
 class CommandLineAPI(BaseCommandLineAPI):
 
@@ -62,10 +64,9 @@ class CommandLineAPI(BaseCommandLineAPI):
         self._parser.add_argument(
             '--preprocess_method',
             type=str,
-            choices=['vgg', 'inception', 'resnet50_v1_5_tf1_ngc_preprocess'],
+            choices=['vgg', 'inception', 'resnet50_v1_5_tf1_ngc'],
             default='vgg',
-            help='The image preprocessing method used in '
-            'dataloading.'
+            help='The image preprocessing method used in dataloading.'
         )
 
     def _post_process_args(self, args):
@@ -97,90 +98,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        def get_files(data_dir, filename_pattern):
-            if data_dir is None:
-                return []
-
-            files = tf.io.gfile.glob(os.path.join(data_dir, filename_pattern))
-
-            if not files:
-                raise ValueError(
-                    'Can not find any files in {} with '
-                    'pattern "{}"'.format(data_dir, filename_pattern)
-                )
-            return files
-
-        def deserialize_image_record(record):
-            feature_map = {
-                'image/encoded': tf.io.FixedLenFeature([], tf.string, ''),
-                'image/class/label': tf.io.FixedLenFeature([1], tf.int64, -1)
-            }
-            with tf.compat.v1.name_scope('deserialize_image_record'):
-                obj = tf.io.parse_single_example(
-                    serialized=record, features=feature_map
-                )
-                imgdata = obj['image/encoded']
-                label = tf.cast(obj['image/class/label'], tf.int32)
-            return imgdata, label
-
-        def get_preprocess_fn(preprocess_method, input_size):
-            """Creates a function to parse and process a TFRecord
-            input_size: int
-            returns: function, the preprocessing function for a record
-            """
-            if preprocess_method == 'vgg':
-                preprocess_fn = preprocessing.vgg_preprocess
-            elif preprocess_method == 'inception':
-                preprocess_fn = preprocessing.inception_preprocess
-            elif preprocess_method == 'resnet50_v1_5_tf1_ngc_preprocess':
-                preprocess_fn = preprocessing.resnet50_v1_5_tf1_ngc_preprocess
-            else:
-                raise ValueError(
-                    'Invalid preprocessing method {}'.format(preprocess_method)
-                )
-
-            def preprocess_sample_fn(record):
-                # Parse TFRecord
-                imgdata, label = deserialize_image_record(record)
-                label -= 1  # Change to 0-based (don't use background class)
-                try:
-                    image = tf.image.decode_jpeg(
-                        imgdata,
-                        channels=3,
-                        fancy_upscaling=False,
-                        dct_method='INTEGER_FAST'
-                    )
-                except:
-                    image = tf.image.decode_png(imgdata, channels=3)
-                # Use model's preprocessing function
-                image = preprocess_fn(image, input_size, input_size)
-                return image, label
-
-            return preprocess_sample_fn
-
-        data_files = get_files(self._args.data_dir, 'validation*')
-        dataset = tf.data.Dataset.from_tensor_slices(data_files)
-
-        dataset = dataset.interleave(
-            tf.data.TFRecordDataset,
-            cycle_length=tf.data.AUTOTUNE,
-            block_length=max(self._args.batch_size, 32)
-        )
-
-        # preprocess function for input data
-        preprocess_fn = get_preprocess_fn(
-            preprocess_method=self._args.preprocess_method,
-            input_size=self._args.input_size
-        )
-
-        dataset = dataset.map(
-            map_func=preprocess_fn,
-            num_parallel_calls=tf.data.AUTOTUNE,
-        )
-
-        dataset = dataset.batch(self._args.batch_size, drop_remainder=False)
-
-        dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
+        dataset = get_dataloader(self._args)
 
         return dataset, None
 
