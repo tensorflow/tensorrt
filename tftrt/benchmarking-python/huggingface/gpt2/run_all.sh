@@ -13,7 +13,7 @@ gpt2_MODELS=(
   "gpt2-xl"
 )
 
-RUN_ARGS="--input_saved_model_dir=/models/huggingface/gpt2 --tokenizer_model_dir=/models/huggingface/gpt2 --data_dir=/tmp --dataset_name= --debug --batch_size=32 --display_every=1"
+RUN_ARGS="--input_saved_model_dir=/models/huggingface/gpt2 --tokenizer_model_dir=/models/huggingface/gpt2 --data_dir=/tmp --dataset_name= --debug --batch_size=32 --display_every=1 --use_synthetic_data --num_iterations=1000"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 

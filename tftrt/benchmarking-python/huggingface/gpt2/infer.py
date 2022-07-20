@@ -98,16 +98,12 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         )
         ds_input_ids = tf.data.Dataset.from_tensor_slices(input_ids)
 
-        attention_mask = tf.ones(
-            [1, self._args.sequence_length], 
-            dtype=tf.int32
-        )
+        attention_mask = tf.ones([1, self._args.sequence_length],
+                                 dtype=tf.int32)
         ds_attention_mask = tf.data.Dataset.from_tensor_slices(attention_mask)
 
         token_type_ids = tf.random.uniform(
-            shape=(1, self._args.sequence_length),
-            maxval=2,
-            dtype=tf.int32
+            shape=(1, self._args.sequence_length), maxval=2, dtype=tf.int32
         )
         ds_token_type_ids = tf.data.Dataset.from_tensor_slices(token_type_ids)
 
@@ -117,12 +113,16 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             ds_token_type_ids,
         ))
 
+        def map_dict_fn(attention_mask, input_ids, token_type_ids):
+            return {
+                "attention_mask": attention_mask,
+                "input_ids": input_ids,
+                "token_type_ids": token_type_ids
+            }
+
+        dataset = dataset.map(map_dict_fn, num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.repeat()
         dataset = dataset.batch(self._args.batch_size)
-        dataset = dataset.take(count=1)  # loop over 1 batch
-        dataset = dataset.cache()
-        dataset = dataset.repeat()
-
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset, None
 
@@ -134,12 +134,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        x = {
-            "attention_mask": data_batch[0],
-            "input_ids": data_batch[1],
-            "token_type_ids": data_batch[2],
-        }
-        return x, None
+
+        return data_batch, None
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
@@ -164,7 +160,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         # NOTE: PLEASE ONLY MODIFY THE NAME OF THE ACCURACY METRIC
 
-        return None, "<ACCURACY METRIC NAME>"
+        return None, "Perplexity (PPL)"
 
 
 if __name__ == '__main__':

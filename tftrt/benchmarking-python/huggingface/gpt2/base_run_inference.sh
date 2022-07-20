@@ -6,14 +6,12 @@ BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Runtime Parameters
 MODEL_NAME=""
-DATASET_NAME=""
 
 # Default Argument Values
 BATCH_SIZE=32
 SEQ_LEN=1024
 VOCAB_SIZE=50257
 
-NUM_ITERATIONS=1000
 OUTPUT_TENSOR_NAMES="last_hidden_state"
 
 BYPASS_ARGUMENTS=""
@@ -26,10 +24,6 @@ do
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
         ;;
-        --dataset_name=*)
-        DATASET_NAME="${arg#*=}"
-        shift # Remove --dataset_name= from processing
-        ;;
         --batch_size=*)
         BATCH_SIZE="${arg#*=}"
         shift # Remove --batch_size= from processing
@@ -41,10 +35,6 @@ do
         --vocab_size=*)
         VOCAB_SIZE="${arg#*=}"
         shift # Remove --vocab_size= from processing
-        ;;
-        --num_iterations=*)
-        NUM_ITERATIONS="${arg#*=}"
-        shift # Remove --num_iterations= from processing
         ;;
         --output_tensors_name=*)
         OUTPUT_TENSOR_NAMES="${arg#*=}"
@@ -73,7 +63,6 @@ done
 
 echo -e "\n********************************************************************"
 echo "[*] MODEL_NAME: ${MODEL_NAME}"
-echo "[*] DATASET_NAME: ${DATASET_NAME}"
 echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
@@ -88,7 +77,6 @@ echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
 
 echo -e "********************************************************************\n"
 
-DATA_DIR="${DATA_DIR}/${DATASET_NAME}"
 MODEL_DIR="${MODEL_DIR}/${MODEL_NAME}/model"
 TOKENIZER_DIR="${TOKENIZER_DIR}/${MODEL_NAME}/tokenizer"
 
@@ -120,6 +108,4 @@ python ${BASE_DIR}/infer.py \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     `# The following is set because we will be running synthetic benchmarks` \
     --total_max_samples=1 \
-    --use_synthetic_data  \
-    --num_iterations=${NUM_ITERATIONS} \
     ${@}
