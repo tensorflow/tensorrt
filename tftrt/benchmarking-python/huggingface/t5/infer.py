@@ -165,9 +165,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             ))
             dataset = dataset.repeat()
             dataset = dataset.batch(self._args.batch_size)
-            dataset = dataset.take(count=1)  # loop over 1 batch
-            dataset = dataset.cache()
-            dataset = dataset.repeat()
 
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset, None
