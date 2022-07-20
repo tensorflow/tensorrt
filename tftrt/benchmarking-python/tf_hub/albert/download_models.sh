@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# DESTINATION_DIR=""
-
 usage() {                                 # Function: Print a help message.
   echo "This script download the TF-HUB models inside a given directory." 1>&2
   echo "Usage: $0 --directory=/path/to/model/dir" 1>&2
@@ -25,16 +23,17 @@ do
   esac
 done
 
-if [[ -z $DESTINATION_DIR ]]; then exit_abnormal; fi
+if [[ -z ${DESTINATION_DIR} ]]; then exit_abnormal; fi
 
-echo "Will download models inside: $DESTINATION_DIR"
+echo "Will download models inside: ${DESTINATION_DIR}"
+mkdir -p ${DESTINATION_DIR}
 
 MODEL_DATA=(
-  "albert_base https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_base/3.tar.gz"
-  "albert_large https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_large/3.tar.gz"
-  "albert_xlarge https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_xlarge/3.tar.gz"
-  "albert_xxlarge https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_xxlarge/3.tar.gz"
-  "tokenizer https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_preprocess/3.tar.gz"
+    "albert_base https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_base/3.tar.gz"
+    "albert_large https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_large/3.tar.gz"
+    "albert_xlarge https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_xlarge/3.tar.gz"
+    "albert_xxlarge https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_xxlarge/3.tar.gz"
+    "tokenizer https://storage.googleapis.com/tfhub-modules/tensorflow/albert_en_preprocess/3.tar.gz"
 )
 
 for model_data in "${MODEL_DATA[@]}"; do
