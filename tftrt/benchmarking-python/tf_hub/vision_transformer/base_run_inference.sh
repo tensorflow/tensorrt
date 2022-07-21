@@ -52,9 +52,8 @@ echo "[*] MODEL_NAME: ${MODEL_NAME}"
 echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
-echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
-# Custom gpt2 Task Flags
+echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
@@ -74,8 +73,6 @@ if [[ ! -d ${MODEL_DIR} ]]; then
 fi
 
 
-# Dataset Directory
-
 python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
     --calib_data_dir=${DATA_DIR} \
@@ -83,5 +80,5 @@ python ${BASE_DIR}/infer.py \
     --batch_size=${BATCH_SIZE} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     `# The following is set because we will be running synthetic benchmarks` \
-    --total_max_samples=1 \
+    --total_max_samples=50000 \
     ${@}

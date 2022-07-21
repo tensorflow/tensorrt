@@ -1,6 +1,6 @@
 # Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 #
-# Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,11 +32,12 @@ currentdir = os.path.dirname(
 benchmark_base_dir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, benchmark_base_dir)
 sys.path.insert(0, os.path.join(benchmark_base_dir, "image_classification"))
+
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
 from image_classification.dataloading import get_dataloader
-import image_classification.preprocessing as preprocessing
+from image_classification import preprocessing
 
 
 class CommandLineAPI(BaseCommandLineAPI):
@@ -55,7 +56,7 @@ class CommandLineAPI(BaseCommandLineAPI):
         self._parser.add_argument(
             '--num_classes',
             type=int,
-            default=1001,
+            default=1000,
             help='Number of classes used when training '
             'the model'
         )
@@ -63,8 +64,8 @@ class CommandLineAPI(BaseCommandLineAPI):
         self._parser.add_argument(
             '--preprocess_method',
             type=str,
-            choices=['vgg', 'inception', 'resnet50_v1_5_tf1_ngc'],
-            default='vgg',
+            choices=['vision_transformer'],
+            default='vision_transformer',
             help='The image preprocessing method used in dataloading.'
         )
 
@@ -77,17 +78,15 @@ class CommandLineAPI(BaseCommandLineAPI):
     def _validate_args(self, args):
         super(CommandLineAPI, self)._validate_args(args)
 
-        if not args.use_synthetic_data:
+        if args.input_size != 224:
             raise ValueError(
-                "The use of --use_synthetic_data is necessary for this model."
+                "The argument --input_size must be equal to 224 for this model."
             )
-
-
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
-# %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
-
+        
+        if args.num_classes != 1000:
+            raise ValueError(
+                "The argument --num_classes must be equal to 1000 for this model."
+            )
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
@@ -130,7 +129,15 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        return predictions.numpy(), expected.numpy()
+        predictions = predictions.numpy()
+
+        if len(predictions.shape) != 1:
+            predictions = tf.math.argmax(predictions, axis=1)
+            predictions = predictions.numpy().reshape(-1)
+
+        predictions - self._args.labels_shift
+
+        return predictions - self._args.labels_shift, expected.numpy()
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
@@ -141,7 +148,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        return None, ""
+        return (
+            np.mean(predictions["data"] == expected["data"]) * 100.0,
+            "Top-1 Accuracy %"
+        )
 
 
 if __name__ == '__main__':
