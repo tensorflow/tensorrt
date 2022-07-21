@@ -15,6 +15,7 @@
 # limitations under the License.
 # =============================================================================
 
+import math
 import os
 import sys
 
@@ -47,6 +48,15 @@ class CommandLineAPI(BaseCommandLineAPI):
             help="Input number of samples per input to generate input random wave data."
         )
 
+    def _validate_args(self, args):
+        super(CommandLineAPI, self)._validate_args(args)
+
+        # TODO: Remove when proper dataloading is implemented
+        if args.num_iterations is None:
+            raise ValueError(
+                "This benchmark does not currently support "
+                "--num_iterations=None"
+            )
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):
@@ -68,17 +78,13 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         # A single wave, 128 samples (8ms at 16kHz) long.
         wave = np.array(
-                np.sin(
-                    np.linspace(-np.pi,
-                        np.pi,
-                        self._args.samples_per_input
-                        )
-                    ),
-                    dtype=np.float32
-                )
+            np.sin(np.linspace(-np.pi, np.pi, self._args.samples_per_input)),
+            dtype=np.float32
+        )
 
-        # 16 such waves (2048 samples).
-        waves = np.expand_dims(np.tile(wave, 16), axis=0)
+        # tile to 2048 samples. The model resizes the input to (2048,) automatically
+        tile_factor = math.ceil(2048 / wave.shape[0])
+        waves = np.expand_dims(np.tile(wave, tile_factor), axis=0)
 
         dataset = tf.data.Dataset.from_tensor_slices(waves)
         dataset = dataset.take(count=1)  # loop over 1 batch

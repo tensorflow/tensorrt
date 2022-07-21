@@ -4,17 +4,13 @@ nvidia-smi
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
+BATCH_SIZE="1"
 OUTPUT_TENSOR_NAMES="pitch,uncertainty"
-
 
 # Loop through arguments and process them
 for arg in "$@"
 do
     case $arg in
-        --model_name=*)
-        MODEL_NAME="${arg#*=}"
-        shift # Remove --model_name from processing
-        ;;
         --batch_size=*)
         shift # Remove --batch_size= from processing
         ;;
@@ -37,35 +33,28 @@ do
 	      --total_max_samples=*)
         shift # Remove --total_max_samples= from processing
         ;;
-
+        --samples_per_input=*)
+        SAMPLES_PER_INPUT="${arg#*=}"
+        shift # Remove --input_saved_model_dir= from processing
+        ;;
         *)
-        BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
+        BYPASS_ARGUMENTS="${BYPASS_ARGUMENTS} ${arg}"
         ;;
     esac
 done
 
-# Set model specific values required for infer.py
-BATCH_SIZE="1"
-MAX_SAMPLES="1"
-
-
 echo -e "\n********************************************************************"
-echo "[*] MODEL_NAME: ${MODEL_NAME}"
-echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
+echo ""
+echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
 echo "[*] SAMPLES_PER_INPUT: ${SAMPLES_PER_INPUT}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
-echo ""
-echo "Custom values automatically set"
-echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
-echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo -e "********************************************************************\n"
 
-MODEL_DIR="${MODEL_DIR}/${MODEL_NAME}/"
 
 if [[ ! -d ${DATA_DIR} ]]; then
     echo "ERROR: \`--data_dir=/path/to/directory\` does not exist. [Received: \`${DATA_DIR}\`]"
@@ -85,8 +74,9 @@ python ${BASE_DIR}/infer.py \
     --input_saved_model_dir=${MODEL_DIR} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     --batch_size ${BATCH_SIZE} \
+    --samples_per_input=${SAMPLES_PER_INPUT} \
     `# The following is set because we will be running synthetic benchmarks` \
     --use_synthetic_data  \
     --num_iterations=${NUM_ITERATIONS} \
-    --total_max_samples=${MAX_SAMPLES} \
+    --total_max_samples=1 \
     ${@}
