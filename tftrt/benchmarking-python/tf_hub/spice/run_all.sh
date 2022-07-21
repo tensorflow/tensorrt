@@ -1,5 +1,10 @@
-# Runtime Parameters
-MODEL_NAME="spice"
+#!/bin/bash
+
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+BASE_BENCHMARK_DATA_EXPORT_DIR="${BASE_DIR}/benchmark_data"
+rm -rf ${BASE_BENCHMARK_DATA_EXPORT_DIR}
+mkdir -p ${BASE_BENCHMARK_DATA_EXPORT_DIR}
 
 # Default Argument Values
 SAMPLES_PER_INPUT=128
@@ -11,21 +16,17 @@ NUM_ITERATIONS="1000"
 MODELS=(
     "spice"
 )
-RUN_ARGS="--data_dir=/workspace/tftrt/benchmarking-python/tf_hub/albert/data --input_saved_model_dir=/models/tf_hub/albert --tokenizer_dir=/models/tf_hub/albert/tokenizer --debug --batch_size=32 --display_every=1"
+RUN_ARGS="--data_dir=/tmp --input_saved_model_dir=/models/tf_hub/spice --batch_size=1 --display_every=50"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 
 export TF_TRT_SHOW_DETAILED_REPORT=1
 
-for model_name in "${ALBERT_MODELS[@]}"; do
+for model_name in "${MODELS[@]}"; do
     echo "Processing Model: ${model_name} ..."
 
-    MODEL_DATA_EXPORT_DIR="${BENCHMARK_DATA_EXPORT_DIR}/${model_name}"
+    MODEL_DATA_EXPORT_DIR="${BASE_BENCHMARK_DATA_EXPORT_DIR}/${model_name}"
     mkdir -p ${MODEL_DATA_EXPORT_DIR}
-
-    MODEL_PROFILE_DIR="${MODEL_DATA_EXPORT_DIR}/tf_profiles"
-    mkdir -p ${MODEL_PROFILE_DIR}
-    TF_PROFILE_ARG="--tf_profile_export_path=${MODEL_PROFILE_DIR}"
 
     # ============================ TF NATIVE ============================ #
     # TF Native - FP32
