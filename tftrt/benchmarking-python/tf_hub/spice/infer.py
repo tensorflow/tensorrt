@@ -54,7 +54,7 @@ class CommandLineAPI(BaseCommandLineAPI):
         super(CommandLineAPI, self)._validate_args(args)
 
         # TODO: Remove when proper dataloading is implemented
-        if args.use_synthetic_data is None:
+        if not args.use_synthetic_data:
             raise ValueError(
                 "This benchmark does not currently support non-synthetic data "
                 "--use_synthetic_data"
