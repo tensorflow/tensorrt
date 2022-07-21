@@ -54,10 +54,10 @@ class CommandLineAPI(BaseCommandLineAPI):
         super(CommandLineAPI, self)._validate_args(args)
 
         # TODO: Remove when proper dataloading is implemented
-        if args.use_synthetic_data is True:
+        if args.use_synthetic_data is None:
             raise ValueError(
-                "This benchmark does not currently support "
-                "--use_synthetic_data=False"
+                "This benchmark does not currently support non-synthetic data "
+                "--use_synthetic_data"
             )
         # This model requires that the batch size is 1
         if args.batch_size != 1:
