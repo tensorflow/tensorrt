@@ -80,5 +80,5 @@ python ${BASE_DIR}/infer.py \
     --batch_size=${BATCH_SIZE} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     `# The following is set because we will be running synthetic benchmarks` \
-    --total_max_samples=50000 \
+    --total_max_samples=1 \
     ${@}
