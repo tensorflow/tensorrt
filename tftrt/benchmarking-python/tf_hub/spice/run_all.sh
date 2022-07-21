@@ -13,6 +13,7 @@ MODEL_DIR="/models/tf_hub/"
 DATA_DIR="/tmp/"
 NUM_ITERATIONS="1000"
 
+# List of models. spice is a single implementation
 MODELS=(
     "spice"
 )
