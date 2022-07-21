@@ -36,6 +36,7 @@ sys.path.insert(0, parentdir)
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
+
 class CommandLineAPI(BaseCommandLineAPI):
 
     def __init__(self):
@@ -45,7 +46,8 @@ class CommandLineAPI(BaseCommandLineAPI):
             "--samples_per_input",
             type=int,
             default=128,
-            help="Input number of samples per input to generate input random wave data."
+            help=
+            "Input number of samples per input to generate input random wave data."
         )
 
     def _validate_args(self, args):
