@@ -2,6 +2,8 @@
 
 nvidia-smi
 
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 # Runtime Parameters
 MODEL_NAME=""
 MODEL_DIR=""
@@ -46,10 +48,13 @@ do
         shift # Remove --sequence_length= from processing
         ;;
         *)
-        BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
+        BYPASS_ARGUMENTS="${BYPASS_ARGUMENTS} ${arg}"
         ;;
     esac
 done
+
+# Trimming front and back whitespaces
+BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 
 # ============== Set model specific parameters ============= #
 
@@ -92,13 +97,13 @@ echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
 echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
-echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
+echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
 
 echo -e "********************************************************************\n"
 
 # ======================= ARGUMENT VALIDATION ======================= #
 
-# Dataset Directory
+# ----------------------  Dataset Directory --------------
 
 if [[ -z ${DATA_DIR} ]]; then
     echo "ERROR: \`--data_dir=/path/to/directory\` is missing."
@@ -131,11 +136,9 @@ fi
 
 # %%%%%%%%%%%%%%%%%%%%%%% ARGUMENT VALIDATION %%%%%%%%%%%%%%%%%%%%%%% #
 
-BENCH_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" >/dev/null 2>&1 && pwd )"
-cd ${BENCH_DIR}
+set -x
 
-# Execute the example
-COMMAND="python infer.py \
+python ${BASE_DIR}/infer.py \
     --data_dir ${DATA_DIR} \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
@@ -146,11 +149,4 @@ COMMAND="python infer.py \
     --max_workspace_size ${MAX_WORKSPACE_SIZE} \
     --total_max_samples=${MAX_SAMPLES} \
     --output_tensors_name=${OUTPUT_TENSORS_NAME} \
-    ${BYPASS_ARGUMENTS}"
-
-COMMAND=$(echo ${COMMAND} | sed 's/ *$//g')  # Trimming whitespaces
-
-echo -e "**Executing:**\n\n${COMMAND}\n"
-sleep 5
-
-eval ${COMMAND}
+    ${BYPASS_ARGUMENTS}

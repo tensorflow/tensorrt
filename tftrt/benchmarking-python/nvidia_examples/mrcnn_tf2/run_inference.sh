@@ -2,8 +2,6 @@
 
 nvidia-smi
 
-set -x
-
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 python -c "from pycocotools.coco import COCO" > /dev/null 2>&1
@@ -12,6 +10,8 @@ DEPENDENCIES_STATUS=$?
 if [[ ${DEPENDENCIES_STATUS} != 0 ]]; then
     bash "${BASE_DIR}/../../helper_scripts/install_pycocotools.sh"
 fi
+
+set -x
 
 python ${BASE_DIR}/infer.py \
     --data_dir=/data/coco2017/tfrecord \

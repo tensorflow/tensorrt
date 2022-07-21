@@ -62,10 +62,13 @@ do
         shift # Remove --tokenizer_model_dir= from processing
         ;;
         *)
-        BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
+        BYPASS_ARGUMENTS="${BYPASS_ARGUMENTS} ${arg}"
         ;;
     esac
 done
+
+# Trimming front and back whitespaces
+BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 
 echo -e "\n********************************************************************"
 echo "[*] MODEL_NAME: ${MODEL_NAME}"
@@ -80,7 +83,7 @@ echo ""
 echo "[*] SEQ_LEN: ${SEQ_LEN}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
-echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
+echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
 
 echo -e "********************************************************************\n"
 
@@ -101,7 +104,7 @@ if [[ ! -d ${TOKENIZER_DIR} ]]; then
     exit 1
 fi
 
-# Dataset Directory
+set -x
 
 python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \

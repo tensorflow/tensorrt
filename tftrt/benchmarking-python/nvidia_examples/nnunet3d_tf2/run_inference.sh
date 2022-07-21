@@ -2,9 +2,9 @@
 
 nvidia-smi
 
-set -x
-
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+set -x
 
 python ${BASE_DIR}/infer.py \
     --data_dir=/data/msd_task01/numpy_3d_bigger_tf2 \

@@ -336,6 +336,13 @@ class BaseCommandLineAPI(object):
                 "not a directory"
             )
 
+        if args.use_synthetic_data and args.num_iterations is None:
+            raise ValueError(
+                "The use of --use_synthetic_data requires to "
+                "specify the number of iterations using "
+                "--num_iterations=X."
+            )
+
         if (args.num_iterations is not None and
                 args.num_iterations <= args.num_warmup_iterations):
             raise ValueError(
@@ -380,6 +387,11 @@ class BaseCommandLineAPI(object):
                     )
 
     def _post_process_args(self, args):
+        if args.use_synthetic_data:
+            # This variable is not used in synthetic data mode.
+            # Let's fix it to 1 to save memory.
+            args.total_max_samples = 1
+
         return args
 
     def parse_args(self):

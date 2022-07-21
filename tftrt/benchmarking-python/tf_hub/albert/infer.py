@@ -170,8 +170,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        # NOTE: PLEASE ONLY MODIFY THE NAME OF THE ACCURACY METRIC
-
         return None, "GLUE Score"
 
 

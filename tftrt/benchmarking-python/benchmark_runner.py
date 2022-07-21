@@ -2,18 +2,27 @@
 # Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # -*- coding: utf-8 -*-
 
-import os
-
 import abc
 import contextlib
 import copy
 import csv
 import json
 import logging
+import os
 import sys
 import time
 
 from distutils.util import strtobool
+
+import numpy as np
+import scipy as sp
+import scipy.stats
+import tensorflow as tf
+
+from tensorflow.python.compiler.tensorrt import trt_convert as trt
+from tensorflow.python.framework.errors_impl import OutOfRangeError
+from tensorflow.python.saved_model import signature_constants
+from tensorflow.python.saved_model import tag_constants
 
 from benchmark_autotuner import auto_tf_func_tuner
 
@@ -27,16 +36,6 @@ from dataloading_utils import get_dequeue_batch_fn
 from dataloading_utils import get_force_data_on_gpu_fn
 
 from versioning_utils import get_commit_id
-
-import numpy as np
-import scipy as sp
-import scipy.stats
-import tensorflow as tf
-
-from tensorflow.python.compiler.tensorrt import trt_convert as trt
-from tensorflow.python.framework.errors_impl import OutOfRangeError
-from tensorflow.python.saved_model import signature_constants
-from tensorflow.python.saved_model import tag_constants
 
 # The `__version__` number shall be updated everytime core benchmarking files
 # are updated.

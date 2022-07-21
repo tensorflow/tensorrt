@@ -2,11 +2,12 @@
 
 nvidia-smi
 
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+BASE_DIR="${BASE_DIR}/../efficientnet_base"
+
 set -x
 
-BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-python ${BASE_DIR}/../efficientnet_base/infer.py \
+python ${BASE_DIR}/infer.py \
     --data_dir=/data/imagenet \
     --calib_data_dir=/data/imagenet \
     --input_saved_model_dir=/models/nvidia_examples/efficientnet_v2_tf2 \

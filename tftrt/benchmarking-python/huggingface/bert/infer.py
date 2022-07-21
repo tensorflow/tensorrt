@@ -73,20 +73,12 @@ class CommandLineAPI(BaseCommandLineAPI):
     def _validate_args(self, args):
         super(CommandLineAPI, self)._validate_args(args)
 
-        # if args.validate_output and args.batch_size != 32:
-        #     raise ValueError("Output validation only supports batch size 32.")
-
         # TODO: Remove when proper dataloading is implemented
         if args.num_iterations is None:
             raise ValueError(
                 "This benchmark does not currently support "
                 "--num_iterations=None"
             )
-
-    def _post_process_args(self, args):
-        args = super(CommandLineAPI, self)._post_process_args(args)
-
-        return args
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #

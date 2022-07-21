@@ -56,10 +56,13 @@ do
         shift # Remove --total_max_samples= from processing
         ;;
         *)
-        BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
+        BYPASS_ARGUMENTS="${BYPASS_ARGUMENTS} ${arg}"
         ;;
     esac
 done
+
+# Trimming front and back whitespaces
+BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 
 echo -e "\n********************************************************************"
 echo "[*] MODEL_NAME: ${MODEL_NAME}"
@@ -74,7 +77,7 @@ echo "[*] SEQ_LEN: ${SEQ_LEN}"
 echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
-echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
+echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
 
 echo -e "********************************************************************\n"
 
@@ -96,7 +99,7 @@ if [[ ! -d ${TOKENIZER_DIR} ]]; then
     exit 1
 fi
 
-# Dataset Directory
+set -x
 
 python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
@@ -109,4 +112,4 @@ python ${BASE_DIR}/infer.py \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     `# The following is set because we will be running synthetic benchmarks` \
     --total_max_samples=1 \
-    ${@}
+    ${BYPASS_ARGUMENTS}
