@@ -47,17 +47,23 @@ class CommandLineAPI(BaseCommandLineAPI):
             type=int,
             default=128,
             help=
-            "Input number of samples per input to generate input random wave data."
+            "Input number of samples per input to generate random wave data."
         )
 
     def _validate_args(self, args):
         super(CommandLineAPI, self)._validate_args(args)
 
         # TODO: Remove when proper dataloading is implemented
-        if args.num_iterations is None:
+        if args.use_synthetic_data is True:
             raise ValueError(
                 "This benchmark does not currently support "
-                "--num_iterations=None"
+                "--use_synthetic_data=False"
+            )
+        # This model requires that the batch size is 1
+        if args.batch_size != 1:
+            raise ValueError(
+                "This benchmark does not currently support "
+                "--batch_size != 1"
             )
 
 
@@ -89,8 +95,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         waves = np.expand_dims(np.tile(wave, tile_factor), axis=0)
 
         dataset = tf.data.Dataset.from_tensor_slices(waves)
-        dataset = dataset.take(count=1)  # loop over 1 batch
-        dataset = dataset.cache()
         dataset = dataset.repeat()
 
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
@@ -126,9 +130,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-
-        # NOTE: PLEASE ONLY MODIFY THE NAME OF THE ACCURACY METRIC
-
         return None, "Raw Pitch Accuracy"
 
 

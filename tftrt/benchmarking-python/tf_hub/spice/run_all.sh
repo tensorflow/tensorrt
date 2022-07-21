@@ -9,7 +9,7 @@ mkdir -p ${BASE_BENCHMARK_DATA_EXPORT_DIR}
 # Default Argument Values
 SAMPLES_PER_INPUT="128"
 BYPASS_ARGUMENTS=""
-MODEL_DIR="/models/tf_hub/"
+MODEL_DIR="/models/tf_hub/spice"
 DATA_DIR="/tmp/"
 NUM_ITERATIONS="1000"
 
@@ -17,7 +17,8 @@ NUM_ITERATIONS="1000"
 MODELS=(
     "spice"
 )
-RUN_ARGS="--data_dir=/tmp --input_saved_model_dir=/models/tf_hub/spice --batch_size=1 --display_every=50 --samples_per_input=${SAMPLES_PER_INPUT} --num_iterations=${NUM_ITERATIONS}"
+
+RUN_ARGS="--data_dir=${DATA_DIR} --input_saved_model_dir=${MODEL_DIR} --display_every=50 --samples_per_input=${SAMPLES_PER_INPUT} --num_iterations=${NUM_ITERATIONS}"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 
@@ -31,7 +32,7 @@ for model_name in "${MODELS[@]}"; do
 
     # ============================ TF NATIVE ============================ #
     # TF Native - FP32
-    echo "${BASE_DIR}/run_inference.sh"  
+    echo "Running ${BASE_DIR}/run_inference.sh"  
     script -q -c "${BASE_DIR}/run_inference.sh ${RUN_ARGS} --precision=FP32" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tf_native_fp32.log
 
     # TF Native - FP16

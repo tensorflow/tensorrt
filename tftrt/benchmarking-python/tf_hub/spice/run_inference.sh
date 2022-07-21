@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/#!/usr/bin/env bash
 
 nvidia-smi
 
@@ -6,6 +6,7 @@ BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 BATCH_SIZE="1"
 OUTPUT_TENSOR_NAMES="pitch,uncertainty"
+NUM_ITERATIONS="1000"
 
 # Loop through arguments and process them
 for arg in "$@"
@@ -48,6 +49,7 @@ echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
+echo "[*] NUM_ITERATIONS: ${NUM_ITERATIONS}"
 echo ""
 echo "[*] SAMPLES_PER_INPUT: ${SAMPLES_PER_INPUT}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
@@ -66,18 +68,17 @@ if [[ ! -d ${MODEL_DIR} ]]; then
     exit 1
 fi
 
-# Dataset Directory
+set -x
 
 python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
     --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
-    --batch_size ${BATCH_SIZE} \
+    --batch_size=${BATCH_SIZE} \
     --samples_per_input=${SAMPLES_PER_INPUT} \
     `# The following is set because we will be running synthetic benchmarks` \
     --use_synthetic_data  \
     --num_iterations=${NUM_ITERATIONS} \
     --total_max_samples=1 \
     ${@}
-

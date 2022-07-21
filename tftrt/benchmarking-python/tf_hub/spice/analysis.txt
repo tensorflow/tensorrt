@@ -1,4 +1,3 @@
-root@nvdl-smc-01:/workspace/tftrt/benchmarking-python/tf_hub/spice# saved_model_cli show --dir /models/tf_hub/spice --tag_set serve --signature_def 'se'
 The given SavedModel SignatureDef contains the following input(s):
   inputs['input'] tensor_info:
       dtype: DT_FLOAT
