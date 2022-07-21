@@ -1,4 +1,4 @@
-#!/bin/#!/usr/bin/env bash
+#!/bin/bash
 
 nvidia-smi
 
@@ -80,3 +80,4 @@ python ${BASE_DIR}/infer.py \
     --num_iterations=${NUM_ITERATIONS} \
     --total_max_samples=1 \
     ${@}
+
