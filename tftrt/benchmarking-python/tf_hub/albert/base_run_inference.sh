@@ -79,7 +79,7 @@ echo "[*] TOKENIZER_DIR: ${TOKENIZER_DIR}"
 echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
-# Custom T5 Task Flags
+# Custom ALBERT Flags
 echo "[*] SEQ_LEN: ${SEQ_LEN}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
