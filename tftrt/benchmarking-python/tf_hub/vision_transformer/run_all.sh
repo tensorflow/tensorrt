@@ -15,7 +15,7 @@ vit_MODELS=(
   "vit_l16_classification"
   "vit_s16_classification"
   "vit_r50_l32_classification"
-)      
+)
 
 MODEL_DIR="/models/tf_hub/vision_transformers"
 DATA_DIR="/data/imagenet"

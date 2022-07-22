@@ -9,8 +9,8 @@ MODEL_NAME=""
 
 # Default Argument Values
 BATCH_SIZE=32
-
 OUTPUT_TENSOR_NAMES="output_0"
+TOTAL_MAX_SAMPLES=50000
 
 BYPASS_ARGUMENTS=""
 
@@ -39,13 +39,17 @@ do
         shift # Remove --input_saved_model_dir= from processing
         ;;
         --total_max_samples=*)
+        TOTAL_MAX_SAMPLES="${arg#*=}"
         shift # Remove --total_max_samples= from processing
         ;;
         *)
-        BYPASS_ARGUMENTS=" ${BYPASS_ARGUMENTS} ${arg}"
+        BYPASS_ARGUMENTS="${BYPASS_ARGUMENTS} ${arg}"
         ;;
     esac
 done
+
+# Trimming front and back whitespaces
+BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 
 echo -e "\n********************************************************************"
 echo "[*] MODEL_NAME: ${MODEL_NAME}"
@@ -56,7 +60,7 @@ echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
-echo "[*] BYPASS_ARGUMENTS: $(echo \"${BYPASS_ARGUMENTS}\" | tr -s ' ')"
+echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
 
 echo -e "********************************************************************\n"
 
@@ -72,6 +76,7 @@ if [[ ! -d ${MODEL_DIR} ]]; then
     exit 1
 fi
 
+set -x
 
 python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
@@ -79,6 +84,5 @@ python ${BASE_DIR}/infer.py \
     --input_saved_model_dir=${MODEL_DIR} \
     --batch_size=${BATCH_SIZE} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
-    `# The following is set because we will be running synthetic benchmarks` \
-    --total_max_samples=1 \
-    ${@}
+    --total_max_samples=${TOTAL_MAX_SAMPLES} \
+    ${BYPASS_ARGUMENTS}
