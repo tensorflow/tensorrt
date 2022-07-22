@@ -1,0 +1,126 @@
+
+MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
+
+signature_def['__saved_model_init_op']:
+  The given SavedModel SignatureDef contains the following input(s):
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['__saved_model_init_op'] tensor_info:
+        dtype: DT_INVALID
+        shape: unknown_rank
+        name: NoOp
+  Method name is: 
+
+signature_def['serving_default']:
+  The given SavedModel SignatureDef contains the following input(s):
+    inputs['image'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, -1, -1, -1, 3)
+        name: serving_default_image:0
+  The given SavedModel SignatureDef contains the following output(s):
+    outputs['classifier_head'] tensor_info:
+        dtype: DT_FLOAT
+        shape: (-1, 600)
+        name: StatefulPartitionedCall:0
+  Method name is: tensorflow/serving/predict
+
+Concrete Functions:
+  Function Name: '__call__'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='inputs/image'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='image'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='inputs/image'), }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='image'), }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+
+  Function Name: '_default_save_signature'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='image'), }
+
+  Function Name: 'call_and_return_all_conditional_losses'
+    Option #1
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='image'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #2
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='inputs/image'), }
+        Argument #2
+          DType: bool
+          Value: True
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #3
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='image'), }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+    Option #4
+      Callable with:
+        Argument #1
+          DType: dict
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='inputs/image'), }
+        Argument #2
+          DType: bool
+          Value: False
+        Argument #3
+          DType: NoneType
+          Value: None
+
+  Function Name: 'init_states'
