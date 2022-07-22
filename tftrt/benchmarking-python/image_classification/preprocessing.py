@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 
 _R_MEAN = 123.68
 _G_MEAN = 116.78

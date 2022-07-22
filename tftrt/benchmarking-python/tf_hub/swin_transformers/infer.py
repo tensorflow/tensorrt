@@ -71,17 +71,17 @@ class CommandLineAPI(BaseCommandLineAPI):
 
     def _post_process_args(self, args):
         args = super(CommandLineAPI, self)._post_process_args(args)
-        args.labels_shift = 1 if args.num_classes == 1000 else 0
+        args.labels_shift = 1 if args.num_classes == 1001 else 0
 
         return args
 
-    # def _validate_args(self, args):
-    #     super(CommandLineAPI, self)._validate_args(args)
+    def _validate_args(self, args):
+        super(CommandLineAPI, self)._validate_args(args)
 
-    #     if args.num_classes != 1000:
-    #         raise ValueError(
-    #             "The argument --num_classes must be equal to 1000 for this model."
-    #         )
+        if args.num_classes != 1000:
+            raise ValueError(
+                "The argument --num_classes must be equal to 1000 for this model."
+            )
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):
