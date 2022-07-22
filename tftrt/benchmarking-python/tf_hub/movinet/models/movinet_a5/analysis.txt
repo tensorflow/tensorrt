@@ -51,7 +51,7 @@ Concrete Functions:
       Callable with:
         Argument #1
           DType: dict
-          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='inputs/image'), }
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='image'), }
         Argument #2
           DType: bool
           Value: True
@@ -62,7 +62,7 @@ Concrete Functions:
       Callable with:
         Argument #1
           DType: dict
-          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='image'), }
+          Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='inputs/image'), }
         Argument #2
           DType: bool
           Value: True
@@ -85,7 +85,7 @@ Concrete Functions:
           Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='inputs/image'), }
         Argument #2
           DType: bool
-          Value: False
+          Value: True
         Argument #3
           DType: NoneType
           Value: None
@@ -107,7 +107,7 @@ Concrete Functions:
           Value: {'image': TensorSpec(shape=(None, None, None, None, 3), dtype=tf.float32, name='inputs/image'), }
         Argument #2
           DType: bool
-          Value: True
+          Value: False
         Argument #3
           DType: NoneType
           Value: None
