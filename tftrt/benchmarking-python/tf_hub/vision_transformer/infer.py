@@ -74,7 +74,7 @@ class CommandLineAPI(BaseCommandLineAPI):
         args.labels_shift = 1 if args.num_classes == 1001 else 0
 
         return args
-    
+
     def _validate_args(self, args):
         super(CommandLineAPI, self)._validate_args(args)
 
@@ -82,11 +82,12 @@ class CommandLineAPI(BaseCommandLineAPI):
             raise ValueError(
                 "The argument --input_size must be equal to 224 for this model."
             )
-        
+
         if args.num_classes != 1000:
             raise ValueError(
                 "The argument --num_classes must be equal to 1000 for this model."
             )
+
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
