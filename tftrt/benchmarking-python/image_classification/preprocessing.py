@@ -247,4 +247,4 @@ def vision_transformer_preprocess(image, height, width):
     image_resized = tf.image.resize(image, (height, width))
     image_resized = tf.cast(image_resized, tf.float32)
     image_resized = (image_resized-127.5) / 127.5
-    return tf.expand_dims(image_resized, 0)
+    return image_resized
