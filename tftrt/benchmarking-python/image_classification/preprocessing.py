@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 _R_MEAN = 123.68
 _G_MEAN = 116.78
@@ -251,20 +252,17 @@ def vision_transformer_preprocess(image, height, width):
 
 
 def swin_transformer_preprocess(image, size, _):
-    image = np.array(image)
-    image_resized = tf.expand_dims(image, 0)
-
-    crop_layer = keras.layers.CenterCrop(input_resolution, input_resolution)
-    norm_layer = keras.layers.Normalization(
+    crop_layer = tf.keras.layers.CenterCrop(size, size)
+    norm_layer = tf.keras.layers.Normalization(
         mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
         variance=[(0.229 * 255) ** 2, (0.224 * 255) ** 2, (0.225 * 255) ** 2],
     )
     
     if size == 224:
         resize_size = int((256 / 224) * size)
-        image_resized = tf.image.resize(image_resized, (resize_size, resize_size), method="bicubic")
-        image_resized = crop_layer(image_resized)
+        image = tf.image.resize(image, (resize_size, resize_size), method="bicubic")
+        image = crop_layer(image)
     else:
-        image_resized = tf.image.resize(image_resized, (size, size), method="bicubic")
+        image = tf.image.resize(image, (size, size), method="bicubic")
     
-    return norm_layer(image_resized).numpy()
+    return norm_layer(image)
