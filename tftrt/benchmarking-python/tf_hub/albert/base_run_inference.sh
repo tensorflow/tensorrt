@@ -116,4 +116,4 @@ python ${BASE_DIR}/infer.py \
     --total_max_samples=1 \
     --use_synthetic_data  \
     --num_iterations=${NUM_ITERATIONS} \
-    ${@}
+    ${BYPASS_ARGUMENTS}
