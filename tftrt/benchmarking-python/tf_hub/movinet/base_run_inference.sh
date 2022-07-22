@@ -68,7 +68,7 @@ echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
 # Custom MoViNets flags
-echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
+echo "[*] INPUT_SIZE: (${INPUT_SIZE}, ${INPUT_SIZE})"
 echo "[*] NUM_FRAMES: ${NUM_FRAMES}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""

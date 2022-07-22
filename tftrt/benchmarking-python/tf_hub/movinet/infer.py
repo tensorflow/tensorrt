@@ -44,22 +44,23 @@ class CommandLineAPI(BaseCommandLineAPI):
             "--input_size",
             type=int,
             default=172,
-            help="Size of the input as a tuple of two ints each for height and width of the frame"
+            help="Size of the input as an int to be used for height and width of each frame"
         )
 
         self._parser.add_argument(
             "--num_frames",
             type=int,
             default=5,
-            help="Enter the frame rate for the input video in FPS"
+            help="Enter the number of frames for the input"
         )
+
     def _validate_args(self, args):
         super(CommandLineAPI, self)._validate_args(args)
 
         # TODO: Remove when proper dataloading is implemented
         if not args.use_synthetic_data:
             raise NotImplementedError()
-    
+
 class BenchmarkRunner(BaseBenchmarkRunner):
 
     def get_dataset_batches(self):
@@ -80,7 +81,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             raise NotImplementedError()
        
         tf.random.set_seed(10)
-
+        # The input is video data -- [batch_size, num_frames, height, width, channels]
         input_data = tf.random.uniform(
             shape=(1, self._args.num_frames, self._args.input_size, self._args.input_size, 3),
             dtype=tf.float32
@@ -135,7 +136,3 @@ if __name__ == '__main__':
     runner = BenchmarkRunner(args)
 
     runner.execute_benchmark()
-
-
-
-
