@@ -64,7 +64,7 @@ class CommandLineAPI(BaseCommandLineAPI):
         self._parser.add_argument(
             '--preprocess_method',
             type=str,
-            choices=['vision_transformer', 'swin_transformer'],
+            choices=['swin_transformer'],
             default='swin_transformer',
             help='The image preprocessing method used in dataloading.'
         )
@@ -75,13 +75,13 @@ class CommandLineAPI(BaseCommandLineAPI):
 
         return args
 
-    def _validate_args(self, args):
-        super(CommandLineAPI, self)._validate_args(args)
+    # def _validate_args(self, args):
+    #     super(CommandLineAPI, self)._validate_args(args)
 
-        if args.num_classes != 1000:
-            raise ValueError(
-                "The argument --num_classes must be equal to 1000 for this model."
-            )
+    #     if args.num_classes != 1000:
+    #         raise ValueError(
+    #             "The argument --num_classes must be equal to 1000 for this model."
+    #         )
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):

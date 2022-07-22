@@ -6,6 +6,8 @@ BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Runtime Parameters
 MODEL_NAME=""
+INPUT_SIZE=224
+NUM_CLASSES=1000
 
 # Default Argument Values
 BATCH_SIZE=32
@@ -21,6 +23,14 @@ do
         --model_name=*)
         MODEL_NAME="${arg#*=}"
         shift # Remove --model_name from processing
+        ;;
+        --input_size=*)
+        INPUT_SIZE="${arg#*=}"
+        shift # Remove --input_size= from processing
+        ;;
+        --num_classes=*)
+        NUM_CLASSES="${arg#*=}"
+        shift # Remove --num_classes= from processing
         ;;
         --batch_size=*)
         BATCH_SIZE="${arg#*=}"
@@ -54,6 +64,9 @@ BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 echo -e "\n********************************************************************"
 echo "[*] MODEL_NAME: ${MODEL_NAME}"
 echo ""
+echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
+echo "[*] NUM_CLASSES: ${NUM_CLASSES}"
+echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
@@ -82,6 +95,8 @@ python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
     --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
+    --input_size=${INPUT_SIZE} \
+    --num_classes=${NUM_CLASSES} \
     --batch_size=${BATCH_SIZE} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     --total_max_samples=${TOTAL_MAX_SAMPLES} \
