@@ -248,3 +248,23 @@ def vision_transformer_preprocess(image, height, width):
     image_resized = tf.cast(image_resized, tf.float32)
     image_resized = (image_resized-127.5) / 127.5
     return image_resized
+
+
+def swin_transformer_preprocess(image, size, _):
+    image = np.array(image)
+    image_resized = tf.expand_dims(image, 0)
+
+    crop_layer = keras.layers.CenterCrop(input_resolution, input_resolution)
+    norm_layer = keras.layers.Normalization(
+        mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+        variance=[(0.229 * 255) ** 2, (0.224 * 255) ** 2, (0.225 * 255) ** 2],
+    )
+    
+    if size == 224:
+        resize_size = int((256 / 224) * size)
+        image_resized = tf.image.resize(image_resized, (resize_size, resize_size), method="bicubic")
+        image_resized = crop_layer(image_resized)
+    else:
+        image_resized = tf.image.resize(image_resized, (size, size), method="bicubic")
+    
+    return norm_layer(image_resized).numpy()
