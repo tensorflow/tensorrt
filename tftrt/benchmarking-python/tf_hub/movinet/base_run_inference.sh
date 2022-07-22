@@ -69,7 +69,7 @@ echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
 # Custom MoViNets flags
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
-echo "[*] NUM_FRAMES: ${num_frames}"
+echo "[*] NUM_FRAMES: ${NUM_FRAMES}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
@@ -95,8 +95,6 @@ python ${BASE_DIR}/infer.py \
     --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
-    --num_frames=${NUM_FRAMES} \
-    --input_size=${INPUT_SIZE} \
     `# The following is set because we will be running synthetic benchmarks` \
     --total_max_samples=1 \
     --use_synthetic_data  \

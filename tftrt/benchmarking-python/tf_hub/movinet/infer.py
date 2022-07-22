@@ -28,6 +28,8 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
 parentdir = os.path.dirname(currentdir)
+parentdir = os.path.dirname(parentdir)
+
 sys.path.insert(0, parentdir)
 
 from benchmark_args import BaseCommandLineAPI
@@ -51,17 +53,13 @@ class CommandLineAPI(BaseCommandLineAPI):
             default=5,
             help="Enter the frame rate for the input video in FPS"
         )
-
-  
-
     def _validate_args(self, args):
         super(CommandLineAPI, self)._validate_args(args)
-  
-        if not self._args.use_synthetic_data:
+
+        # TODO: Remove when proper dataloading is implemented
+        if not args.use_synthetic_data:
             raise NotImplementedError()
-
-
-
+    
 class BenchmarkRunner(BaseBenchmarkRunner):
 
     def get_dataset_batches(self):
@@ -78,7 +76,9 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-
+        if not self._args.use_synthetic_data:
+            raise NotImplementedError()
+       
         tf.random.set_seed(10)
 
         input_data = tf.random.uniform(
