@@ -19,13 +19,11 @@ MOVINET_MODELS=(
 
 DATA_DIR="/tmp"
 INPUT_SAVED_MODEL_DIR="/models/tf_hub/movinet"
+BATCH_SIZE=32
 
-
-RUN_ARGS="--data_dir=${DATA_DIR} --batch_size=32 --display_every=50"
+RUN_ARGS="--data_dir=${DATA_DIR} --batch_size=${BATCH_SIZE} --display_every=50"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
-
-
 
 export TF_TRT_SHOW_DETAILED_REPORT=1
 
@@ -36,11 +34,11 @@ for model_name in "${MOVINET_MODELS[@]}"; do
 
     MODEL_DATA_EXPORT_DIR="${BASE_BENCHMARK_DATA_EXPORT_DIR}/movinet_${model_name}"
     mkdir -p ${MODEL_DATA_EXPORT_DIR}
+    echo "Running "${BASE_DIR}/models/${model_name}/run_inference.sh" for the set of following benchmarks. "
 
     # ============================ TF NATIVE ============================ #
     # TF Native - FP32
-    echo "Running "${BASE_DIR}/models/${model_name}/run_inference.sh" "  
-    #script -q -c "${BASE_DIR}/models/movinet_${model_name}/run_inference.sh ${RUN_ARGS} --precision=FP32" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tf_native_fp32.log
+    script -q -c "${BASE_DIR}/models/movinet_${model_name}/run_inference.sh ${RUN_ARGS} --precision=FP32" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tf_native_fp32.log
 
     # TF Native - FP16
     script -q -c "${BASE_DIR}/models/movinet_${model_name}/run_inference.sh ${RUN_ARGS} --precision=FP16" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tf_native_fp16.log
@@ -60,5 +58,5 @@ for model_name in "${MOVINET_MODELS[@]}"; do
     script -q -c "TF_TRT_EXPORT_GRAPH_VIZ_PATH=${MODEL_DATA_EXPORT_DIR}/tftrt_fp16.dot ${BASE_DIR}/models/movinet_${model_name}/run_inference.sh ${RUN_ARGS} --precision=FP16 ${TF_TRT_ARGS}" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tftrt_fp16.log
 
     # TF-TRT - INT8
-    #script -q -c "TF_TRT_EXPORT_GRAPH_VIZ_PATH=${MODEL_DATA_EXPORT_DIR}/tftrt_int8.dot ${BASE_DIR}/models/movinet_${model_name}/run_inference.sh ${RUN_ARGS} --precision=INT8 ${TF_TRT_ARGS}" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tftrt_int8.log
+    script -q -c "TF_TRT_EXPORT_GRAPH_VIZ_PATH=${MODEL_DATA_EXPORT_DIR}/tftrt_int8.dot ${BASE_DIR}/models/movinet_${model_name}/run_inference.sh ${RUN_ARGS} --precision=INT8 ${TF_TRT_ARGS}" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tftrt_int8.log
 done
