@@ -35,6 +35,7 @@ sys.path.insert(0, parentdir)
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
+
 class CommandLineAPI(BaseCommandLineAPI):
 
     def __init__(self):
@@ -44,7 +45,8 @@ class CommandLineAPI(BaseCommandLineAPI):
             "--input_size",
             type=int,
             default=172,
-            help="Size of the input as an int to be used for height and width of each frame"
+            help=
+            "Size of the input as an int to be used for height and width of each frame"
         )
 
         self._parser.add_argument(
@@ -60,6 +62,7 @@ class CommandLineAPI(BaseCommandLineAPI):
         # TODO: Remove when proper dataloading is implemented
         if not args.use_synthetic_data:
             raise NotImplementedError()
+
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
@@ -79,11 +82,14 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         """
         if not self._args.use_synthetic_data:
             raise NotImplementedError()
-       
+
         tf.random.set_seed(10)
         # The input is video data -- [batch_size, num_frames, height, width, channels]
         input_data = tf.random.uniform(
-            shape=(1, self._args.num_frames, self._args.input_size, self._args.input_size, 3),
+            shape=(
+                1, self._args.num_frames, self._args.input_size,
+                self._args.input_size, 3
+            ),
             dtype=tf.float32
         )
 
