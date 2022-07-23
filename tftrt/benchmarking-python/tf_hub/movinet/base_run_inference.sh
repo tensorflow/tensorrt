@@ -31,11 +31,11 @@ do
         shift # Remove --num_iterations= from processing
         ;;
         --input_size=*)
-        shift # Remove --input_size= from processing. This is provided from run_inference.sh
-        ;;
+        INPUT_SIZE="${arg#*=}"
+        shift         ;;
         --num_frames=*)
-        shift # Remove --num_frames= from processing This is provided from run_inference.sh
-        ;;
+        NUM_FRAMES="${arg#*=}"
+	shift         ;;
         --output_tensors_name=*)
         OUTPUT_TENSOR_NAMES="${arg#*=}"
         shift # Remove --output_tensors_name= from processing
@@ -66,9 +66,9 @@ echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo ""
 # Custom MoViNets flags
-echo "[*] INPUT_SIZE: (${INPUT_SIZE}, ${INPUT_SIZE})"
-echo "[*] NUM_FRAMES: ${NUM_FRAMES}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
+echo "[*] NUM_FRAMES: ${NUM_FRAMES}"
+echo "[*] INPUT_SIZE: (${INPUT_SIZE}, ${INPUT_SIZE})"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
 
