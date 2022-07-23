@@ -80,9 +80,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        if not self._args.use_synthetic_data:
-            raise NotImplementedError()
-
         tf.random.set_seed(10)
         # The input is video data -- [batch_size, num_frames, height, width, channels]
         input_data = tf.random.uniform(
