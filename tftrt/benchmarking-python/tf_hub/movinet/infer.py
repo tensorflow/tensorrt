@@ -53,7 +53,7 @@ class CommandLineAPI(BaseCommandLineAPI):
             "--num_frames",
             type=int,
             default=5,
-            help="Enter the number of frames for the input"
+            help="Enter the number of frames per input tensor"
         )
 
     def _validate_args(self, args):
