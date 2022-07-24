@@ -146,5 +146,3 @@ variables.data*
 
 # Benchmark Result Dir
 benchmark_data/
-/benchmark_data
-get-pip.py

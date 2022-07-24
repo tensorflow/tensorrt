@@ -32,10 +32,12 @@ do
         ;;
         --input_size=*)
         INPUT_SIZE="${arg#*=}"
-        shift         ;;
+        shift
+        ;;
         --num_frames=*)
         NUM_FRAMES="${arg#*=}"
-	shift         ;;
+        shift
+        ;;
         --output_tensors_name=*)
         OUTPUT_TENSOR_NAMES="${arg#*=}"
         shift # Remove --output_tensors_name= from processing
