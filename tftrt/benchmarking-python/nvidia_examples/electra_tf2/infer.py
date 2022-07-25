@@ -45,6 +45,8 @@ sys.path.insert(0, benchmark_base_dir)
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
+SAMPLES_IN_DATASET = 10950
+
 
 class CommandLineAPI(BaseCommandLineAPI):
 
@@ -153,6 +155,15 @@ class CommandLineAPI(BaseCommandLineAPI):
             "models, False for cased models."
         )
 
+    def _post_process_args(self, args):
+        args = super(CommandLineAPI, self)._post_process_args(args)
+        args.num_warmup_iterations = min(
+            int(SAMPLES_IN_DATASET / (args.batch_size) / 2),
+            args.num_warmup_iterations
+        )
+
+        return args
+
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 # %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
@@ -178,40 +189,44 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         def get_dataset_from_features(features, batch_size):
 
-            all_unique_ids = tf.convert_to_tensor([
-                f.unique_id for f in features
-            ],
-                                                  dtype=tf.int64)
-            all_input_ids = tf.convert_to_tensor([
-                f.input_ids for f in features
-            ],
-                                                 dtype=tf.int64)
-            all_input_mask = tf.convert_to_tensor([
-                f.attention_mask for f in features
-            ],
-                                                  dtype=tf.int64)
-            all_segment_ids = tf.convert_to_tensor([
-                f.token_type_ids for f in features
-            ],
-                                                   dtype=tf.int64)
-            all_start_pos = tf.convert_to_tensor([
-                f.start_position for f in features
-            ],
-                                                 dtype=tf.int64)
-            all_end_pos = tf.convert_to_tensor([
-                f.end_position for f in features
-            ],
-                                               dtype=tf.int64)
-            all_cls_index = tf.convert_to_tensor([
-                f.cls_index for f in features
-            ],
-                                                 dtype=tf.int64)
-            all_p_mask = tf.convert_to_tensor([f.p_mask for f in features],
-                                              dtype=tf.float32)
-            all_is_impossible = tf.convert_to_tensor([
-                f.is_impossible for f in features
-            ],
-                                                     dtype=tf.float32)
+            # yapf: disable
+            all_unique_ids = tf.convert_to_tensor(
+                [f.unique_id for f in features],
+                dtype=tf.int64
+            )
+            all_input_ids = tf.convert_to_tensor(
+                [f.input_ids for f in features],
+                dtype=tf.int64
+            )
+            all_input_mask = tf.convert_to_tensor(
+                [f.attention_mask for f in features],
+                dtype=tf.int64
+            )
+            all_segment_ids = tf.convert_to_tensor(
+                [f.token_type_ids for f in features],
+                dtype=tf.int64
+            )
+            all_start_pos = tf.convert_to_tensor(
+                [f.start_position for f in features],
+                dtype=tf.int64
+            )
+            all_end_pos = tf.convert_to_tensor(
+                [f.end_position for f in features],
+                dtype=tf.int64
+            )
+            all_cls_index = tf.convert_to_tensor(
+                [f.cls_index for f in features],
+                dtype=tf.int64
+            )
+            all_p_mask = tf.convert_to_tensor(
+                [f.p_mask for f in features],
+                dtype=tf.float32
+            )
+            all_is_impossible = tf.convert_to_tensor(
+                [f.is_impossible for f in features],
+                dtype=tf.float32
+            )
+            # yapf: enable
 
             dataset = tf.data.Dataset.from_tensor_slices((
                 all_unique_ids, all_input_ids, all_input_mask, all_segment_ids,
