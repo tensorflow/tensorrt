@@ -15,12 +15,33 @@ vit_MODELS=(
   "vit_l16_classification"
   "vit_s16_classification"
   "vit_r50_l32_classification"
+<<<<<<< refs/remotes/origin/master
+<<<<<<< refs/remotes/origin/master
 )
 
 MODEL_DIR="/models/tf_hub/vision_transformers"
 DATA_DIR="/data/imagenet"
 
 RUN_ARGS="--input_saved_model_dir=${MODEL_DIR} --data_dir=${DATA_DIR} --debug --batch_size=32 --display_every=1 --use_synthetic_data --num_iterations=1000"
+=======
+)      
+=======
+)
+>>>>>>> Fixing Shell Scripts
+
+<<<<<<< refs/remotes/origin/master
+RUN_ARGS="--input_saved_model_dir=/models/tf_hub/vision_transformers --data_dir=/data/imagenet --debug --batch_size=32 --display_every=1 --use_synthetic_data --num_iterations=1000"
+>>>>>>> Init vit scripts. Needs to tune args in scripts
+=======
+MODEL_DIR="/models/tf_hub/vision_transformers"
+DATA_DIR="/data/imagenet"
+
+<<<<<<< refs/remotes/origin/master
+RUN_ARGS="--input_saved_model_dir=${MODEL_DIR} --data_dir=${DATA_DIR} --debug --batch_size=32 --display_every=1"
+>>>>>>> Fix preprocessing for vit
+=======
+RUN_ARGS="--input_saved_model_dir=${MODEL_DIR} --data_dir=${DATA_DIR} --debug --batch_size=32 --display_every=1 --use_synthetic_data --num_iterations=1000"
+>>>>>>> switch back to synthetic data and clean up
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 
@@ -59,4 +80,12 @@ for model_name in "${vit_MODELS[@]}"; do
   # TF-TRT - INT8
   script -q -c "TF_TRT_EXPORT_GRAPH_VIZ_PATH=${MODEL_DATA_EXPORT_DIR}/tftrt_int8.dot ${SUBSCRIPT_DIR} ${RUN_ARGS} --precision=INT8 ${TF_TRT_ARGS}" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tftrt_int8.log
 
+<<<<<<< refs/remotes/origin/master
+<<<<<<< refs/remotes/origin/master
 done
+=======
+done
+>>>>>>> Init vit scripts. Needs to tune args in scripts
+=======
+done
+>>>>>>> Fixing Shell Scripts

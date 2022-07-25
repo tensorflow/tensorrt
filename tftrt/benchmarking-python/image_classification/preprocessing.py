@@ -248,6 +248,7 @@ def vision_transformer_preprocess(image, height, width):
     image_resized = tf.cast(image_resized, tf.float32)
     image_resized = (image_resized-127.5) / 127.5
     return image_resized
+<<<<<<< refs/remotes/origin/master
 
 
 def swin_transformer_preprocess(image, height, width):
@@ -275,3 +276,5 @@ def swin_transformer_preprocess(image, height, width):
         image = tf.image.resize(image, (size, size), method="bicubic")
 
     return norm_layer(image)
+=======
+>>>>>>> Fix preprocessing for vit
