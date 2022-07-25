@@ -1,4 +1,4 @@
-#!# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+#!# Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -28,9 +28,10 @@ import inspect
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
+parentdir = os.path.dirname(currentdir)
+parentdir = os.path.dirname(parentdir)
 
-benchmark_base_dir = os.path.dirname(currentdir)
-sys.path.insert(0, benchmark_base_dir)
+sys.path.insert(0, parentdir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
@@ -123,3 +124,4 @@ if __name__ == '__main__':
 
     runner = BenchmarkRunner(args)
     runner.execute_benchmark()
+

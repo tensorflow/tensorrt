@@ -5,7 +5,7 @@ nvidia-smi
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 BATCH_SIZE="1"
-OUTPUT_TENSOR_NAMES="output_0, output_1, output_2"
+OUTPUT_TENSOR_NAMES="output_0,output_1,output_2"
 NUM_ITERATIONS="1000"
 
 # Loop through arguments and process them
@@ -46,7 +46,7 @@ do
 done
 
 # Trimming front and back whitespaces
-BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
+BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ") 
 
 echo -e "\n********************************************************************"
 echo "[*] DATA_DIR: ${DATA_DIR}"
@@ -86,3 +86,4 @@ python ${BASE_DIR}/infer.py \
     --num_iterations=${NUM_ITERATIONS} \
     --total_max_samples=1 \
     ${BYPASS_ARGUMENTS}
+
