@@ -1,0 +1,109 @@
+Fri Jul 22 21:11:59 2022       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.82.01    Driver Version: 470.82.01    CUDA Version: 11.7     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Tesla V100-SXM2...  On   | 00000000:06:00.0 Off |                    0 |
+| N/A   38C    P0    58W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  Tesla V100-SXM2...  On   | 00000000:07:00.0 Off |                    0 |
+| N/A   38C    P0    43W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   2  Tesla V100-SXM2...  On   | 00000000:0A:00.0 Off |                    0 |
+| N/A   39C    P0    41W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   3  Tesla V100-SXM2...  On   | 00000000:0B:00.0 Off |                    0 |
+| N/A   35C    P0    43W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   4  Tesla V100-SXM2...  On   | 00000000:85:00.0 Off |                    0 |
+| N/A   38C    P0    42W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   5  Tesla V100-SXM2...  On   | 00000000:86:00.0 Off |                    0 |
+| N/A   37C    P0    44W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   6  Tesla V100-SXM2...  On   | 00000000:89:00.0 Off |                    0 |
+| N/A   40C    P0    45W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   7  Tesla V100-SXM2...  On   | 00000000:8A:00.0 Off |                    0 |
+| N/A   38C    P0    43W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+
+********************************************************************
+[*] DATA_DIR: /tmp/
+[*] MODEL_DIR: /models/tf_hub/spice
+
+[*] BATCH_SIZE: 1
+[*] NUM_ITERATIONS: 1000
+
+[*] SAMPLES_PER_INPUT: 128
+[*] OUTPUT_TENSOR_NAMES: pitch,uncertainty
+
+[*] BYPASS_ARGUMENTS: --display_every=50 --precision=FP32
+********************************************************************
+
++ python /workspace/tftrt/benchmarking-python/tf_hub/spice/infer.py --data_dir=/tmp/ --calib_data_dir=/tmp/ --input_saved_model_dir=/models/tf_hub/spice --output_tensors_name=pitch,uncertainty --batch_size=1 --samples_per_input=128 --use_synthetic_data --num_iterations=1000 --total_max_samples=1 --display_every=50 --precision=FP32
+
+Benchmark arguments:
+  - allow_build_at_runtime: False
+  - batch_size: 1
+  - calib_data_dir: /tmp/
+  - data_dir: /tmp/
+  - debug: False
+  - debug_data_aggregation: False
+  - debug_performance: False
+  - display_every: 50
+  - export_metrics_csv_path: None
+  - export_metrics_json_path: None
+  - gpu_mem_cap: 0
+  - input_saved_model_dir: /models/tf_hub/spice
+  - input_signature_key: serving_default
+  - max_workspace_size: 1073741824
+  - minimum_segment_size: 5
+  - model_tag: serve
+  - name: False
+  - no_tf32: False
+  - num_build_batches: 1
+  - num_calib_batches: 10
+  - num_iterations: 1000
+  - num_warmup_iterations: 200
+  - optimize_offline: True
+  - output_saved_model_dir: None
+  - output_tensors_name: pitch,uncertainty
+  - precision: FP32
+  - samples_per_input: 128
+  - tf_profile_export_path: None
+  - tf_profile_verbose: False
+  - total_max_samples: 1
+  - trim_mean_percentage: 0.1
+  - use_dynamic_shape: False
+  - use_synthetic_data: True
+  - use_tftrt: False
+  - use_xla: False
+  - use_xla_auto_jit: False
+
+
+[START] Model Loading ...
+
+[START] Loading TensorFlow native model ...
+2022-07-22 21:12:02.348464: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+^^C^C^\^\/workspace/tftrt/benchmarking-python/tf_hub/spice/run_inference.sh: line 87:  1255 Quit                    (core dumped) python ${BASE_DIR}/infer.py --data_dir=${DATA_DIR} --calib_data_dir=${DATA_DIR} --input_saved_model_dir=${MODEL_DIR} --output_tensors_name=${OUTPUT_TENSOR_NAMES} --batch_size=${BATCH_SIZE} --samples_per_input=${SAMPLES_PER_INPUT} `# The following is set because we will be running synthetic benchmarks` --use_synthetic_data --num_iterations=${NUM_ITERATIONS} --total_max_samples=1 ${BYPASS_ARGUMENTS}

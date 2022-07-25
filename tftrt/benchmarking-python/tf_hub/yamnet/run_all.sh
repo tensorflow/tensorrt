@@ -9,13 +9,13 @@ mkdir -p ${BASE_BENCHMARK_DATA_EXPORT_DIR}
 # Default Argument Values
 SAMPLES_PER_INPUT="128"
 BYPASS_ARGUMENTS=""
-MODEL_DIR="/models/tf_hub/spice"
+MODEL_DIR="/models/tf_hub/YAMNet"
 DATA_DIR="/tmp/"
 NUM_ITERATIONS="1000"
 
 # List of models. spice is a single implementation
 MODELS=(
-    "spice"
+    "YAMNet"
 )
 
 RUN_ARGS="--data_dir=${DATA_DIR} --input_saved_model_dir=${MODEL_DIR} --display_every=50 --samples_per_input=${SAMPLES_PER_INPUT} --num_iterations=${NUM_ITERATIONS}"
@@ -32,7 +32,7 @@ for model_name in "${MODELS[@]}"; do
 
     # ============================ TF NATIVE ============================ #
     # TF Native - FP32
-    echo "Running ${BASE_DIR}/run_inference.sh"  
+    echo "Running ${BASE_DIR}/run_inference.sh"
     script -q -c "${BASE_DIR}/run_inference.sh ${RUN_ARGS} --precision=FP32" /dev/null | tee ${MODEL_DATA_EXPORT_DIR}/inference_tf_native_fp32.log
 
     # TF Native - FP16

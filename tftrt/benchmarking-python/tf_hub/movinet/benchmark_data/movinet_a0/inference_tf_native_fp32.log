@@ -1,0 +1,155 @@
++++ dirname /workspace/tftrt/benchmarking-python/tf_hub/movinet/models/movinet_a0/run_inference.sh
+++ cd /workspace/tftrt/benchmarking-python/tf_hub/movinet/models/movinet_a0
+++ pwd
++ BASE_DIR=/workspace/tftrt/benchmarking-python/tf_hub/movinet/models/movinet_a0/../..
++ NUM_FRAMES=5
++ INPUT_SIZE=172
++ bash /workspace/tftrt/benchmarking-python/tf_hub/movinet/models/movinet_a0/../../base_run_inference.sh --model_name=a0 --num_frames=5 --input_size=172 --data_dir=/tmp --batch_size=32 --display_every=50 --input_saved_model_dir=/models/tf_hub/movinet --precision=FP32
+Sat Jul 23 00:28:00 2022       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 450.51.06    Driver Version: 450.51.06    CUDA Version: 11.7     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Tesla P100-SXM2...  On   | 00000000:06:00.0 Off |                    0 |
+| N/A   41C    P0    34W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  Tesla P100-SXM2...  On   | 00000000:07:00.0 Off |                    0 |
+| N/A   38C    P0    33W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   2  Tesla P100-SXM2...  On   | 00000000:0A:00.0 Off |                    0 |
+| N/A   37C    P0    35W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   3  Tesla P100-SXM2...  On   | 00000000:0B:00.0 Off |                    0 |
+| N/A   37C    P0    36W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   4  Tesla P100-SXM2...  On   | 00000000:85:00.0 Off |                    0 |
+| N/A   39C    P0    34W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   5  Tesla P100-SXM2...  On   | 00000000:86:00.0 Off |                    0 |
+| N/A   40C    P0    34W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   6  Tesla P100-SXM2...  On   | 00000000:89:00.0 Off |                    0 |
+| N/A   36C    P0    34W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   7  Tesla P100-SXM2...  On   | 00000000:8A:00.0 Off |                    0 |
+| N/A   35C    P0    32W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+
+********************************************************************
+[*] MODEL_NAME: a0
+
+[*] DATA_DIR: /tmp
+[*] MODEL_DIR: /models/tf_hub/movinet
+
+[*] BATCH_SIZE: 32
+
+[*] OUTPUT_TENSOR_NAMES: classifier_head
+[*] NUM_FRAMES: 5
+[*] INPUT_SIZE: (172, 172
+
+[*] BYPASS_ARGUMENTS: --display_every=50 --precision=FP32
+********************************************************************
+
++ python /workspace/tftrt/benchmarking-python/tf_hub/movinet/infer.py --data_dir=/tmp --calib_data_dir=/tmp --input_saved_model_dir=/models/tf_hub/movinet/a0/ --output_tensors_name=classifier_head --total_max_samples=1 --use_synthetic_data --num_iterations=1000 --display_every=50 --precision=FP32
+
+Benchmark arguments:
+  - allow_build_at_runtime: False
+  - batch_size: 8
+  - calib_data_dir: /tmp
+  - data_dir: /tmp
+  - debug: False
+  - debug_data_aggregation: False
+  - debug_performance: False
+  - display_every: 50
+  - export_metrics_csv_path: None
+  - export_metrics_json_path: None
+  - gpu_mem_cap: 0
+  - input_saved_model_dir: /models/tf_hub/movinet/a0/
+  - input_signature_key: serving_default
+  - input_size: 172
+  - max_workspace_size: 1073741824
+  - minimum_segment_size: 5
+  - model_tag: serve
+  - name: False
+  - no_tf32: False
+  - num_build_batches: 1
+  - num_calib_batches: 10
+  - num_frames: 5
+  - num_iterations: 1000
+  - num_warmup_iterations: 200
+  - optimize_offline: True
+  - output_saved_model_dir: None
+  - output_tensors_name: classifier_head
+  - precision: FP32
+  - tf_profile_export_path: None
+  - tf_profile_verbose: False
+  - total_max_samples: 1
+  - trim_mean_percentage: 0.1
+  - use_dynamic_shape: False
+  - use_synthetic_data: True
+  - use_tftrt: False
+  - use_xla: False
+  - use_xla_auto_jit: False
+
+
+[START] Model Loading ...
+
+[START] Loading TensorFlow native model ...
+2022-07-23 00:28:02.927154: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+^C2022-07-23 00:28:06.671456: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 15238 MB memory:  -> device: 0, name: Tesla P100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 6.0
+2022-07-23 00:28:06.673477: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 15238 MB memory:  -> device: 1, name: Tesla P100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 6.0
+2022-07-23 00:28:06.674935: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:2 with 15238 MB memory:  -> device: 2, name: Tesla P100-SXM2-16GB, pci bus id: 0000:0a:00.0, compute capability: 6.0
+2022-07-23 00:28:06.676293: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:3 with 15238 MB memory:  -> device: 3, name: Tesla P100-SXM2-16GB, pci bus id: 0000:0b:00.0, compute capability: 6.0
+2022-07-23 00:28:06.677626: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:4 with 15238 MB memory:  -> device: 4, name: Tesla P100-SXM2-16GB, pci bus id: 0000:85:00.0, compute capability: 6.0
+2022-07-23 00:28:06.678983: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:5 with 15238 MB memory:  -> device: 5, name: Tesla P100-SXM2-16GB, pci bus id: 0000:86:00.0, compute capability: 6.0
+2022-07-23 00:28:06.680247: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:6 with 15238 MB memory:  -> device: 6, name: Tesla P100-SXM2-16GB, pci bus id: 0000:89:00.0, compute capability: 6.0
+2022-07-23 00:28:06.681710: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:7 with 15238 MB memory:  -> device: 7, name: Tesla P100-SXM2-16GB, pci bus id: 0000:8a:00.0, compute capability: 6.0
+Traceback (most recent call last):
+  File "/workspace/tftrt/benchmarking-python/tf_hub/movinet/infer.py", line 141, in <module>
+    runner.execute_benchmark()
+  File "/workspace/tftrt/benchmarking-python/benchmark_runner.py", line 398, in execute_benchmark
+    graph_func = self._get_graph_func()
+  File "/workspace/tftrt/benchmarking-python/benchmark_runner.py", line 244, in _get_graph_func
+    graph_func = load_model_from_disk(
+  File "/workspace/tftrt/benchmarking-python/benchmark_runner.py", line 223, in load_model_from_disk
+    saved_model_loaded = tf.saved_model.load(export_dir=path, tags=tags)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/saved_model/load.py", line 782, in load
+    result = load_partial(export_dir, None, tags, options)["root"]
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/saved_model/load.py", line 912, in load_partial
+    loader = Loader(object_graph_proto, saved_model_proto, export_dir,
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/saved_model/load.py", line 151, in __init__
+    function_deserialization.load_function_def_library(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/saved_model/function_deserialization.py", line 430, in load_function_def_library
+    func = function_lib.ConcreteFunction(func_graph, attrs=fdef.attr)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/eager/function.py", line 1492, in __init__
+    self._delayed_rewrite_functions = _DelayedRewriteGradientFunctions(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/eager/function.py", line 582, in __init__
+    self._inference_function = _EagerDefinedFunction(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/eager/function.py", line 388, in __init__
+    context.ensure_initialized()
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/eager/context.py", line 2138, in ensure_initialized
+    context().ensure_initialized()
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/eager/context.py", line 611, in ensure_initialized
+    context_handle = pywrap_tfe.TFE_NewContext(opts)
+KeyboardInterrupt
+^C

@@ -4,8 +4,8 @@ nvidia-smi
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-BATCH_SIZE="1"
-OUTPUT_TENSOR_NAMES="pitch,uncertainty"
+BATCH_SIZE="32"
+OUTPUT_TENSOR_NAMES="output_0, output_1, output_2"
 NUM_ITERATIONS="1000"
 
 # Loop through arguments and process them
@@ -34,10 +34,6 @@ do
 	      --total_max_samples=*)
         shift # Remove --total_max_samples= from processing
         ;;
-        --samples_per_input=*)
-        SAMPLES_PER_INPUT="${arg#*=}"
-        shift # Remove --input_saved_model_dir= from processing
-        ;;
         *)
         BYPASS_ARGUMENTS="${BYPASS_ARGUMENTS} ${arg}"
         ;;
@@ -54,7 +50,6 @@ echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] NUM_ITERATIONS: ${NUM_ITERATIONS}"
 echo ""
-echo "[*] SAMPLES_PER_INPUT: ${SAMPLES_PER_INPUT}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"

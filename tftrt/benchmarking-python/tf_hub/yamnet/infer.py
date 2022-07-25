@@ -1,4 +1,4 @@
-#!# Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
+#!# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -15,11 +15,11 @@
 # limitations under the License.
 # =============================================================================
 
-import math
 import os
 import sys
 
 import numpy as np
+
 import tensorflow as tf
 
 # Allow import of top level python files
@@ -28,10 +28,9 @@ import inspect
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
-parentdir = os.path.dirname(currentdir)
-parentdir = os.path.dirname(parentdir)
 
-sys.path.insert(0, parentdir)
+benchmark_base_dir = os.path.dirname(currentdir)
+sys.path.insert(0, benchmark_base_dir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
@@ -42,28 +41,12 @@ class CommandLineAPI(BaseCommandLineAPI):
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 
-        self._parser.add_argument(
-            "--samples_per_input",
-            type=int,
-            default=128,
-            help="Input number of samples per input to generate random wave data."
-        )
-
-    def _validate_args(self, args):
-        super(CommandLineAPI, self)._validate_args(args)
-
-        # TODO: Remove when proper dataloading is implemented
-        if not args.use_synthetic_data:
-            raise ValueError(
-                "This benchmark does not currently support non-synthetic data "
-                "--use_synthetic_data"
-            )
-        # This model requires that the batch size is 1
-        if args.batch_size != 1:
-            raise ValueError(
-                "This benchmark does not currently support "
-                "--batch_size != 1"
-            )
+        # self._parser.add_argument(
+        #     "--sequence_length",
+        #     type=int,
+        #     default=128,
+        #     help="Input data sequence length."
+        # )
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):
@@ -83,20 +66,12 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        # A single wave, 128 samples (8ms at 16kHz) long.
-        wave = np.array(
-            np.sin(np.linspace(-np.pi, np.pi, self._args.samples_per_input)),
-            dtype=np.float32
-        )
+        # seq = generate_a_sequence(self._args.sequence_length)
 
-        # tile to 2048 samples. The model resizes the input to (2048,) automatically
-        tile_factor = math.ceil(2048 / wave.shape[0])
-        waves = np.expand_dims(np.tile(wave, tile_factor), axis=0)
+        # - https://www.tensorflow.org/guide/data_performance
+        # - https://www.tensorflow.org/guide/data
+        # dataset = tf.data....
 
-        dataset = tf.data.Dataset.from_tensor_slices(waves)
-        dataset = dataset.repeat()
-
-        dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset, None
 
     def preprocess_model_inputs(self, data_batch):
@@ -105,9 +80,11 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             x: input of the model
             y: data to be used for model evaluation
 
-        Note: script arguments can be accessed using `self._args.attr` """
+        Note: script arguments can be accessed using `self._args.attr`
+        """
 
-        return data_batch, None
+        x = data_batch
+        return x, None
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
@@ -129,7 +106,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        return None, "Raw Pitch Accuracy"
+
+        # NOTE: PLEASE ONLY MODIFY THE NAME OF THE ACCURACY METRIC
+
+        return None, "<ACCURACY METRIC NAME>"
 
 
 if __name__ == '__main__':
@@ -139,3 +119,30 @@ if __name__ == '__main__':
 
     runner = BenchmarkRunner(args)
     runner.execute_benchmark()
+
+################ TO BE REMOVED - HIGH LEVEL CONCEPT #####################
+
+import time
+
+model_fn = load_my_model("/path/to/my/model")
+
+dataset, _ = get_dataset_batches()  # dataset, None
+
+ds_iter = iter(dataset)
+
+for idx, batch in enumerate(ds_iter):
+    print(f"Batch ID: {idx + 1} - Data: {batch}")
+
+    # - IF NEEDED - This transforms the inputs - Most cases it doesn't do anything
+    # let's say transforming a list into a dict() or reverse
+    batch = preprocess_model_inputs(batch)
+
+    start_t = time.time()
+    outputs = model_fn(batch)
+    print(f"Inference Time: {(time.time() - start_t)*1000:.1f}ms")  # 0.001
+
+    ## post my outputs to "measure accuracy"
+    ## note: we skip that
+
+print("Success")
+sys.exit(0)
