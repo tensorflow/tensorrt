@@ -11,9 +11,14 @@ from contextlib import contextmanager
 
 
 def force_gpu_resync(func):
+
+    func_name = func.__name__
     try:
         sync_device_fn = tf.experimental.sync_devices
-        print("[INFO] Using API `tf.experimental.sync_devices` to resync GPUs.")
+        print(
+            "[INFO] Using API `tf.experimental.sync_devices` to resync GPUs "
+            f"on function: {func_name}."
+        )
 
         def wrapper(*args, **kwargs):
             rslt = func(*args, **kwargs)
@@ -25,8 +30,10 @@ def force_gpu_resync(func):
     except AttributeError:
         print(
             "[WARNING] Using deprecated API to resync GPUs. "
-            "Non negligeable overhead might be present."
+            "Non negligeable overhead might be present on function: "
+            f"{func_name}."
         )
+
         p = tf.constant(0.)  # Create small tensor to force GPU resync
 
         def wrapper(*args, **kwargs):

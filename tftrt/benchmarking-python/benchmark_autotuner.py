@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+
 import numpy as np
 import tensorflow as tf
 
@@ -86,31 +87,37 @@ def auto_tf_func_tuner(
 
     def wrapper(func):
 
-        @force_gpu_resync
-        def eager_function(*args, **kwargs):
-            return func(*args, **kwargs)
+        func_name = func.__name__
 
-        @force_gpu_resync
-        @tf.function(jit_compile=use_xla)
-        def tf_function(*args, **kwargs):
-            return func(*args, **kwargs)
+        eager_function = func
 
-        @force_gpu_resync
-        @_force_using_concrete_function
-        @tf.function(jit_compile=use_xla)
-        def tf_concrete_function(*args, **kwargs):
-            return func(*args, **kwargs)
+        tf_function = tf.function(jit_compile=use_xla)(func)
 
-        eager_function.__name__ = f"{func.__name__}_eager"
-        tf_function.__name__ = f"{func.__name__}_tf_function"
-        tf_concrete_function.__name__ = f"{func.__name__}_tf_concrete_function"
+        def resync_gpu_wrap_fn(_func, str_appended):
+            name = f"{func_name}_{str_appended}"
+            _func.__name__ = name
+            _func = force_gpu_resync(_func)
+            _func.__name__ = name
+            return _func
+
+        eager_function = resync_gpu_wrap_fn(eager_function, "eager")
+        tf_function = resync_gpu_wrap_fn(tf_function, "tf_function")
 
         funcs2autotune = [eager_function, tf_function]
+
         if use_synthetic_data:
             print(
                 "[INFO] Allowing direct concrete_function call with "
                 "synthetic data loader."
             )
+
+            tf_concrete_function = _force_using_concrete_function(
+                tf.function(jit_compile=use_xla)(func)
+            )
+            tf_concrete_function = resync_gpu_wrap_fn(
+                tf_concrete_function, "tf_concrete_function"
+            )
+
             funcs2autotune.append(tf_concrete_function)
 
         return _TFFunctionAutoTuner(
