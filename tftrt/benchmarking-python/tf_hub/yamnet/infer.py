@@ -41,12 +41,12 @@ class CommandLineAPI(BaseCommandLineAPI):
     def __init__(self):
         super(CommandLineAPI, self).__init__()
 
-        # self._parser.add_argument(
-        #     "--sequence_length",
-        #     type=int,
-        #     default=128,
-        #     help="Input data sequence length."
-        # )
+        self._parser.add_argument(
+            "--frame_length",
+            type=int,
+            default=1,
+            help="Input audio frame length."
+        )
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):
@@ -65,13 +65,20 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
+        # Input is a numpy array of arbitrary length
+        #generates a wave of 16kHz for 3 seconds
+        frame_length = self._args.frame_length
+        wave = np.array(
+            np.sin(np.linspace(-np.pi, np.pi, 16000 * frame_length)),
+            dtype=np.float32
+        )
 
-        # seq = generate_a_sequence(self._args.sequence_length)
+        waves = np.expand_dims(wave, axis=0)
 
-        # - https://www.tensorflow.org/guide/data_performance
-        # - https://www.tensorflow.org/guide/data
-        # dataset = tf.data....
+        dataset = tf.data.Dataset.from_tensor_slices(waves)
+        dataset = dataset.repeat()
 
+        dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset, None
 
     def preprocess_model_inputs(self, data_batch):
@@ -106,10 +113,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-
-        # NOTE: PLEASE ONLY MODIFY THE NAME OF THE ACCURACY METRIC
-
-        return None, "<ACCURACY METRIC NAME>"
+        return None, "Top-10 Accuracy"
 
 
 if __name__ == '__main__':
@@ -119,30 +123,3 @@ if __name__ == '__main__':
 
     runner = BenchmarkRunner(args)
     runner.execute_benchmark()
-
-################ TO BE REMOVED - HIGH LEVEL CONCEPT #####################
-
-import time
-
-model_fn = load_my_model("/path/to/my/model")
-
-dataset, _ = get_dataset_batches()  # dataset, None
-
-ds_iter = iter(dataset)
-
-for idx, batch in enumerate(ds_iter):
-    print(f"Batch ID: {idx + 1} - Data: {batch}")
-
-    # - IF NEEDED - This transforms the inputs - Most cases it doesn't do anything
-    # let's say transforming a list into a dict() or reverse
-    batch = preprocess_model_inputs(batch)
-
-    start_t = time.time()
-    outputs = model_fn(batch)
-    print(f"Inference Time: {(time.time() - start_t)*1000:.1f}ms")  # 0.001
-
-    ## post my outputs to "measure accuracy"
-    ## note: we skip that
-
-print("Success")
-sys.exit(0)
