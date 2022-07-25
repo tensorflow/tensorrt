@@ -1,4 +1,4 @@
-#!# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+#!# Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -15,11 +15,11 @@
 # limitations under the License.
 # =============================================================================
 
+import math
 import os
 import sys
 
 import numpy as np
-
 import tensorflow as tf
 
 # Allow import of top level python files
@@ -28,9 +28,10 @@ import inspect
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
+parentdir = os.path.dirname(currentdir)
+parentdir = os.path.dirname(parentdir)
 
-benchmark_base_dir = os.path.dirname(currentdir)
-sys.path.insert(0, benchmark_base_dir)
+sys.path.insert(0, parentdir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
@@ -42,11 +43,27 @@ class CommandLineAPI(BaseCommandLineAPI):
         super(CommandLineAPI, self).__init__()
 
         self._parser.add_argument(
-            "--frame_length",
+            "--samples_per_input",
             type=int,
-            default=1,
-            help="Input audio frame length."
+            default=128,
+            help="Input number of samples per input to generate random wave data."
         )
+
+    def _validate_args(self, args):
+        super(CommandLineAPI, self)._validate_args(args)
+
+        # TODO: Remove when proper dataloading is implemented
+        if not args.use_synthetic_data:
+            raise ValueError(
+                "This benchmark does not currently support non-synthetic data "
+                "--use_synthetic_data"
+            )
+        # This model requires that the batch size is 1
+        if args.batch_size != 1:
+            raise ValueError(
+                "This benchmark does not currently support "
+                "--batch_size != 1"
+            )
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):
@@ -65,15 +82,16 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        # Input is a numpy array of arbitrary length
-        #generates a wave of 16kHz for 3 seconds
-        frame_length = self._args.frame_length
+
+        # A single wave, 128 samples (8ms at 16kHz) long.
         wave = np.array(
-            np.sin(np.linspace(-np.pi, np.pi, 16000 * frame_length)),
+            np.sin(np.linspace(-np.pi, np.pi, self._args.samples_per_input)),
             dtype=np.float32
         )
 
-        waves = np.expand_dims(wave, axis=0)
+        # tile to 2048 samples. The model resizes the input to (2048,) automatically
+        tile_factor = math.ceil(2048 / wave.shape[0])
+        waves = np.expand_dims(np.tile(wave, tile_factor), axis=0)
 
         dataset = tf.data.Dataset.from_tensor_slices(waves)
         dataset = dataset.repeat()
@@ -87,11 +105,9 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             x: input of the model
             y: data to be used for model evaluation
 
-        Note: script arguments can be accessed using `self._args.attr`
-        """
+        Note: script arguments can be accessed using `self._args.attr` """
 
-        x = data_batch
-        return x, None
+        return data_batch, None
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
@@ -113,7 +129,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        return None, "Top-10 Accuracy"
+        return None, "Raw Pitch Accuracy"
 
 
 if __name__ == '__main__':

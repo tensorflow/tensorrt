@@ -1,0 +1,15 @@
+The given SavedModel SignatureDef contains the following input(s):
+  inputs['input'] tensor_info:
+      dtype: DT_FLOAT
+      shape: (-1)
+      name: input_audio_samples:0
+The given SavedModel SignatureDef contains the following output(s):
+  outputs['pitch'] tensor_info:
+      dtype: DT_FLOAT
+      shape: (-1)
+      name: pitch:0
+  outputs['uncertainty'] tensor_info:
+      dtype: DT_FLOAT
+      shape: (-1)
+      name: uncertainty:0
+Method name is: tensorflow/serving/predict

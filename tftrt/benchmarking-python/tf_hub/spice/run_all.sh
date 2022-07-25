@@ -7,15 +7,15 @@ rm -rf ${BASE_BENCHMARK_DATA_EXPORT_DIR}
 mkdir -p ${BASE_BENCHMARK_DATA_EXPORT_DIR}
 
 # Default Argument Values
+SAMPLES_PER_INPUT="128"
 BYPASS_ARGUMENTS=""
-MODEL_DIR="/models/tf_hub/YAMNet"
+MODEL_DIR="/models/tf_hub/spice"
 DATA_DIR="/tmp/"
-FRAME_LENGTH="1"
+NUM_ITERATIONS="1000"
 
-
-# List of models. YAMNet is a single implementation
+# List of models. spice is a single implementation
 MODELS=(
-    "YAMNet"
+    "spice"
 )
 
 RUN_ARGS="--data_dir=${DATA_DIR} --input_saved_model_dir=${MODEL_DIR} --display_every=50 --samples_per_input=${SAMPLES_PER_INPUT} --num_iterations=${NUM_ITERATIONS}"

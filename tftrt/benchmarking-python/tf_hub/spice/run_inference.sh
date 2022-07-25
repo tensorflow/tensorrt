@@ -5,7 +5,7 @@ nvidia-smi
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 BATCH_SIZE="1"
-OUTPUT_TENSOR_NAMES="output_0, output_1, output_2"
+OUTPUT_TENSOR_NAMES="pitch,uncertainty"
 NUM_ITERATIONS="1000"
 
 # Loop through arguments and process them
@@ -13,7 +13,6 @@ for arg in "$@"
 do
     case $arg in
         --batch_size=*)
-        BATCH_SIZE="${arg#*=}"
         shift # Remove --batch_size= from processing
         ;;
         --num_iterations=*)
@@ -35,9 +34,9 @@ do
 	      --total_max_samples=*)
         shift # Remove --total_max_samples= from processing
         ;;
-        --frame_length=*)
-        FRAME_LENGTH="${arg#*=}"
-        shift # Remove --frame_length= from processing
+        --samples_per_input=*)
+        SAMPLES_PER_INPUT="${arg#*=}"
+        shift # Remove --input_saved_model_dir= from processing
         ;;
         *)
         BYPASS_ARGUMENTS="${BYPASS_ARGUMENTS} ${arg}"
@@ -55,7 +54,7 @@ echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] NUM_ITERATIONS: ${NUM_ITERATIONS}"
 echo ""
-echo "[*] FRAME_LENGTH: ${FRAME_LENGTH}"
+echo "[*] SAMPLES_PER_INPUT: ${SAMPLES_PER_INPUT}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
@@ -80,7 +79,7 @@ python ${BASE_DIR}/infer.py \
     --input_saved_model_dir=${MODEL_DIR} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     --batch_size=${BATCH_SIZE} \
-    --frame_length=${FRAME_LENGTH} \
+    --samples_per_input=${SAMPLES_PER_INPUT} \
     `# The following is set because we will be running synthetic benchmarks` \
     --use_synthetic_data  \
     --num_iterations=${NUM_ITERATIONS} \
