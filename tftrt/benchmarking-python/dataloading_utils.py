@@ -7,6 +7,7 @@ import time
 import tensorflow as tf
 
 from benchmark_autotuner import auto_tf_func_tuner
+from benchmark_utils import force_gpu_resync
 
 
 def SyntheticDataset(dataset, device):
@@ -69,7 +70,7 @@ def ensure_dataset_on_gpu(dataset, device):
 
 def get_dequeue_batch_fn(ds_iter, use_xla=False, use_synthetic_data=False):
 
-    @auto_tf_func_tuner(use_xla=use_xla, use_synthetic_data=use_synthetic_data)
+    @force_gpu_resync
     def dequeue_batch_fn():
         """This function should not use tf.function().
         It would create two unwanted effects:
@@ -98,3 +99,33 @@ def get_force_data_on_gpu_fn(
                 return tf.identity(data)
 
     return force_data_on_gpu_fn
+
+
+def patch_dali_dataset(dataset):
+    import nvidia.dali.plugin.tf as dali_tf
+
+    if not isinstance(dataset, dali_tf.DALIDataset):
+        raise TypeError(
+            "Dataset supplied should be an instance of `DALIDataset`."
+            f"Received: `{type(dataset)}`"
+        )
+
+    def take(self, limit):
+
+        class _Dataset(self.__class__):
+
+            def __init__(self, _ds, _limit):
+                self._ds = _ds
+                self._limit = _limit
+
+            def __iter__(self):
+                ds_iter = iter(self._ds)
+                for idx in tf.range(self._limit):
+                    yield next(ds_iter)
+
+        return _Dataset(self, limit)
+
+    # Monkey Patch
+    dataset.__class__.take = take
+
+    return dataset

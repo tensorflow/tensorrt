@@ -204,36 +204,3 @@ class DataAggregator(object):
                             f"Expected: {y[key].shape}"
                         )
                     self._expected[key][idx_start:idx_stop] = y[key]
-
-
-def patch_dali_dataset(dataset):
-    import nvidia.dali.plugin.tf as dali_tf
-
-    if not isinstance(dataset, dali_tf.DALIDataset):
-        raise TypeError(
-            "Dataset supplied should be an instance of `DALIDataset`."
-            f"Received: `{type(dataset)}`"
-        )
-
-    def take(self, limit):
-
-        class _Dataset(self.__class__):
-
-            def __init__(self, _ds, _limit):
-                self._ds = _ds
-                self._limit = _limit
-
-            def __iter__(self):
-                idx = 0
-                for data in self._ds:
-                    if idx >= self._limit:
-                        break
-                    yield data
-                    idx += 1
-
-        return _Dataset(self, limit)
-
-    # Monkey Patch
-    dataset.__class__.take = take
-
-    return dataset

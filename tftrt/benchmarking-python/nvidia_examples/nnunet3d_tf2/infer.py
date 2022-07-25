@@ -42,7 +42,7 @@ sys.path.insert(0, benchmark_base_dir)
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
-from benchmark_utils import patch_dali_dataset
+from dataloading_utils import patch_dali_dataset
 
 
 class CommandLineAPI(BaseCommandLineAPI):

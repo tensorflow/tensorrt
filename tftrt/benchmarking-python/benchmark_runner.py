@@ -40,7 +40,7 @@ from versioning_utils import get_commit_id
 # The `__version__` number shall be updated everytime core benchmarking files
 # are updated.
 # Please update CHANGELOG.md with a description of what this version changed.
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 __all__ = ["__version__", "BaseBenchmarkRunner"]
 
