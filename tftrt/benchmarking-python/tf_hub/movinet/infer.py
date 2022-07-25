@@ -46,14 +46,14 @@ class CommandLineAPI(BaseCommandLineAPI):
             type=int,
             default=172,
             help=
-            "Size of the input as an int to be used for height and width of each frame"
+            "Height and width of each frame used by the model"
         )
 
         self._parser.add_argument(
             "--num_frames",
             type=int,
             default=5,
-            help="Enter the number of frames per input tensor"
+            help="Number of frames per input video sequence"
         )
 
     def _validate_args(self, args):
