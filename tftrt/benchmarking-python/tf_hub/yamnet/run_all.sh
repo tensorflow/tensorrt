@@ -18,7 +18,7 @@ MODELS=(
     "YAMNet"
 )
 
-RUN_ARGS="--data_dir=${DATA_DIR} --input_saved_model_dir=${MODEL_DIR} --display_every=50 --samples_per_input=${SAMPLES_PER_INPUT} --num_iterations=${NUM_ITERATIONS}"
+RUN_ARGS="--data_dir=${DATA_DIR} --input_saved_model_dir=${MODEL_DIR} --display_every=50 --frame_length=${FRAME_LENGTH}"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 

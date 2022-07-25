@@ -5,7 +5,7 @@ nvidia-smi
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 BATCH_SIZE="1"
-OUTPUT_TENSOR_NAMES="output_0, output_1, output_2"
+OUTPUT_TENSOR_NAMES="output_0,output_1,output_2"
 NUM_ITERATIONS="1000"
 
 # Loop through arguments and process them
