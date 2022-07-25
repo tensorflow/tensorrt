@@ -250,7 +250,15 @@ def vision_transformer_preprocess(image, height, width):
     return image_resized
 
 
-def swin_transformer_preprocess(image, size, _):
+def swin_transformer_preprocess(image, height, width):
+  
+    if height != width:
+        raise UnimplementedError(
+            "Preprocessed image must have the same height and width."
+        )
+    else:
+        size = height
+
     crop_layer = tf.keras.layers.CenterCrop(size, size)
     norm_layer = tf.keras.layers.Normalization(
         mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],

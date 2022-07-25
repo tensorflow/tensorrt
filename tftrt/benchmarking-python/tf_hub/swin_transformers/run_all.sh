@@ -6,7 +6,7 @@ mkdir -p ${BASE_BENCHMARK_DATA_EXPORT_DIR}
 
 #########################
 
-swin_MODELS=(
+SWIN_MODELS=(
   "swin_s3_tiny_224"
   "swin_s3_small_224"
   "swin_s3_base_224"
@@ -27,7 +27,7 @@ TF_XLA_ARGS="--use_xla_auto_jit"
 
 export TF_TRT_SHOW_DETAILED_REPORT=1
 
-for model_name in "${swin_MODELS[@]}"; do
+for model_name in "${SWIN_MODELS[@]}"; do
 
   echo "Processing Model: ${model_name} ..."
 

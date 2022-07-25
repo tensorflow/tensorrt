@@ -66,6 +66,7 @@ echo "[*] MODEL_DIR: ${MODEL_DIR}"
 echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
+echo "[*] TOTAL_MAX_SAMPLES: ${TOTAL_MAX_SAMPLES}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
 
