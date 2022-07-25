@@ -66,6 +66,8 @@ def get_dataloader(args):
             preprocess_fn = preprocessing.inception_preprocess
         elif preprocess_method == 'vision_transformer':
             preprocess_fn = preprocessing.vision_transformer_preprocess
+        elif preprocess_method == 'swin_transformer':
+            preprocess_fn = preprocessing.swin_transformer_preprocess
         else:
             raise ValueError(
                 'Invalid preprocessing method {}'.format(preprocess_method)
