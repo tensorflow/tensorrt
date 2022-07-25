@@ -45,8 +45,7 @@ class CommandLineAPI(BaseCommandLineAPI):
             "--input_size",
             type=int,
             default=172,
-            help=
-            "Height and width of each frame used by the model"
+            help="Height and width of each frame used by the model"
         )
 
         self._parser.add_argument(
