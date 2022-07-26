@@ -81,9 +81,6 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             logging.info("[Benchmark] - Deactivating the use of TF32 format")
             os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
 
-        # Hide unnecessary INFO CPP Logs
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-
         # Hide unnecessary TensorFlow DEBUG Python Logs
         _logging.getLogger("tensorflow").setLevel(_logging.INFO)
         _logging.disable(_logging.WARNING)
