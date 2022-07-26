@@ -102,6 +102,7 @@ if [[ ! -d ${TOKENIZER_DIR} ]]; then
     exit 1
 fi
 
+
 python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
     --calib_data_dir=${DATA_DIR} \

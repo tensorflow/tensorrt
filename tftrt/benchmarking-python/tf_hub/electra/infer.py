@@ -37,6 +37,7 @@ from benchmark_runner import BaseBenchmarkRunner
 
 from dataloading import get_dataset_cola
 
+
 class CommandLineAPI(BaseCommandLineAPI):
 
     def __init__(self):
@@ -102,9 +103,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             tf.random.set_seed(114514)
 
             input_mask = tf.random.uniform(
-                shape=(1, self._args.sequence_length),
-                maxval=2,
-                dtype=tf.int32
+                shape=(1, self._args.sequence_length), maxval=2, dtype=tf.int32
             )
             input_type_ids = tf.random.uniform(
                 shape=(1, self._args.sequence_length),
