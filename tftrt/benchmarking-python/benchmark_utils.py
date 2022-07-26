@@ -9,14 +9,16 @@ import tensorflow as tf
 
 from contextlib import contextmanager
 
+from benchmark_logger import logging
+
 
 def force_gpu_resync(func):
 
     func_name = func.__name__
     try:
         sync_device_fn = tf.experimental.sync_devices
-        print(
-            "[INFO] Using API `tf.experimental.sync_devices` to resync GPUs "
+        logging.debug(
+            "Using API `tf.experimental.sync_devices` to resync GPUs "
             f"on function: {func_name}."
         )
 
@@ -28,8 +30,8 @@ def force_gpu_resync(func):
         return wrapper
 
     except AttributeError:
-        print(
-            "[WARNING] Using deprecated API to resync GPUs. "
+        logging.warning(
+            "Using deprecated API to resync GPUs. "
             "Non negligeable overhead might be present on function: "
             f"{func_name}."
         )
@@ -44,13 +46,13 @@ def force_gpu_resync(func):
         return wrapper
 
 
-def print_dict(input_dict, prefix='  ', postfix='', redirect_to_str=False):
+def print_dict(input_dict, prefix='\t', postfix='', redirect_to_str=False):
     rslt_str = ""
     for key, val in sorted(input_dict.items()):
         val = f"{val:.1f}" if isinstance(val, float) else val
         tmp_str = f"{prefix}- {key}: {val}{postfix}"
         if not redirect_to_str:
-            print(tmp_str)
+            logging.info(tmp_str)
         else:
             rslt_str += f"{tmp_str}\n"
 
@@ -63,17 +65,17 @@ def timed_section(msg, activate=True, start_end_mode=True):
     if activate:
 
         if start_end_mode:
-            print(f"\n[START] {msg} ...")
+            logging.info(f"[START] {msg} ...")
 
         start_time = time.time()
         yield
         total_time = time.time() - start_time
 
         if start_end_mode:
-            print(f"[END] {msg} - Duration: {total_time:.1f}s")
-            print("=" * 80, "\n")
+            logging.info(f"[END] {msg} - Duration: {total_time:.1f}s")
+            logging.info("="*80 + "\n")
         else:
-            print(f"{msg:18s}: {total_time:.4f}s")
+            logging.info(f"{msg:18s}: {total_time:.4f}s")
 
     else:
         yield
@@ -187,7 +189,7 @@ class DataAggregator(object):
             idx_stop = self._total_samples_processed
 
             if self._args.debug_data_aggregation:
-                print(
+                logging.debug(
                     f"Start: {idx_start} - Stop: {idx_stop} - "
                     f"Size: {idx_stop-idx_start} - Step Batch Size: {step_batch_size}"
                 )
@@ -197,7 +199,7 @@ class DataAggregator(object):
                                start_end_mode=False):
                 for key, val in self._predicted.items():
                     if self._args.debug_data_aggregation:
-                        print(
+                        logging.debug(
                             f"\t-Key: {key} - "
                             f"Storage Shape: {self._predicted[key][idx_start:idx_stop].shape} - "
                             f"Preds: {y_pred[key].shape}"
@@ -205,7 +207,7 @@ class DataAggregator(object):
                     self._predicted[key][idx_start:idx_stop] = y_pred[key]
                 for key, val in self._expected.items():
                     if self._args.debug_data_aggregation:
-                        print(
+                        logging.debug(
                             f"\t-Key: {key} - "
                             f"Storage Shape: {self._expected[key][idx_start:idx_stop].shape} - "
                             f"Expected: {y[key].shape}"

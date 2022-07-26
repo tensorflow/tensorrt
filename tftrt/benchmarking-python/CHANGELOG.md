@@ -46,6 +46,10 @@ Description of the change
 
 <!-- YOU CAN EDIT FROM HERE -->
 
+## [1.1.0] - 2022.07.25 - @DEKHTIARJonathan
+
+Replacing all `print()` calls by `logging.<level>()` calls
+
 ## [1.0.1] - 2022.07.25 - @DEKHTIARJonathan
 
 Removing AutoTuning on `get_dequeue_batch_fn` because DALIDataset was not

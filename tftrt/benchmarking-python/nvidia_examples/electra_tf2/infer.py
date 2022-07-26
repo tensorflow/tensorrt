@@ -45,6 +45,8 @@ sys.path.insert(0, benchmark_base_dir)
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
+from benchmark_logger import logging
+
 SAMPLES_IN_DATASET = 10950
 
 
@@ -249,7 +251,6 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         dev_examples = processor.get_dev_examples(self._args.data_dir)
 
-        print("***** Loading features *****")
         # Load cached features
         squad_version = '2.0' if self._args.version_2_with_negative else '1.1'
         cache_dir = self._args.data_dir
@@ -278,7 +279,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                 )
             )
 
-            print(f"**** Building Cache Files: {cached_dev_features_file} ****")
+            logging.debug(f"Building Cache Files: {cached_dev_features_file}")
             with open(cached_dev_features_file, "wb") as writer:
                 pickle.dump(dev_features, writer)
 
@@ -399,16 +400,15 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             f"{os.path.join(self._args.data_dir, dev_file)} "
             f"{output_prediction_file}"
         )
-        if self._args.debug:
-            print(f"\nExecuting: `{command_str}`\n")
+
+        logging.debug(f"\nExecuting: `{command_str}`\n")
 
         eval_out = subprocess.check_output(shlex.split(command_str))
 
         # scores: {'exact_match': 87.06717123935667, 'f1': 92.78048326711645}
         scores = json.loads(eval_out.decode("UTF-8").strip())
 
-        if self._args.debug:
-            print("scores:", scores)
+        logging.debug("scores:", scores)
 
         metric_units = "f1"
 

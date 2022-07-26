@@ -41,6 +41,8 @@ sys.path.insert(0, benchmark_base_dir)
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
+from benchmark_logger import logging
+
 
 class CommandLineAPI(BaseCommandLineAPI):
 
@@ -298,8 +300,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             f"{sys.executable} {os.path.join(squad_dir, eval_file)} "
             f"{os.path.join(squad_dir, dev_file)} {output_prediction_file}"
         )
-        if self._args.debug:
-            print(f"\nExecuting: `{command_str}`\n")
+
+        logging.debug(f"\nExecuting: `{command_str}`\n")
 
         eval_out = subprocess.check_output(shlex.split(command_str))
 

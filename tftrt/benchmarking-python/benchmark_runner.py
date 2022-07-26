@@ -21,10 +21,16 @@ import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
 from tensorflow.python.framework.errors_impl import OutOfRangeError
+from tensorflow.python.platform import tf_logging
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
 
 from benchmark_autotuner import auto_tf_func_tuner
+
+from benchmark_info import __version__
+from benchmark_info import get_commit_id
+
+from benchmark_logger import logging
 
 from benchmark_utils import DataAggregator
 from benchmark_utils import print_dict
@@ -35,14 +41,7 @@ from dataloading_utils import ensure_dataset_on_gpu
 from dataloading_utils import get_dequeue_batch_fn
 from dataloading_utils import get_force_data_on_gpu_fn
 
-from versioning_utils import get_commit_id
-
-# The `__version__` number shall be updated everytime core benchmarking files
-# are updated.
-# Please update CHANGELOG.md with a description of what this version changed.
-__version__ = "1.0.1"
-
-__all__ = ["__version__", "BaseBenchmarkRunner"]
+__all__ = ["BaseBenchmarkRunner"]
 
 
 class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
@@ -75,16 +74,19 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         self._args = args
 
         if args.use_xla_auto_jit:
-            print("[Benchmark] - Activating XLA JIT Auto Clustering")
+            logging.info("[Benchmark] - Activating XLA JIT Auto Clustering")
             os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2"
             os.environ["TF_XLA_FLAGS"] += " --tf_xla_cpu_global_jit"
 
         if args.no_tf32:
-            print("[Benchmark] - Deactivating the use of TF32 format")
+            logging.info("[Benchmark] - Deactivating the use of TF32 format")
             os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
 
-        logging.getLogger("tensorflow").setLevel(logging.INFO)
-        logging.disable(logging.WARNING)
+        # Hide unnecessary INFO CPP Logs
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
+        # Hide unnecessary DEBUG Python Logs
+        tf_logging.set_verbosity(tf_logging.INFO)
 
         # TensorFlow can execute operations synchronously or asynchronously.
         # If asynchronous execution is enabled, operations may return
@@ -102,9 +104,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         if not gpus:
             raise RuntimeError("No GPUs has been found.")
 
-        self._debug_print('Found the following GPUs:')
+        print()  # visual spacing
+        logging.debug('Found the following GPUs:')
         for gpu in gpus:
-            self._debug_print(f"\t- {gpu}")
+            logging.debug(f"\t- {gpu}")
 
         for gpu in gpus:
             try:
@@ -128,11 +131,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
                     set_virtual_device_configuration(gpu, [device_config])
             except RuntimeError as e:
-                print('Can not set GPU memory config', e)
+                logging.error(f"Can not set GPU memory config: {e}")
 
-    def _debug_print(self, msg):
-        if self._args.debug:
-            print(f"[DEBUG] {msg}")
+        print()  # visual spacing
 
     def _export_runtime_metrics_to_json(self, metric_dict):
 
@@ -158,7 +159,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 print(json_string, file=json_f)
 
         except Exception as e:
-            print(f"An exception occured during export to JSON: {e}")
+            logging.error(f"An exception occured during export to JSON: {e}")
 
     def _export_runtime_metrics_to_csv(self, metric_dict):
 
@@ -205,7 +206,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 writer.writerow(data)
 
         except Exception as e:
-            print(f"An exception occured during export to CSV: {e}")
+            logging.error(f"An exception occured during export to CSV: {e}")
 
     def _get_graph_func(self):
         """Retreives a frozen SavedModel and applies TF-TRT
@@ -279,7 +280,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 use_dynamic_shape=self._args.use_dynamic_shape,
             )
 
-            print("\n[*] TF-TRT Converter Parameters:")
+            logging.info("[*] TF-TRT Converter Parameters:")
             print_dict(trt_converter_params)
 
             try:
@@ -292,7 +293,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 dataset, _ = self.get_dataset_batches()
 
                 for idx, data_batch in enumerate(dataset):
-                    print(
+                    logging.info(
                         f"* [{model_phase}] "
                         f"- step {(idx+1):04d}/{num_batches:04d}"
                     )
@@ -355,7 +356,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
                 with timed_section("Saving converted graph with TF-TRT"):
                     converter.save(self._args.output_saved_model_dir)
-                    print(
+                    logging.info(
                         f"Converted graph saved to "
                         f"`{self._args.output_saved_model_dir}`"
                     )
@@ -370,21 +371,32 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     )
 
         if isinstance(graph_func.structured_outputs, (tuple, list)):
-            savedmodel_outputs = "\n  - ".join([
+            savedmodel_outputs = "\n\t- ".join([
                 str(t) for t in graph_func.structured_outputs
             ])
-            savedmodel_outputs = f"  - {savedmodel_outputs}"
+            if savedmodel_outputs:
+                savedmodel_outputs = f"\t- {savedmodel_outputs}"
+
+            savedmodel_outputs = f"\t- {savedmodel_outputs}"
         else:
             savedmodel_outputs = print_dict(
                 graph_func.structured_outputs, redirect_to_str=True
             )
-        self._debug_print(f"Available Output Tensors:\n{savedmodel_outputs}")
+
+        logging.debug(f"Available Output Tensors:")
+        for _str in savedmodel_outputs.split("\n"):
+            logging.debug(_str)
         print()  # visual spacing
 
-        chosen_outputs = "\n  - ".join(
+        chosen_outputs = "\n\t- ".join(
             sorted(self._args.output_tensors_name.split(","))
         )
-        self._debug_print(f"Chosen Output Tensor:\n  - {chosen_outputs}")
+        if chosen_outputs:
+            chosen_outputs = f"\t- {chosen_outputs}"
+
+        logging.debug(f"Chosen Output Tensor:")
+        for _str in chosen_outputs.split("\n"):
+            logging.debug(_str)
         print()  # visual spacing
 
         return graph_func
@@ -403,14 +415,14 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             if self._args.use_synthetic_data:
                 try:
                     dataset = SyntheticDataset(dataset, device="/gpu:0")
-                    self._debug_print(
+                    logging.debug(
                         "Model dataset has been replaced by a synthetic data "
                         "loader to minimize data loading jitter."
                     )
 
                 except Exception as e:
-                    print(
-                        f"[ERROR] Impossible to transform the dataset into a "
+                    logging.error(
+                        f"Impossible to transform the dataset into a "
                         f"synthetic dataset. Performance numbers will be "
                         f"impacted.\nError: {str(e)}."
                     )
@@ -452,7 +464,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 dequeue_time
             ):
                 if step_idx % display_every == 0:
-                    print(
+                    logging.info(
                         f"step {step_idx:04d}, "
                         f"iter_time(ms)={iter_time:08.3f}, "
                         f"memcpyHtoD_time(ms)={memcpyHtoD_time:08.3f}, "
@@ -482,7 +494,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                             # - Skip autotuning
                             delay_ms=30000
                         )
-                        print("[INFO] Using verbose TF Profiler.")
+                        logging.info("Using verbose TF Profiler.")
                     else:
                         profiler_opts = None
 
@@ -534,7 +546,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                             data_batch = dequeue_batch_fn()
                             dequeue_times.append(time.time() - start_time)
                         except (StopIteration, OutOfRangeError):
-                            print("[Exiting] Reached end of dataset ...")
+                            logging.info("[Exiting] Reached end of dataset ...")
                             break
 
                     with tracing_ctx('Inputs Preprocessing'):
@@ -565,13 +577,13 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         ) * 1000
                     )
                 else:
-                    print(
+                    logging.info(
                         f"{'GPU Iteration Time':18s}: {iter_times[-1]:08.4f}s"
                     )
-                    print(
+                    logging.info(
                         f"{'Data MemCopyHtoD Time':18s}: {memcpyHtoD_time[-1]:08.4f}s"
                     )
-                    print(
+                    logging.info(
                         f"{'Data Dequeue Time':18s}: {dequeue_times[-1]:08.4f}s"
                     )
 
@@ -662,9 +674,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             def log_value(key, val):
                 if isinstance(val, (int, str)):
-                    print(f"- {key:50s}: {val}")
+                    logging.info(f"- {key:50s}: {val}")
                 else:
-                    print(f"- {key:50s}: {val:.2f}")
+                    logging.info(f"- {key:50s}: {val:.2f}")
 
             for key, val in sorted(metrics.items()):
                 if isinstance(val, dict):

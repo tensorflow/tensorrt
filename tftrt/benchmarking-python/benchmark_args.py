@@ -13,6 +13,7 @@ from tensorflow.python.saved_model import tag_constants
 from tensorflow.python.saved_model.signature_constants import \
     DEFAULT_SERVING_SIGNATURE_DEF_KEY
 
+from benchmark_logger import logging
 from benchmark_utils import print_dict
 
 
@@ -392,6 +393,9 @@ class BaseCommandLineAPI(object):
             # Let's fix it to 1 to save memory.
             args.total_max_samples = 1
 
+        if args.debug or args.debug_data_aggregation or args.debug_performance:
+            logging.set_verbosity(logging.DEBUG)
+
         return args
 
     def parse_args(self):
@@ -400,7 +404,7 @@ class BaseCommandLineAPI(object):
         args = self._post_process_args(args)
         self._validate_args(args)
 
-        print("\nBenchmark arguments:")
+        logging.info("Benchmark arguments:")
         print_dict(vars(args))
         print()
 

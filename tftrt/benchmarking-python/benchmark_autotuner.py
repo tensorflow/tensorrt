@@ -7,6 +7,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
+from benchmark_logger import logging
 from benchmark_utils import force_gpu_resync
 
 
@@ -35,21 +36,20 @@ class _TFFunctionAutoTuner(object):
             output = self._fns[fn_id](*arg, **kwargs)
             self._timings[fn_id].append(time.time() - start_t)
         except IndexError:
-            print(
-                "\n[DEBUG] AutoTuning is over... Collecting timing statistics:"
-            )
+            print()  # visual spacing
+            logging.debug("AutoTuning is over... Collecting timing statistics:")
             perf_data = []
             for idx, fn_stat in enumerate(self._timings):
                 perf_data.append(np.mean(fn_stat[self._skip_n_first:]))
-                print(
-                    f"\t- [DEBUG] Function ID: {idx} - "
+                logging.debug(
+                    f"\t- Function ID: {idx} - "
                     f"Name: {self._fns[idx].__name__:40s} - "
                     f"Average Exec Time: {perf_data[-1]}"
                 )
 
             best_fn_id = np.argmin(perf_data)
-            print(
-                f"[DEBUG] Selecting function ID: {best_fn_id}. "
+            logging.debug(
+                f"Selecting function ID: {best_fn_id}. "
                 f"Setting exec path to: `{self._fns[best_fn_id].__name__}`\n"
             )
 
@@ -71,7 +71,7 @@ def _force_using_concrete_function(func):
         try:
             return context[0](*args, **kwargs)
         except IndexError:
-            print(f"[INFO] Building the concrete function")
+            logging.info(f"Building the concrete function")
             context.append(func.get_concrete_function(*args, **kwargs))
             return context[0](*args, **kwargs)
 
@@ -106,8 +106,8 @@ def auto_tf_func_tuner(
         funcs2autotune = [eager_function, tf_function]
 
         if use_synthetic_data:
-            print(
-                "[INFO] Allowing direct concrete_function call with "
+            logging.debug(
+                "Allowing direct concrete_function call with "
                 "synthetic data loader."
             )
 

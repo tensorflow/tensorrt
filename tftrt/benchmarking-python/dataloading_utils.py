@@ -7,6 +7,7 @@ import time
 import tensorflow as tf
 
 from benchmark_autotuner import auto_tf_func_tuner
+from benchmark_logger import logging
 from benchmark_utils import force_gpu_resync
 
 
@@ -41,8 +42,8 @@ def ensure_dataset_on_gpu(dataset, device):
         input_batch = [input_batch]
 
     if any([t.dtype == tf.int32 for t in input_batch]):
-        print(
-            "[WARNING] The dataloader generates INT32 tensors. Prefetch to "
+        logging.warning(
+            "The dataloader generates INT32 tensors. Prefetch to "
             "GPU not supported"
         )
         return dataset
@@ -50,14 +51,14 @@ def ensure_dataset_on_gpu(dataset, device):
     try:
         ds_device = dataset._variant_tensor_attr.device.lower()
     except AttributeError as e:
-        print(
-            f"[ERROR] Impossible to find the device from the dataset.\n"
+        logging.error(
+            f"Impossible to find the device from the dataset.\n"
             f"Error: {e}."
         )
         return dataset
 
     if device.lower() not in ds_device:
-        print(f"[INFO] Adding prefetch to device `{device}` to the dataset.")
+        logging.info(f"Adding prefetch to device `{device}` to the dataset.")
         dataset = dataset.apply(
             tf.data.experimental.prefetch_to_device(
                 device=device, buffer_size=tf.data.AUTOTUNE
