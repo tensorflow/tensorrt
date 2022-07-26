@@ -13,7 +13,6 @@ for arg in "$@"
 do
     case $arg in
         --batch_size=*)
-        BATCH_SIZE="${arg#*=}"
         shift # Remove --batch_size= from processing
         ;;
         --num_iterations=*)
