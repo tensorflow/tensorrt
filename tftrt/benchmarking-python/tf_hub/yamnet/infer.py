@@ -90,8 +90,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        
-	x = data_batch
+
+        x = data_batch
         return x, None
 
     def postprocess_model_outputs(self, predictions, expected):
@@ -103,8 +103,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         """
 
         # NOTE : DO NOT MODIFY FOR NOW => We do not measure accuracy right now
-        
-	return predictions.numpy(), expected.numpy()
+
+        return predictions.numpy(), expected.numpy()
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
