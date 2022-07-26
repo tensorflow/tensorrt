@@ -46,7 +46,7 @@ do
 done
 
 # Trimming front and back whitespaces
-BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ") 
+BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 
 echo -e "\n********************************************************************"
 echo "[*] DATA_DIR: ${DATA_DIR}"
@@ -86,4 +86,3 @@ python ${BASE_DIR}/infer.py \
     --num_iterations=${NUM_ITERATIONS} \
     --total_max_samples=1 \
     ${BYPASS_ARGUMENTS}
-

@@ -42,11 +42,25 @@ class CommandLineAPI(BaseCommandLineAPI):
         super(CommandLineAPI, self).__init__()
 
         self._parser.add_argument(
-            "--frame_length",
+            "--input_size",
             type=int,
-            default=1,
-            help="Input audio frame length."
+            default=172,
+            help="Height and width of each frame used by the model"
         )
+
+        self._parser.add_argument(
+            "--num_frames",
+            type=int,
+            default=5,
+            help="Number of frames per input video sequence"
+        )
+
+    def _validate_args(self, args):
+        super(CommandLineAPI, self)._validate_args(args)
+
+        # TODO: Remove when proper dataloading is implemented
+        if not args.use_synthetic_data:
+            raise NotImplementedError()
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):
@@ -65,21 +79,21 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        # Input is a numpy array of arbitrary length
-
-        # generates a wave of 16kHz for frame_length seconds
-        frame_length = self._args.frame_length
-        wave = np.array(
-            np.sin(np.linspace(-np.pi, np.pi, 16000 * frame_length)),
-            dtype=np.float32
+        tf.random.set_seed(10)
+        # The input is video data -- [batch_size, num_frames, height, width, channels]
+        input_data = tf.random.uniform(
+            shape=(
+                1, self._args.num_frames, self._args.input_size,
+                self._args.input_size, 3
+            ),
+            dtype=tf.float32
         )
 
-        waves = np.expand_dims(wave, axis=0)
-
-        dataset = tf.data.Dataset.from_tensor_slices(waves)
+        dataset = tf.data.Dataset.from_tensor_slices(input_data)
         dataset = dataset.repeat()
-
+        dataset = dataset.batch(self._args.batch_size)
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
+
         return dataset, None
 
     def preprocess_model_inputs(self, data_batch):
@@ -90,8 +104,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        
-	x = data_batch
+
+        x = data_batch
         return x, None
 
     def postprocess_model_outputs(self, predictions, expected):
@@ -102,9 +116,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        # NOTE : DO NOT MODIFY FOR NOW => We do not measure accuracy right now
-        
-	return predictions.numpy(), expected.numpy()
+        return predictions.numpy(), expected.numpy()
 
     def evaluate_model(self, predictions, expected, bypass_data_to_eval):
         """Evaluate result predictions for entire dataset.
@@ -114,7 +126,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-        return None, "Top-10 Accuracy"
+
+        return None, "Top-1 Accuracy %"
 
 
 if __name__ == '__main__':
@@ -123,4 +136,5 @@ if __name__ == '__main__':
     args = cmdline_api.parse_args()
 
     runner = BenchmarkRunner(args)
+
     runner.execute_benchmark()

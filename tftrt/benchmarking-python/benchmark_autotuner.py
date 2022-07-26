@@ -3,9 +3,11 @@
 # -*- coding: utf-8 -*-
 
 import time
+
 import numpy as np
 import tensorflow as tf
 
+from benchmark_logger import logging
 from benchmark_utils import force_gpu_resync
 
 
@@ -34,21 +36,20 @@ class _TFFunctionAutoTuner(object):
             output = self._fns[fn_id](*arg, **kwargs)
             self._timings[fn_id].append(time.time() - start_t)
         except IndexError:
-            print(
-                "\n[DEBUG] AutoTuning is over... Collecting timing statistics:"
-            )
+            print()  # visual spacing
+            logging.debug("AutoTuning is over... Collecting timing statistics:")
             perf_data = []
             for idx, fn_stat in enumerate(self._timings):
                 perf_data.append(np.mean(fn_stat[self._skip_n_first:]))
-                print(
-                    f"\t- [DEBUG] Function ID: {idx} - "
+                logging.debug(
+                    f"\t- Function ID: {idx} - "
                     f"Name: {self._fns[idx].__name__:40s} - "
                     f"Average Exec Time: {perf_data[-1]}"
                 )
 
             best_fn_id = np.argmin(perf_data)
-            print(
-                f"[DEBUG] Selecting function ID: {best_fn_id}. "
+            logging.debug(
+                f"Selecting function ID: {best_fn_id}. "
                 f"Setting exec path to: `{self._fns[best_fn_id].__name__}`\n"
             )
 
@@ -70,7 +71,7 @@ def _force_using_concrete_function(func):
         try:
             return context[0](*args, **kwargs)
         except IndexError:
-            print(f"[INFO] Building the concrete function")
+            logging.info(f"Building the concrete function")
             context.append(func.get_concrete_function(*args, **kwargs))
             return context[0](*args, **kwargs)
 
@@ -86,31 +87,37 @@ def auto_tf_func_tuner(
 
     def wrapper(func):
 
-        @force_gpu_resync
-        def eager_function(*args, **kwargs):
-            return func(*args, **kwargs)
+        func_name = func.__name__
 
-        @force_gpu_resync
-        @tf.function(jit_compile=use_xla)
-        def tf_function(*args, **kwargs):
-            return func(*args, **kwargs)
+        eager_function = func
 
-        @force_gpu_resync
-        @_force_using_concrete_function
-        @tf.function(jit_compile=use_xla)
-        def tf_concrete_function(*args, **kwargs):
-            return func(*args, **kwargs)
+        tf_function = tf.function(jit_compile=use_xla)(func)
 
-        eager_function.__name__ = f"{func.__name__}_eager"
-        tf_function.__name__ = f"{func.__name__}_tf_function"
-        tf_concrete_function.__name__ = f"{func.__name__}_tf_concrete_function"
+        def resync_gpu_wrap_fn(_func, str_appended):
+            name = f"{func_name}_{str_appended}"
+            _func.__name__ = name
+            _func = force_gpu_resync(_func)
+            _func.__name__ = name
+            return _func
+
+        eager_function = resync_gpu_wrap_fn(eager_function, "eager")
+        tf_function = resync_gpu_wrap_fn(tf_function, "tf_function")
 
         funcs2autotune = [eager_function, tf_function]
+
         if use_synthetic_data:
-            print(
-                "[INFO] Allowing direct concrete_function call with "
+            logging.debug(
+                "Allowing direct concrete_function call with "
                 "synthetic data loader."
             )
+
+            tf_concrete_function = _force_using_concrete_function(
+                tf.function(jit_compile=use_xla)(func)
+            )
+            tf_concrete_function = resync_gpu_wrap_fn(
+                tf_concrete_function, "tf_concrete_function"
+            )
+
             funcs2autotune.append(tf_concrete_function)
 
         return _TFFunctionAutoTuner(

@@ -77,7 +77,7 @@ if __name__ == "__main__":
             pass
 
         print()
-        print("===============================================================")
+        ("===============================================================")
         print("Processing model:", model_name)
         print("Will be saved to:", cache_dir, "\n")
         time.sleep(2)

@@ -3,17 +3,19 @@
 import os
 import glob
 
+from benchmark_logger import logging
+
 try:
     from prefetch_generator import background
 except ModuleNotFoundError:
-    print("[ERROR] Please install: `pip install --upgrade prefetch_generator`")
+    logging.error("Please install: `pip install --upgrade prefetch_generator`")
     raise
 
 try:
     import orjson as json
 except ModuleNotFoundError:
-    print(
-        "[WARNING] To process json data faster, please execute: "
+    logging.warning(
+        "To process json data faster, please execute: "
         "`pip install --upgrade orjson`"
     )
     import json

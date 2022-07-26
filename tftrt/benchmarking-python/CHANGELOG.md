@@ -37,13 +37,26 @@ Description of the change
                   existing metrics or models scripts in a way that would make
                   metrics not comparable between minor releases.
 
- - **Patch Version:** Changes that are expected to have no change to the operation
-                  of the benchmark nor the way metrics are calculated.
-                  Basically these changes are transparent for the user.
+ - **Patch Version:** Changes that are expected to have no change to the
+                   operation of the benchmark nor the way metrics are
+                   calculated. Basically these changes are transparent for the
+                   user.
 
 # Versions
 
 <!-- YOU CAN EDIT FROM HERE -->
+
+## [1.1.0] - 2022.07.25 - @DEKHTIARJonathan
+
+Replacing all `print()` calls by `logging.<level>()` calls
+
+## [1.0.1] - 2022.07.25 - @DEKHTIARJonathan
+
+Removing AutoTuning on `get_dequeue_batch_fn` because DALIDataset was not
+respecting the limit on the number of batches.
+
+It should not impact the benchmark results, most of the time, the autotuner was
+selecting the eager version anyway.
 
 ## [1.0.0] - 2022.07.20 - @DEKHTIARJonathan
 
