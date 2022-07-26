@@ -7,7 +7,7 @@ import contextlib
 import copy
 import csv
 import json
-import logging
+import logging as _logging
 import os
 import sys
 import time
@@ -21,7 +21,6 @@ import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
 from tensorflow.python.framework.errors_impl import OutOfRangeError
-from tensorflow.python.platform import tf_logging
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
 
@@ -85,8 +84,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         # Hide unnecessary INFO CPP Logs
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-        # Hide unnecessary DEBUG Python Logs
-        tf_logging.set_verbosity(tf_logging.INFO)
+        # Hide unnecessary TensorFlow DEBUG Python Logs
+        _logging.getLogger("tensorflow").setLevel(_logging.INFO)
+        _logging.disable(_logging.WARNING)
 
         # TensorFlow can execute operations synchronously or asynchronously.
         # If asynchronous execution is enabled, operations may return
