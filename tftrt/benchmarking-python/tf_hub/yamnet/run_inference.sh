@@ -31,7 +31,7 @@ do
         MODEL_DIR="${arg#*=}"
         shift # Remove --input_saved_model_dir= from processing
         ;;
-	      --total_max_samples=*)
+        --total_max_samples=*)
         shift # Remove --total_max_samples= from processing
         ;;
         --frame_length=*)

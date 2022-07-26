@@ -45,7 +45,7 @@ class CommandLineAPI(BaseCommandLineAPI):
             "--frame_length",
             type=int,
             default=1,
-            help="Input audio frame length."
+            help="Input audio frame length in seconds."
         )
 
 
@@ -67,10 +67,9 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         """
         # Input is a numpy array of arbitrary length
 
-        # generates a wave of 16kHz for frame_length seconds
-        frame_length = self._args.frame_length
+        # generates a wave of 16kHz for frame_length number of seconds
         wave = np.array(
-            np.sin(np.linspace(-np.pi, np.pi, 16000 * frame_length)),
+            np.sin(np.linspace(-np.pi, np.pi, 16000 * self._args.frame_length)),
             dtype=np.float32
         )
 

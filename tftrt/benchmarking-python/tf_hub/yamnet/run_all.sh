@@ -12,7 +12,6 @@ MODEL_DIR="/models/tf_hub/YAMNet"
 DATA_DIR="/tmp/"
 FRAME_LENGTH="1"
 
-
 # List of models. YAMNet is a single implementation
 MODELS=(
     "YAMNet"
