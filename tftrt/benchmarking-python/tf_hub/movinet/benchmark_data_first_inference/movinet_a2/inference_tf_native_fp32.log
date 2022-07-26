@@ -1,0 +1,235 @@
++++ dirname /workspace/tftrt/benchmarking-python/tf_hub/movinet/models/movinet_a2/run_inference.sh
+++ cd /workspace/tftrt/benchmarking-python/tf_hub/movinet/models/movinet_a2
+++ pwd
++ BASE_DIR=/workspace/tftrt/benchmarking-python/tf_hub/movinet/models/movinet_a2/../..
++ NUM_FRAMES=5
++ INPUT_SIZE=224
++ bash /workspace/tftrt/benchmarking-python/tf_hub/movinet/models/movinet_a2/../../base_run_inference.sh --model_name=a2 --num_frames=5 --input_size=224 --data_dir=/tmp --batch_size=32 --display_every=50 --input_saved_model_dir=/models/tf_hub/movinet --input_saved_model_dir=/models/tf_hub/movinet --input_saved_model_dir=/models/tf_hub/movinet --precision=FP32
+Fri Jul 22 22:25:57 2022       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 450.51.06    Driver Version: 450.51.06    CUDA Version: 11.7     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Tesla P100-SXM2...  On   | 00000000:06:00.0 Off |                    0 |
+| N/A   55C    P0    57W / 300W |      0MiB / 16280MiB |     81%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  Tesla P100-SXM2...  On   | 00000000:07:00.0 Off |                    0 |
+| N/A   40C    P0    43W / 300W |      0MiB / 16280MiB |      8%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   2  Tesla P100-SXM2...  On   | 00000000:0A:00.0 Off |                    0 |
+| N/A   37C    P0    45W / 300W |      0MiB / 16280MiB |      8%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   3  Tesla P100-SXM2...  On   | 00000000:0B:00.0 Off |                    0 |
+| N/A   37C    P0    46W / 300W |      0MiB / 16280MiB |      8%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   4  Tesla P100-SXM2...  On   | 00000000:85:00.0 Off |                    0 |
+| N/A   39C    P0    44W / 300W |      0MiB / 16280MiB |      7%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   5  Tesla P100-SXM2...  On   | 00000000:86:00.0 Off |                    0 |
+| N/A   41C    P0    45W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   6  Tesla P100-SXM2...  On   | 00000000:89:00.0 Off |                    0 |
+| N/A   37C    P0    45W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   7  Tesla P100-SXM2...  On   | 00000000:8A:00.0 Off |                    0 |
+| N/A   35C    P0    43W / 300W |      0MiB / 16280MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+
+********************************************************************
+[*] MODEL_NAME: a2
+
+[*] DATA_DIR: /tmp
+[*] MODEL_DIR: /models/tf_hub/movinet
+
+[*] BATCH_SIZE: 32
+
+[*] INPUT_SIZE: 224
+[*] NUM_FRAMES: 
+[*] OUTPUT_TENSOR_NAMES: classifier_head
+
+[*] BYPASS_ARGUMENTS: --display_every=50 --precision=FP32
+********************************************************************
+
++ python /workspace/tftrt/benchmarking-python/tf_hub/movinet/infer.py --data_dir=/tmp --calib_data_dir=/tmp --input_saved_model_dir=/models/tf_hub/movinet/a2/ --output_tensors_name=classifier_head --total_max_samples=1 --use_synthetic_data --num_iterations=1000 --display_every=50 --precision=FP32
+
+Benchmark arguments:
+  - allow_build_at_runtime: False
+  - batch_size: 8
+  - calib_data_dir: /tmp
+  - data_dir: /tmp
+  - debug: False
+  - debug_data_aggregation: False
+  - debug_performance: False
+  - display_every: 50
+  - export_metrics_csv_path: None
+  - export_metrics_json_path: None
+  - gpu_mem_cap: 0
+  - input_saved_model_dir: /models/tf_hub/movinet/a2/
+  - input_signature_key: serving_default
+  - input_size: 172
+  - max_workspace_size: 1073741824
+  - minimum_segment_size: 5
+  - model_tag: serve
+  - name: False
+  - no_tf32: False
+  - num_build_batches: 1
+  - num_calib_batches: 10
+  - num_frames: 5
+  - num_iterations: 1000
+  - num_warmup_iterations: 200
+  - optimize_offline: True
+  - output_saved_model_dir: None
+  - output_tensors_name: classifier_head
+  - precision: FP32
+  - tf_profile_export_path: None
+  - tf_profile_verbose: False
+  - total_max_samples: 1
+  - trim_mean_percentage: 0.1
+  - use_dynamic_shape: False
+  - use_synthetic_data: True
+  - use_tftrt: False
+  - use_xla: False
+  - use_xla_auto_jit: False
+
+
+[START] Model Loading ...
+
+[START] Loading TensorFlow native model ...
+2022-07-22 22:26:00.679209: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2022-07-22 22:26:04.367527: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 15238 MB memory:  -> device: 0, name: Tesla P100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 6.0
+2022-07-22 22:26:04.369417: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 15238 MB memory:  -> device: 1, name: Tesla P100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 6.0
+2022-07-22 22:26:04.370886: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:2 with 15238 MB memory:  -> device: 2, name: Tesla P100-SXM2-16GB, pci bus id: 0000:0a:00.0, compute capability: 6.0
+2022-07-22 22:26:04.372329: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:3 with 15238 MB memory:  -> device: 3, name: Tesla P100-SXM2-16GB, pci bus id: 0000:0b:00.0, compute capability: 6.0
+2022-07-22 22:26:04.373783: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:4 with 15238 MB memory:  -> device: 4, name: Tesla P100-SXM2-16GB, pci bus id: 0000:85:00.0, compute capability: 6.0
+2022-07-22 22:26:04.375239: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:5 with 15238 MB memory:  -> device: 5, name: Tesla P100-SXM2-16GB, pci bus id: 0000:86:00.0, compute capability: 6.0
+2022-07-22 22:26:04.376530: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:6 with 15238 MB memory:  -> device: 6, name: Tesla P100-SXM2-16GB, pci bus id: 0000:89:00.0, compute capability: 6.0
+2022-07-22 22:26:04.378159: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:7 with 15238 MB memory:  -> device: 7, name: Tesla P100-SXM2-16GB, pci bus id: 0000:8a:00.0, compute capability: 6.0
+[END] Loading TensorFlow native model - Duration: 23.2s
+================================================================================ 
+
+
+
+[END] Model Loading - Duration: 23.2s
+================================================================================ 
+
+
+[START] Model Inference ...
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[INFO] Allowing direct concrete_function call with synthetic data loader.
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[INFO] Allowing direct concrete_function call with synthetic data loader.
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[WARNING] Using deprecated API to resync GPUs. Non negligeable overhead might be present.
+[INFO] Allowing direct concrete_function call with synthetic data loader.
+2022-07-22 22:26:24.301354: I tensorflow/compiler/xla/service/service.cc:170] XLA service 0x76ab1ad0 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2022-07-22 22:26:24.301402: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (0): Tesla P100-SXM2-16GB, Compute Capability 6.0
+2022-07-22 22:26:24.301409: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (1): Tesla P100-SXM2-16GB, Compute Capability 6.0
+2022-07-22 22:26:24.301414: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (2): Tesla P100-SXM2-16GB, Compute Capability 6.0
+2022-07-22 22:26:24.301419: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (3): Tesla P100-SXM2-16GB, Compute Capability 6.0
+2022-07-22 22:26:24.301423: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (4): Tesla P100-SXM2-16GB, Compute Capability 6.0
+2022-07-22 22:26:24.301428: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (5): Tesla P100-SXM2-16GB, Compute Capability 6.0
+2022-07-22 22:26:24.301433: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (6): Tesla P100-SXM2-16GB, Compute Capability 6.0
+2022-07-22 22:26:24.301456: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (7): Tesla P100-SXM2-16GB, Compute Capability 6.0
+2022-07-22 22:26:24.772555: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8401
+2022-07-22 22:26:25.382200: I tensorflow/compiler/jit/xla_compilation_cache.cc:481] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+step 0050, iter_time(ms)=0278.745, memcpyHtoD_time(ms)=0001.672, dequeue_time(ms)=0001.399
+[INFO] Building the concrete function
+[INFO] Building the concrete function
+[INFO] Building the concrete function
+step 0100, iter_time(ms)=0079.189, memcpyHtoD_time(ms)=0000.874, dequeue_time(ms)=0001.318
+
+[DEBUG] AutoTuning is over... Collecting timing statistics:
+	- [DEBUG] Function ID: 0 - Name: dequeue_batch_fn_eager                   - Average Exec Time: 0.0002243359883626302
+	- [DEBUG] Function ID: 1 - Name: dequeue_batch_fn_tf_function             - Average Exec Time: 0.0006367683410644532
+	- [DEBUG] Function ID: 2 - Name: dequeue_batch_fn_tf_concrete_function    - Average Exec Time: 0.0005098183949788412
+[DEBUG] Selecting function ID: 0. Setting exec path to: `dequeue_batch_fn_eager`
+
+
+[DEBUG] AutoTuning is over... Collecting timing statistics:
+	- [DEBUG] Function ID: 0 - Name: force_data_on_gpu_fn_eager               - Average Exec Time: 0.0002478758494059245
+	- [DEBUG] Function ID: 1 - Name: force_data_on_gpu_fn_tf_function         - Average Exec Time: 0.0006686687469482422
+	- [DEBUG] Function ID: 2 - Name: force_data_on_gpu_fn_tf_concrete_function - Average Exec Time: 0.0005301634470621744
+[DEBUG] Selecting function ID: 0. Setting exec path to: `force_data_on_gpu_fn_eager`
+
+
+[DEBUG] AutoTuning is over... Collecting timing statistics:
+	- [DEBUG] Function ID: 0 - Name: infer_batch_eager                        - Average Exec Time: 0.04407544136047363
+	- [DEBUG] Function ID: 1 - Name: infer_batch_tf_function                  - Average Exec Time: 0.04308271408081055
+	- [DEBUG] Function ID: 2 - Name: infer_batch_tf_concrete_function         - Average Exec Time: 0.04326772689819336
+[DEBUG] Selecting function ID: 1. Setting exec path to: `infer_batch_tf_function`
+
+step 0150, iter_time(ms)=0043.588, memcpyHtoD_time(ms)=0000.465, dequeue_time(ms)=0000.452
+step 0200, iter_time(ms)=0043.473, memcpyHtoD_time(ms)=0000.262, dequeue_time(ms)=0000.229
+step 0250, iter_time(ms)=0043.392, memcpyHtoD_time(ms)=0000.264, dequeue_time(ms)=0000.221
+step 0300, iter_time(ms)=0044.236, memcpyHtoD_time(ms)=0000.272, dequeue_time(ms)=0000.224
+step 0350, iter_time(ms)=0043.241, memcpyHtoD_time(ms)=0000.252, dequeue_time(ms)=0000.221
+step 0400, iter_time(ms)=0043.510, memcpyHtoD_time(ms)=0000.230, dequeue_time(ms)=0000.203
+step 0450, iter_time(ms)=0042.950, memcpyHtoD_time(ms)=0000.214, dequeue_time(ms)=0000.194
+step 0500, iter_time(ms)=0043.859, memcpyHtoD_time(ms)=0000.246, dequeue_time(ms)=0000.207
+step 0550, iter_time(ms)=0043.674, memcpyHtoD_time(ms)=0000.270, dequeue_time(ms)=0000.228
+step 0600, iter_time(ms)=0043.294, memcpyHtoD_time(ms)=0000.246, dequeue_time(ms)=0000.220
+step 0650, iter_time(ms)=0043.851, memcpyHtoD_time(ms)=0000.296, dequeue_time(ms)=0000.220
+step 0700, iter_time(ms)=0043.291, memcpyHtoD_time(ms)=0000.245, dequeue_time(ms)=0000.216
+step 0750, iter_time(ms)=0043.443, memcpyHtoD_time(ms)=0000.250, dequeue_time(ms)=0000.224
+step 0800, iter_time(ms)=0043.395, memcpyHtoD_time(ms)=0000.250, dequeue_time(ms)=0000.227
+step 0850, iter_time(ms)=0043.869, memcpyHtoD_time(ms)=0000.282, dequeue_time(ms)=0000.225
+step 0900, iter_time(ms)=0043.382, memcpyHtoD_time(ms)=0000.253, dequeue_time(ms)=0000.225
+step 0950, iter_time(ms)=0043.252, memcpyHtoD_time(ms)=0000.243, dequeue_time(ms)=0000.222
+step 1000, iter_time(ms)=0044.122, memcpyHtoD_time(ms)=0000.275, dequeue_time(ms)=0000.229
+step 1001, iter_time(ms)=0044.122, memcpyHtoD_time(ms)=0000.275, dequeue_time(ms)=0000.229
+[END] Model Inference - Duration: 57.9s
+================================================================================ 
+
+
+[START] Metric Computation ...
+- Data Batch Dequeue Time 99th_percentile (ms)      : 0.42
+- Data Batch Dequeue Time Max (ms)                  : 0.47
+- Data Batch Dequeue Time Mean (ms)                 : 0.22
+- Data Batch Dequeue Time Median (ms)               : 0.21
+- Data Batch Dequeue Time Min (ms)                  : 0.15
+- Data Batch Dequeue Time Trim Mean [10.0%] (ms)    : 0.21
+- Data MemCopyHtoD Time 99th_percentile (ms)        : 0.52
+- Data MemCopyHtoD Time Max (ms)                    : 1.87
+- Data MemCopyHtoD Time Mean (ms)                   : 0.26
+- Data MemCopyHtoD Time Median (ms)                 : 0.24
+- Data MemCopyHtoD Time Min (ms)                    : 0.20
+- Data MemCopyHtoD Time Trim Mean [10.0%] (ms)      : 0.24
+- GPU Latency 99th_percentile (ms)                  : 46.66
+- GPU Latency Max (ms)                              : 52.64
+- GPU Latency Mean (ms)                             : 43.55
+- GPU Latency Median (ms)                           : 43.34
+- GPU Latency Min (ms)                              : 42.05
+- GPU Latency Trim Mean [10.0%] (ms)                : 43.39
+- Throughput (samples/sec)                          : 184.36
+- Total GPU Time (s)                                : 35
+- __commit__                                        : 8524d1d
+- __version__                                       : 1.0.0
+[END] Metric Computation - Duration: 0.3s
+================================================================================ 
+
+

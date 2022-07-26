@@ -1,0 +1,26 @@
+/workspace/tftrt/benchmarking-python/tf_hub/yamnet/run_inference.sh: line 1: mi: command not found
+
+********************************************************************
+[*] DATA_DIR: /tmp/
+[*] MODEL_DIR: /models/tf_hub/YAMNet
+
+[*] BATCH_SIZE: 1
+[*] NUM_ITERATIONS: 1000
+
+[*] FRAME_LENGTH: 1
+[*] OUTPUT_TENSOR_NAMES: output_0, output_1, output_2
+
+[*] BYPASS_ARGUMENTS: --display_every=50 --precision=FP32
+********************************************************************
+
+++ python /workspace/tftrt/benchmarking-python/tf_hub/yamnet/infer.py --data_dir=/tmp/ --calib_data_dir=/tmp/ --input_saved_model_dir=/models/tf_hub/YAMNet --output_tensors_name=output_0, output_1, output_2 --batch_size=1 --frame_length=1 --use_synthetic_data --num_iterations=1000 --total_max_samples=1 --display_every=50 --precision=FP32
+usage: infer.py [-h] [--input_saved_model_dir INPUT_SAVED_MODEL_DIR] [--output_saved_model_dir OUTPUT_SAVED_MODEL_DIR] [--calib_data_dir CALIB_DATA_DIR] [--data_dir DATA_DIR] [--batch_size BATCH_SIZE]
+                [--display_every DISPLAY_EVERY] [--gpu_mem_cap GPU_MEM_CAP] [--input_signature_key INPUT_SIGNATURE_KEY] [--model_tag MODEL_TAG] [--output_tensors_name OUTPUT_TENSORS_NAME]
+                [--num_iterations NUM_ITERATIONS] [--num_warmup_iterations NUM_WARMUP_ITERATIONS] [--trim_mean_percentage TRIM_MEAN_PERCENTAGE] --total_max_samples TOTAL_MAX_SAMPLES [--no_tf32 | --nono_tf32]
+                [--use_xla | --nouse_xla] [--use_xla_auto_jit | --nouse_xla_auto_jit] [--use_synthetic_data | --nouse_synthetic_data] [--use_tftrt | --nouse_tftrt]
+                [--allow_build_at_runtime | --noallow_build_at_runtime] [--max_workspace_size MAX_WORKSPACE_SIZE] [--minimum_segment_size MINIMUM_SEGMENT_SIZE] [--num_build_batches NUM_BUILD_BATCHES]
+                [--num_calib_batches NUM_CALIB_BATCHES] [--optimize_offline | --nooptimize_offline] [--precision {FP32,FP16,INT8}] [--use_dynamic_shape | --nouse_dynamic_shape]
+                [--export_metrics_json_path EXPORT_METRICS_JSON_PATH] [--export_metrics_csv_path EXPORT_METRICS_CSV_PATH] [--tf_profile_export_path TF_PROFILE_EXPORT_PATH]
+                [--tf_profile_verbose | --notf_profile_verbose] [--debug | --nodebug] [--debug_performance | --nodebug_performance] [--debug_data_aggregation | --nodebug_data_aggregation]
+                [--frame_length FRAME_LENGTH]
+infer.py: error: unrecognized arguments: output_1, output_2

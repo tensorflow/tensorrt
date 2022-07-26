@@ -1,0 +1,97 @@
+Fri Jul 22 21:12:17 2022       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.82.01    Driver Version: 470.82.01    CUDA Version: 11.7     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Tesla V100-SXM2...  On   | 00000000:06:00.0 Off |                    0 |
+| N/A   38C    P0    58W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  Tesla V100-SXM2...  On   | 00000000:07:00.0 Off |                    0 |
+| N/A   39C    P0    44W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   2  Tesla V100-SXM2...  On   | 00000000:0A:00.0 Off |                    0 |
+| N/A   39C    P0    42W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   3  Tesla V100-SXM2...  On   | 00000000:0B:00.0 Off |                    0 |
+| N/A   36C    P0    43W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   4  Tesla V100-SXM2...  On   | 00000000:85:00.0 Off |                    0 |
+| N/A   39C    P0    43W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   5  Tesla V100-SXM2...  On   | 00000000:86:00.0 Off |                    0 |
+| N/A   37C    P0    45W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   6  Tesla V100-SXM2...  On   | 00000000:89:00.0 Off |                    0 |
+| N/A   41C    P0    45W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   7  Tesla V100-SXM2...  On   | 00000000:8A:00.0 Off |                    0 |
+| N/A   38C    P0    43W / 300W |      0MiB / 16160MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+
+********************************************************************
+[*] DATA_DIR: /tmp/
+[*] MODEL_DIR: /models/tf_hub/spice
+
+[*] BATCH_SIZE: 1
+[*] NUM_ITERATIONS: 1000
+
+[*] SAMPLES_PER_INPUT: 128
+[*] OUTPUT_TENSOR_NAMES: pitch,uncertainty
+
+[*] BYPASS_ARGUMENTS: --display_every=50 --precision=FP16 --use_xla_auto_jit
+********************************************************************
+
++ python /workspace/tftrt/benchmarking-python/tf_hub/spice/infer.py --data_dir=/tmp/ --calib_data_dir=/tmp/ --input_saved_model_dir=/models/tf_hub/spice --output_tensors_name=pitch,uncertainty --batch_size=1 --samples_per_input=128 --use_synthetic_data --num_iterations=1000 --total_max_samples=1 --display_every=50 --precision=FP16 --use_xla_auto_jit
+^CTraceback (most recent call last):
+  File "/workspace/tftrt/benchmarking-python/tf_hub/spice/infer.py", line 23, in <module>
+    import tensorflow as tf
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/__init__.py", line 37, in <module>
+    from tensorflow.python.tools import module_util as _module_util
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/__init__.py", line 42, in <module>
+    from tensorflow.python import data
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/data/__init__.py", line 21, in <module>
+    from tensorflow.python.data import experimental
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/data/experimental/__init__.py", line 95, in <module>
+    from tensorflow.python.data.experimental import service
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/data/experimental/service/__init__.py", line 387, in <module>
+    from tensorflow.python.data.experimental.ops.data_service_ops import distribute
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/data/experimental/ops/data_service_ops.py", line 22, in <module>
+    from tensorflow.python.data.experimental.ops import compression_ops
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/data/experimental/ops/compression_ops.py", line 16, in <module>
+    from tensorflow.python.data.util import structure
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/data/util/structure.py", line 22, in <module>
+    from tensorflow.python.data.util import nest
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/data/util/nest.py", line 36, in <module>
+    from tensorflow.python.framework import sparse_tensor as _sparse_tensor
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/framework/sparse_tensor.py", line 24, in <module>
+    from tensorflow.python.framework import constant_op
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/framework/constant_op.py", line 25, in <module>
+    from tensorflow.python.eager import execute
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow/python/eager/execute.py", line 24, in <module>
+    from tensorflow.python.framework import ops
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 844, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 976, in get_code
+  File "<frozen importlib._bootstrap_external>", line 640, in _compile_bytecode
+KeyboardInterrupt

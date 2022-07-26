@@ -19,7 +19,6 @@ import os
 import sys
 
 import numpy as np
-
 import tensorflow as tf
 
 # Allow import of top level python files
@@ -67,7 +66,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
         # Input is a numpy array of arbitrary length
-        #generates a wave of 16kHz for 3 seconds
+
+        # generates a wave of 16kHz for frame_length seconds
         frame_length = self._args.frame_length
         wave = np.array(
             np.sin(np.linspace(-np.pi, np.pi, 16000 * frame_length)),
