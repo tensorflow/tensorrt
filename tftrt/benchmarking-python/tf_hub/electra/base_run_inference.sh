@@ -80,6 +80,7 @@ echo "[*] TOKENIZER_DIR: ${TOKENIZER_DIR}"
 echo ""
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] OUTPUT_TENSOR_NAMES: ${OUTPUT_TENSOR_NAMES}"
+echo "[*] TOTAL_MAX_SAMPLES: ${TOTAL_MAX_SAMPLES}"
 echo ""
 echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
 
@@ -102,6 +103,7 @@ if [[ ! -d ${TOKENIZER_DIR} ]]; then
     exit 1
 fi
 
+set -x
 
 python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
@@ -114,4 +116,3 @@ python ${BASE_DIR}/infer.py \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     --total_max_samples=${TOTAL_MAX_SAMPLES} \
     ${BYPASS_ARGUMENTS}
-
