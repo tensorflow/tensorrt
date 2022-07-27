@@ -14,20 +14,22 @@ from benchmark_utils import force_gpu_resync
 def SyntheticDataset(dataset, device):
     data_batch = next(iter(dataset))
 
-    def copy_on_device(t):
+    def copy_on_device(data):
+        if isinstance(data, (tuple, list)):
+            return [copy_on_device(t) for t in data]
+        elif isinstance(data, dict):
+            return {k: copy_on_device(t) for k, t in data.items()}
+        else:
+            try:
+                if data.dtype != tf.int32:
+                    with tf.device(device):
+                        return tf.identity(data)
+            except AttributeError:
+                pass
 
-        if t.dtype != tf.int32:
-            with tf.device(device):
-                return tf.identity(t)
+            return data
 
-        return t
-
-    if isinstance(data_batch, (tuple, list)):
-        data_batch = [copy_on_device(t) for t in data_batch]
-    elif isinstance(data_batch, dict):
-        data_batch = {k: copy_on_device(t) for k, t in data_batch.items()}
-    else:
-        data_batch = copy_on_device(data_batch)
+    data_batch = copy_on_device(data_batch)
 
     return itertools.repeat(data_batch)
 
