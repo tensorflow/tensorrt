@@ -180,7 +180,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         x, y = data_batch
 
-        y = {"y": y, "display_ids": x.pop('display_id')}
+        if not self._args.use_synthetic_data:  # ISSUE WAR
+            y = {"y": y, "display_ids": x.pop('display_id')}
+        else:
+            x.pop('display_id', None)
 
         return x, y
 
