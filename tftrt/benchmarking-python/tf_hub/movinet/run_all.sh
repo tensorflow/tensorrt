@@ -17,11 +17,7 @@ MOVINET_MODELS=(
     "a5"
 )
 
-DATA_DIR="/tmp"
-INPUT_SAVED_MODEL_DIR="/models/tf_hub/movinet"
-BATCH_SIZE=32
-
-RUN_ARGS="--data_dir=${DATA_DIR} --batch_size=${BATCH_SIZE} --display_every=50"
+BASE_RUN_ARGS="--input_saved_model_dir=/models/tf_hub/movinet --data_dir=/tmp --batch_size=32 --display_every=50"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 
@@ -29,8 +25,6 @@ export TF_TRT_SHOW_DETAILED_REPORT=1
 
 for model_name in "${MOVINET_MODELS[@]}"; do
     echo "Processing Model: ${model_name} ..."
-
-    RUN_ARGS="${RUN_ARGS} --input_saved_model_dir=${INPUT_SAVED_MODEL_DIR}"
 
     MODEL_DATA_EXPORT_DIR="${BASE_BENCHMARK_DATA_EXPORT_DIR}/movinet_${model_name}"
     mkdir -p ${MODEL_DATA_EXPORT_DIR}

@@ -12,11 +12,7 @@ ELECTRA_MODELS=(
   "electra_large"
 )
 
-MODEL_DIR="/models/tf_hub/electra"
-DATA_DIR="/workspace/tensorflow_tensorrt/tftrt/benchmarking-python/tf_hub/electra/data"
-TOKENIZER_DIR="/models/tf_hub/electra/tokenizer"
-
-RUN_ARGS="--input_saved_model_dir=${MODEL_DIR} --data_dir=${DATA_DIR} --tokenizer_dir=${TOKENIZER_DIR} --debug --batch_size=32 --display_every=1 --use_synthetic_data --num_iterations=1000"
+RUN_ARGS="--input_saved_model_dir=/models/tf_hub/electra --data_dir=${BASE_DIR}/data --tokenizer_dir=/models/tf_hub/electra/tokenizer --debug --batch_size=32 --display_every=1 --use_synthetic_data --num_iterations=1000"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 

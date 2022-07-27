@@ -18,10 +18,7 @@ SWIN_MODELS=(
   "swin_large_patch4_window12_384"
 )
 
-MODEL_DIR="/models/tf_hub/swin_transformers"
-DATA_DIR="/data/imagenet"
-
-RUN_ARGS="--input_saved_model_dir=${MODEL_DIR} --data_dir=${DATA_DIR} --debug --batch_size=32 --display_every=1 --use_synthetic_data --num_iterations=1000"
+RUN_ARGS="--input_saved_model_dir=/models/tf_hub/swin_transformers --data_dir=/data/imagenet --debug --batch_size=32 --display_every=1 --use_synthetic_data --num_iterations=1000"
 TF_TRT_ARGS="--use_tftrt --use_dynamic_shape --num_calib_batches=10"
 TF_XLA_ARGS="--use_xla_auto_jit"
 
