@@ -195,7 +195,8 @@ class BaseCommandLineAPI(object):
         self._parser.add_argument(
             "--max_workspace_size",
             type=int,
-            default=DEFAULT_TRT_MAX_WORKSPACE_SIZE_BYTES,
+            # Ensuring default of minimum 8GB
+            default=max(1 << 33, DEFAULT_TRT_MAX_WORKSPACE_SIZE_BYTES),
             help="The maximum GPU temporary memory which the TRT engine can "
             "use at execution time."
         )

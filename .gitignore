@@ -145,4 +145,4 @@ variables.data*
 /*.sh
 
 # Benchmark Result Dir
-/benchmark_data
+/benchmark_data*
