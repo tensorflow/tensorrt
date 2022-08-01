@@ -4,13 +4,12 @@ nvidia-smi
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Runtime Parameters
-MODEL_NAME=""
-
 # Default Argument Values
-BATCH_SIZE=32
-OUTPUT_TENSOR_NAMES="output_0"
+BATCH_SIZE=128
+OUTPUT_TENSOR_NAMES="classes"
 TOTAL_MAX_SAMPLES=50000
+DATA_DIR="/data/imagenet"
+MODEL_DIR="/models/nvidia_examples/resnet50-v1.5_tf1"
 
 BYPASS_ARGUMENTS=""
 
@@ -52,7 +51,6 @@ done
 BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 
 echo -e "\n********************************************************************"
-echo "[*] MODEL_NAME: ${MODEL_NAME}"
 echo ""
 echo "[*] DATA_DIR: ${DATA_DIR}"
 echo "[*] MODEL_DIR: ${MODEL_DIR}"
@@ -63,8 +61,6 @@ echo ""
 echo "[*] BYPASS_ARGUMENTS: ${BYPASS_ARGUMENTS}"
 
 echo -e "********************************************************************\n"
-
-MODEL_DIR="${MODEL_DIR}/${MODEL_NAME}"
 
 if [[ ! -d ${DATA_DIR} ]]; then
     echo "ERROR: \`--data_dir=/path/to/directory\` does not exist. [Received: \`${DATA_DIR}\`]"
@@ -82,9 +78,12 @@ python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
     --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
-    --model_name "${MODEL_NAME}" \
-    --model_source "tf_hub" \
+    --model_name "resnet50-v1.5_tf1" \
+    --model_source "nvidia_examples" \
     --batch_size=${BATCH_SIZE} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
+    --input_size 224 \
+    --num_classes 1000 \
+    --preprocess_method resnet50_v1_5_tf1_ngc \
     --total_max_samples=${TOTAL_MAX_SAMPLES} \
     ${BYPASS_ARGUMENTS}

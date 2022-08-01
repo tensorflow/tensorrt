@@ -175,6 +175,15 @@ class BaseCommandLineAPI(object):
             "generated and used at every iteration."
         )
 
+        self._parser.add_argument(
+            "--precision",
+            type=str,
+            choices=self.ALLOWED_PRECISION_MODES,
+            default="FP32",
+            help="Precision mode to use. FP16 and INT8 modes only works if "
+            "--use_tftrt is used."
+        )
+
         # =========================== TF-TRT Flags ========================== #
 
         self._add_bool_argument(
@@ -232,15 +241,6 @@ class BaseCommandLineAPI(object):
             help="If set to True, TensorRT engines are built before runtime."
         )
 
-        self._parser.add_argument(
-            "--precision",
-            type=str,
-            choices=self.ALLOWED_PRECISION_MODES,
-            default="FP32",
-            help="Precision mode to use. FP16 and INT8 modes only works if "
-            "--use_tftrt is used."
-        )
-
         self._add_bool_argument(
             name="use_dynamic_shape",
             default=False,
@@ -248,7 +248,31 @@ class BaseCommandLineAPI(object):
             help="Whether to use implicit batch mode or dynamic shape mode."
         )
 
-        # =========================== DEBUG Flags ========================== #
+        # =========================== Metric Flags ========================== #
+
+        self._parser.add_argument(
+            "--experiment_name",
+            type=str,
+            default=None,
+            help="Name of the experiment being run, only used for archiving "
+            "objectives: exports in JSON or CSV."
+        )
+
+        self._parser.add_argument(
+            "--model_name",
+            type=str,
+            required=True,
+            default=None,
+            help="Name of the model being benchmarked."
+        )
+
+        self._parser.add_argument(
+            "--model_source",
+            type=str,
+            required=True,
+            default=None,
+            help="Source of the model where it was originally published."
+        )
 
         self._parser.add_argument(
             "--export_metrics_json_path",
@@ -267,6 +291,16 @@ class BaseCommandLineAPI(object):
         )
 
         self._parser.add_argument(
+            "--upload_metrics_endpoint",
+            type=str,
+            default=None,
+            help="If set, the benchmark will upload the metrics in JSON format "
+            "to the set endpoint using a PUT requests."
+        )
+
+        # =========================== TF Profiling =========================== #
+
+        self._parser.add_argument(
             "--tf_profile_export_path",
             type=str,
             default=None,
@@ -280,6 +314,8 @@ class BaseCommandLineAPI(object):
             required=False,
             help="If set to True, will add extra information to the TF Profile."
         )
+
+        # ============================ Debug Flags =========================== #
 
         self._add_bool_argument(
             name="debug",
@@ -387,6 +423,9 @@ class BaseCommandLineAPI(object):
                         f"The path --calib_data_dir=`{args.calib_data_dir}` "
                         "doesn't exist or is not a directory"
                     )
+
+        if args.upload_metrics_endpoint is not None:
+            raise NotImplementedError("This feature is not yet implemented.")
 
     def _post_process_args(self, args):
         if args.use_synthetic_data:

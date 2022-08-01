@@ -77,6 +77,8 @@ python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
     --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
+    --model_name "yamnet" \
+    --model_source "tf_hub" \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     --batch_size=${BATCH_SIZE} \
     --frame_length=${FRAME_LENGTH} \

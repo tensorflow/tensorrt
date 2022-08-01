@@ -147,6 +147,8 @@ python ${BASE_DIR}/infer.py \
     --annotation_path ${ANNOTATIONS_DATA_FILE} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
     --output_saved_model_dir /tmp/$RANDOM \
+    --model_name "${MODEL_NAME}" \
+    --model_source "tf_models_object" \
     --batch_size ${BATCH_SIZE} \
     --input_size ${INPUT_SIZE} \
     --max_workspace_size ${MAX_WORKSPACE_SIZE} \

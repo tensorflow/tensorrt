@@ -111,6 +111,8 @@ python ${BASE_DIR}/infer.py \
     --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
     --tokenizer_dir=${TOKENIZER_DIR}\
+    --model_name "${MODEL_NAME}" \
+    --model_source "tf_hub" \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \
     `# The following is set because we will be running synthetic benchmarks` \
     --total_max_samples=1 \

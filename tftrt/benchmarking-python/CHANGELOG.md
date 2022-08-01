@@ -46,6 +46,17 @@ Description of the change
 
 <!-- YOU CAN EDIT FROM HERE -->
 
+## [1.2.0] - 2022.07.31 - @DEKHTIARJonathan
+
+Setting up the benchmarking suite to allow remote upload and storage of the
+metrics and experiments.
+
+Adding arguments:
+* `--model_name`: Name of the model being executed.
+* `--model_source`: Name of the model's source that originally published the model.
+* `--experiment_name`: Name of the experiment being conducted.
+* `--upload_metrics_endpoint`: Distant endpoint being used to push metrics to.
+
 ## [1.1.0] - 2022.07.25 - @DEKHTIARJonathan
 
 Replacing all `print()` calls by `logging.<level>()` calls

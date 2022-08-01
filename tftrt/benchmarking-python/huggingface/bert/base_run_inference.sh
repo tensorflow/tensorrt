@@ -143,6 +143,8 @@ python ${BASE_DIR}/infer.py \
     --calib_data_dir ${DATA_DIR} \
     --input_saved_model_dir ${INPUT_SAVED_MODEL_DIR} \
     --output_saved_model_dir /tmp/$RANDOM \
+    --model_name "${MODEL_NAME}" \
+    --model_source "huggingface" \
     --batch_size ${BATCH_SIZE} \
     --vocab_size ${VOCAB_SIZE} \
     --sequence_length=${SEQ_LEN} \

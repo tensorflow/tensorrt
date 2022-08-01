@@ -10,7 +10,7 @@ import shlex
 # The `__version__` number shall be updated everytime core benchmarking files
 # are updated.
 # Please update CHANGELOG.md with a description of what this version changed.
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 
 def get_commit_id():

@@ -90,6 +90,8 @@ python ${BASE_DIR}/infer.py \
     --data_dir=${DATA_DIR} \
     --calib_data_dir=${DATA_DIR} \
     --input_saved_model_dir=${MODEL_DIR} \
+    --model_name "${MODEL_NAME}" \
+    --model_source "tf_hub" \
     --input_size=${INPUT_SIZE} \
     --batch_size=${BATCH_SIZE} \
     --output_tensors_name=${OUTPUT_TENSOR_NAMES} \

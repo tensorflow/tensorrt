@@ -1,4 +1,4 @@
-# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 #
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
@@ -22,8 +22,6 @@ import numpy as np
 
 import tensorflow as tf
 
-import preprocessing
-
 # Allow import of top level python files
 import inspect
 
@@ -31,13 +29,15 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe()))
 )
 
-benchmark_base_dir = os.path.dirname(currentdir)
+benchmark_base_dir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, benchmark_base_dir)
+sys.path.insert(0, os.path.join(benchmark_base_dir, "image_classification"))
 
 from benchmark_args import BaseCommandLineAPI
 from benchmark_runner import BaseBenchmarkRunner
 
-from dataloading import get_dataloader
+from image_classification.dataloading import get_dataloader
+from image_classification import preprocessing
 
 
 class CommandLineAPI(BaseCommandLineAPI):
@@ -56,7 +56,7 @@ class CommandLineAPI(BaseCommandLineAPI):
         self._parser.add_argument(
             '--num_classes',
             type=int,
-            default=1001,
+            default=1000,
             help='Number of classes used when training '
             'the model'
         )
@@ -64,8 +64,8 @@ class CommandLineAPI(BaseCommandLineAPI):
         self._parser.add_argument(
             '--preprocess_method',
             type=str,
-            choices=['vgg', 'inception'],
-            default='vgg',
+            choices=['resnet50_v1_5_tf1_ngc'],
+            default='resnet50_v1_5_tf1_ngc',
             help='The image preprocessing method used in dataloading.'
         )
 
@@ -75,10 +75,18 @@ class CommandLineAPI(BaseCommandLineAPI):
 
         return args
 
+    def _validate_args(self, args):
+        super(CommandLineAPI, self)._validate_args(args)
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
-# %%%%%%%%%%%%%%%%% IMPLEMENT MODEL-SPECIFIC FUNCTIONS HERE %%%%%%%%%%%%%%%%%% #
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
+        if args.input_size != 224:
+            raise ValueError(
+                "The argument --input_size must be equal to 224 for this model."
+            )
+
+        if args.num_classes != 1000:
+            raise ValueError(
+                "The argument --num_classes must be equal to 1000 for this model."
+            )
 
 
 class BenchmarkRunner(BaseBenchmarkRunner):
