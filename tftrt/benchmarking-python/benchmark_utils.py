@@ -2,6 +2,7 @@
 # Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # -*- coding: utf-8 -*-
 
+import json
 import time
 
 import numpy as np
@@ -112,6 +113,15 @@ def _format_output_tensors(predictions, expected, batch_size):
     expected = format(dictionarize(expected))
 
     return predictions, expected
+
+
+def generate_json_metrics(metrics, args):
+    metric_dict = {"results": metrics, "runtime_arguments": args}
+
+    json_string = json.dumps(
+        metric_dict, default=lambda o: o.__dict__, sort_keys=True, indent=4
+    )
+    return json_string
 
 
 class DataAggregator(object):

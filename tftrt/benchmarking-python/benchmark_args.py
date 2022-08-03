@@ -424,8 +424,16 @@ class BaseCommandLineAPI(object):
                         "doesn't exist or is not a directory"
                     )
 
-        if args.upload_metrics_endpoint is not None:
-            raise NotImplementedError("This feature is not yet implemented.")
+        # yapf: disable
+        if (
+            args.upload_metrics_endpoint is not None and
+            args.experiment_name is None
+        ):
+            raise NotImplementedError(
+                "--experiment_name must be specified if "
+                "--upload_metrics_endpoint is set."
+            )
+        # yapf: enable
 
     def _post_process_args(self, args):
         if args.use_synthetic_data:

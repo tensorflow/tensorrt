@@ -9,6 +9,7 @@ import csv
 import json
 import logging as _logging
 import os
+import requests
 import sys
 import time
 
@@ -32,6 +33,7 @@ from benchmark_info import get_commit_id
 from benchmark_logger import logging
 
 from benchmark_utils import DataAggregator
+from benchmark_utils import generate_json_metrics
 from benchmark_utils import print_dict
 from benchmark_utils import timed_section
 
@@ -140,19 +142,12 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             if file_path is None:
                 return
 
-            metric_dict = {
-                # Creating a copy to avoid modifying the original
-                "results": copy.deepcopy(metric_dict),
-                "runtime_arguments": vars(self._args)
-            }
+            json_string = generate_json_metrics(
+                metrics=metric_dict,
+                args=vars(self._args),
+            )
 
             with open(file_path, 'w') as json_f:
-                json_string = json.dumps(
-                    metric_dict,
-                    default=lambda o: o.__dict__,
-                    sort_keys=True,
-                    indent=4
-                )
                 print(json_string, file=json_f)
 
         except Exception as e:
@@ -204,6 +199,36 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
         except Exception as e:
             logging.error(f"An exception occured during export to CSV: {e}")
+
+    def _upload_metrics_to_endpoint(self, metric_dict):
+
+        try:
+
+            if self._args.upload_metrics_endpoint is None:
+                return
+
+            json_string = generate_json_metrics(
+                metrics=metric_dict,
+                args=vars(self._args),
+            )
+
+            headers = {"Content-Type": "application/json"}
+
+            response = requests.put(
+                self._args.upload_metrics_endpoint,
+                data=json_string,
+                headers=headers
+            )
+            response.raise_for_status()
+
+            logging.info(
+                "Metrics Uploaded to endpoint: "
+                f"`{self._args.upload_metrics_endpoint}` with experiment name: "
+                f"`{self._args.experiment_name}`."
+            )
+
+        except Exception as e:
+            logging.error(f"An exception occured during export to JSON: {e}")
 
     def _get_graph_func(self):
         """Retreives a frozen SavedModel and applies TF-TRT
@@ -587,9 +612,12 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 if not self._args.use_synthetic_data:
                     data_aggregator.aggregate_data(y_pred, y)
 
-            if (not self._args.debug_performance and
-                    step_idx % self._args.display_every !=
-                    0):  # avoids double printing
+            # yapf: disable
+            if (
+                not self._args.debug_performance and
+                # avoids double printing
+                step_idx % self._args.display_every != 0
+            ):
                 log_step(
                     step_idx,
                     display_every=1,  # force print
@@ -602,6 +630,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         dequeue_times[-self._args.display_every:]
                     ) * 1000
                 )
+            # yapf: enable
 
             if step_idx >= 100:
                 stop_profiling()
@@ -668,6 +697,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
             self._export_runtime_metrics_to_json(metrics)
             self._export_runtime_metrics_to_csv(metrics)
+            self._upload_metrics_to_endpoint(metrics)
 
             def log_value(key, val):
                 if isinstance(val, (int, str)):
