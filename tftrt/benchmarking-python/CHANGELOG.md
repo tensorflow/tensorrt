@@ -30,12 +30,12 @@ Description of the change
 ##  How To Update The Changelog for a New Release ?
 
  - **Major Version:** Major refactoring, or changes that make the data
-                  non-comparable with any previous release of the benchmark.
-                  Changes in shell scripts are to be expected.
+                   non-comparable with any previous release of the benchmark.
+                   Changes in shell scripts are to be expected.
 
  - **Minor Version:** Changes that add a new functionality though not modifying
-                  existing metrics or models scripts in a way that would make
-                  metrics not comparable between minor releases.
+                   existing metrics or models scripts in a way that would make
+                   metrics not comparable between minor releases.
 
  - **Patch Version:** Changes that are expected to have no change to the
                    operation of the benchmark nor the way metrics are
@@ -45,6 +45,16 @@ Description of the change
 # Versions
 
 <!-- YOU CAN EDIT FROM HERE -->
+
+## [2.0.0] - 2022.08.04 - @DEKHTIARJonathan
+
+- Fix for XLA FP16 actually not being applied due to `"min_graph_nodes": -1`
+missing. Therefore AMP skipped when XLA is able to compile the whole graph in
+virtually one node.
+
+- HF BERT & BART target changed:
+    - `TFBertForPreTraining` -> `TFBertModel`
+    - `TFBartForConditionalGeneration` -> `TFBartModel`
 
 ## [1.2.0] - 2022.07.31 - @DEKHTIARJonathan
 

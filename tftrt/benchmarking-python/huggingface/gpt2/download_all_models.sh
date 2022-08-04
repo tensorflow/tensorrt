@@ -4,7 +4,6 @@ set -x
 BASE_DIR="/models/huggingface/gpt2"
 
 GPT2_MODELS=(
-  # Historical Models
   "gpt2"
   "gpt2-medium"
   "gpt2-large"

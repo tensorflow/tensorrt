@@ -62,7 +62,7 @@ MIN_SEGMENT_SIZE=5
 VOCAB_SIZE=-1
 MAX_WORKSPACE_SIZE=$((2 ** (32 + 1)))  # + 1 necessary compared to python
 MAX_SAMPLES=1
-OUTPUT_TENSORS_NAME="prediction_logits,seq_relationship_logits"
+OUTPUT_TENSORS_NAME="last_hidden_state,pooler_output"
 
 case ${MODEL_NAME} in
   "bert_base_uncased" | "bert_large_uncased")
@@ -76,7 +76,7 @@ case ${MODEL_NAME} in
   "bart_base" | "bart_large")
     VOCAB_SIZE=50265
     MIN_SEGMENT_SIZE=90
-    OUTPUT_TENSORS_NAME="encoder_last_hidden_state,logits"
+    OUTPUT_TENSORS_NAME="encoder_last_hidden_state,last_hidden_state"
     ;;
 esac
 

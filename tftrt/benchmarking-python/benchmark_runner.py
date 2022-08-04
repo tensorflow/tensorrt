@@ -243,14 +243,19 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             signature_key=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
             precision="FP32"
         ):
+
+            tf.config.optimizer.set_experimental_options({
+                "disable_model_pruning": False,
+                "debug_stripper": True,
+                "auto_mixed_precision": precision != "FP32",
+                "layout_optimizer": True,
+                "dependency_optimization": True,
+                "min_graph_nodes": -1  # do not skip small graphs
+            })
+
             saved_model_loaded = tf.saved_model.load(export_dir=path, tags=tags)
 
             graph_func = saved_model_loaded.signatures[signature_key]
-
-            if precision == "FP16":
-                tf.config.optimizer.set_experimental_options({
-                    "auto_mixed_precision": True
-                })
 
             # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
             # it looks like if the original trackable object is released by

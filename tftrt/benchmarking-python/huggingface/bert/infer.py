@@ -113,9 +113,23 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             maxval=self._args.vocab_size,
             dtype=tf.int32
         )
+        input_data_ds = tf.data.Dataset.from_tensor_slices(input_data)
 
-        dataset = tf.data.Dataset.from_tensor_slices(input_data)
+        attention_mask = tf.random.uniform(
+            shape=(1, self._args.sequence_length), maxval=2, dtype=tf.int32
+        )
+        attention_mask_ds = tf.data.Dataset.from_tensor_slices(attention_mask)
+
+        dataset = tf.data.Dataset.zip((input_data_ds, attention_mask_ds))
         dataset = dataset.repeat()
+
+        def map_dict_fn(input_ids, attention_mask):
+            return {
+                "input_ids": input_ids,
+                "attention_mask": attention_mask,
+            }
+
+        dataset = dataset.map(map_dict_fn, num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.batch(self._args.batch_size)
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
@@ -129,9 +143,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         Note: script arguments can be accessed using `self._args.attr`
         """
-
-        x = data_batch
-        return x, None
+        return data_batch, None
 
     def postprocess_model_outputs(self, predictions, expected):
         """Post process if needed the predictions and expected tensors. At the
