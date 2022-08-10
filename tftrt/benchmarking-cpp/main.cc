@@ -92,26 +92,38 @@ Status LoadModel(const string& model_dir, const string& signature_key,
 Status SetupInputs(tensorflow::Device* device,
                    tensorflow::DeviceContext* device_context,
                    int32_t batch_size,
+                   int32_t input_size,
                    std::vector<tensorflow::TensorInfo>& input_info,
+                   bool input_from_device,
                    std::vector<Tensor>* inputs) {
   tensorflow::AllocatorAttributes attr;
   tensorflow::Allocator* allocator = device->GetAllocator(attr);
 
   std::vector<Tensor> inputs_device;
-  for (const auto& info : input_info) {
+  for (auto& info : input_info) {
     // Set input batch size
-    auto shape = info.tensor_shape();
-    shape.mutable_dim(0)->set_size(batch_size);
+    auto* shape = info.mutable_tensor_shape();
+    shape->mutable_dim(0)->set_size(batch_size);
+    for (size_t i = 1; i < shape->dim_size(); i++) {
+      auto* dim = shape->mutable_dim(i);
+      if (dim->size() < 0) {
+	dim->set_size(input_size);
+      }
+    }
 
     // Allocate memory and fill host tensor
-    Tensor input_host(info.dtype(), shape);
-    Tensor input_device(allocator, info.dtype(), shape);
+    Tensor input_host(info.dtype(), *shape);
+    Tensor input_device(allocator, info.dtype(), *shape);
     std::fill_n((uint8_t*)input_host.data(), input_host.AllocatedBytes(), 1);
 
     // Copy from host to device
-    TF_RETURN_IF_ERROR(device_context->CopyCPUTensorToDeviceSync(
-        &input_host, device, &input_device));
-    inputs_device.push_back(input_device);
+    if (input_from_device) {
+      TF_RETURN_IF_ERROR(device_context->CopyCPUTensorToDeviceSync(
+          &input_host, device, &input_device));
+      inputs_device.push_back(input_device);
+    } else {
+      inputs_device.push_back(input_host);
+    }
   }
   *inputs = inputs_device;
   return Status::OK();
@@ -167,6 +179,7 @@ int main(int argc, char* argv[]) {
   string model_path = "/path/to/model/";
   string signature_key = "serving_default";
   int32_t batch_size = 64;
+  int32_t input_size = 128;
   int32_t warmup_iters = 200;
   int32_t eval_iters = 800;
   bool input_from_device = true;
@@ -176,6 +189,7 @@ int main(int argc, char* argv[]) {
       Flag("model_path", &model_path, "graph to be executed"),
       Flag("signature_key", &signature_key, "the serving signature to use"),
       Flag("batch_size", &batch_size, "batch size to use for inference"),
+      Flag("input_size", &input_size, "shape to use for -1 input dims"),
       Flag("warmup_iters", &warmup_iters, "number of warmup iterations to run"),
       Flag("eval_iters", &eval_iters, "number of timed iterations to run"),
       Flag("input_from_device", &input_from_device, "use inputs from device, rather than host"),
@@ -213,8 +227,8 @@ int main(int argc, char* argv[]) {
   // Create inputs and move to device
   // TODO: Measure H2D times over repeated calls and report metrics
   std::vector<Tensor> inputs_device;
-  TFTRT_ENSURE_OK(SetupInputs(device, device_context, batch_size, input_info,
-                              &inputs_device));
+  TFTRT_ENSURE_OK(SetupInputs(device, device_context, batch_size, input_size, input_info,
+                              input_from_device, &inputs_device));
 
   // Configure to feed and fetch from device
   tensorflow::Session::CallableHandle handle;
