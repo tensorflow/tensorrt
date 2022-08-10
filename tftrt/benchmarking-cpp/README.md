@@ -26,24 +26,6 @@ python3 convert_model.py --model-dir /path/to/model/dir --output-dir /path/to/de
 
 ## Building
 
-The binary relies on a modified Tensorflow, which will need to be rebuilt. Internal users can use a container with Tensorflow already modified and built, instead of building with Bazel, which will take much longer.
-
-### Bazel
-
-The `setup.sh` script applies the Tensorflow patch and prepares the container for the Bazel build.
-
-```
-/workspace/tensorrt/tftrt/benchmarking-cpp/build-scripts/setup.sh
-cd /opt/tensorflow
-./tftrt-build.sh
-```
-
-The binary will be located at `/opt/tensorflow/tensorflow-source/bazel-bin/tensorflow/examples/benchmarking-cpp/tftrt_benchmark_runner`.
-
-### Prebuilt
-
-For internal NVIDIA users, a container with a prebuilt modified Tensorflow is available. In the container, use CMake to build the binary without needing to rebuild Tensorflow:
-
 ```
 cd /workspace/tensorrt/tftrt/benchmarking-cpp
 mkdir build && cd build
