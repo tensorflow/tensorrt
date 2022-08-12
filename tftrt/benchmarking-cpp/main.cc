@@ -1,6 +1,10 @@
 #include <chrono>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <numeric>
+#include <sstream>
 #include <vector>
 
 #include "tensorflow/cc/ops/array_ops.h"
@@ -14,9 +18,11 @@
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/path.h"
+#include "tensorflow/core/platform/host_info.h"
 #include "tensorflow/core/profiler/lib/profiler_session.h"
 #include "tensorflow/core/profiler/lib/traceme.h"
-#include "tensorflow/core/profiler/rpc/client/capture_profile.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
@@ -34,6 +40,10 @@ using tensorflow::Tensor;
       return 1;                                                            \
     }                                                                      \
   } while (0)
+
+// Directory required by Tensorboard to load the .xplane.pb properly
+const string kProfilePath = "plugins/profile";
+const string kProfileSuffix = ".xplane.pb";
 
 // Get the GPU and its default context.
 Status GetDevice(std::unique_ptr<tensorflow::Session>& session,
@@ -144,6 +154,26 @@ Status SetupCallable(std::unique_ptr<tensorflow::Session>& session,
   return session->MakeCallable(opts, handle);
 }
 
+// Get the current time as a string.
+string GetTime() {
+  std::stringstream ss;
+  std::time_t now = std::time(nullptr);
+  ss << std::put_time(std::localtime(&now), "%EY_%m_%d_%H_%M_%S");
+  return ss.str();
+}
+
+// Create the directory structure expected by TensorBoard.
+Status GetAndCreateProfilePath(const string& out_dir,
+                               string* profile_path) {
+  // Use date for run ID
+  string run_id = GetTime();
+  string host_id = tensorflow::port::Hostname();
+  string run_dir = tensorflow::io::JoinPath(out_dir, kProfilePath, run_id);
+  *profile_path = tensorflow::io::JoinPath(run_dir, host_id + kProfileSuffix);
+  TF_RETURN_IF_ERROR(tensorflow::Env::Default()->RecursivelyCreateDir(run_dir));
+  return Status::OK();
+}
+
 // Start the profiling session.
 Status StartProfiling(std::unique_ptr<tensorflow::ProfilerSession>& profiler) {
   profiler = tensorflow::ProfilerSession::Create(
@@ -157,7 +187,18 @@ Status StopProfiling(std::unique_ptr<tensorflow::ProfilerSession>& profiler,
                      const string& out_dir) {
   tensorflow::profiler::XSpace xspace;
   TF_RETURN_IF_ERROR(profiler->CollectData(&xspace));
-  tensorflow::profiler::ExportToTensorBoard(xspace, out_dir);
+
+  // Get export path
+  string profile_path;
+  TF_RETURN_IF_ERROR(GetAndCreateProfilePath(out_dir, &profile_path));
+
+  // Serialize and write to disk
+  string xspace_serialized;
+  xspace.SerializeToString(&xspace_serialized);
+  std::ofstream ofs(profile_path);
+  ofs << xspace_serialized;
+  ofs.close();
+
   profiler.reset();
   return Status::OK();
 }
