@@ -43,4 +43,6 @@ The binary will be located at `/workspace/tensorrt/tftrt/benchmarking-cpp/tftrt_
 
 ### Profiling
 
-To profile, set the `--out_dir` flag. Run `tensorboard --logdir [out_dir]` to view results.
+To profile, set the `--out_dir` flag. This creates a log directory and serializes the `XSpace` to a location that TensorBoard expects (i.e. `[out_dir]/plugins/profile/[run_id]/[host_id].xplane.pb`).
+
+Run `tensorboard --logdir [out_dir]` to view results. TensorBoard will generate the available dashboards using the `XSpace` directly.
