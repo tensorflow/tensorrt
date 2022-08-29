@@ -51,15 +51,8 @@ BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 # ============== Set model specific parameters ============= #
 
 INPUT_SIZE=640
-MAX_WORKSPACE_SIZE=$((2 ** (32 + 1)))  # + 1 necessary compared to python
 MAX_SAMPLES=5000
 OUTPUT_TENSORS_NAME="boxes,classes,num_detections,scores"
-
-case ${MODEL_NAME} in
-  "faster_rcnn_resnet50_coco" | "ssd_mobilenet_v1_fpn_coco")
-    MAX_WORKSPACE_SIZE=$((2 ** (24 + 1)))  # + 1 necessary compared to python
-    ;;
-esac
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% #
 
@@ -72,7 +65,6 @@ echo ""
 # Custom Object Detection Task Flags
 echo "[*] BATCH_SIZE: ${BATCH_SIZE}"
 echo "[*] INPUT_SIZE: ${INPUT_SIZE}"
-echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
 echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
@@ -151,7 +143,6 @@ python ${BASE_DIR}/infer.py \
     --model_source "tf_models_object" \
     --batch_size ${BATCH_SIZE} \
     --input_size ${INPUT_SIZE} \
-    --max_workspace_size ${MAX_WORKSPACE_SIZE} \
     --total_max_samples=${MAX_SAMPLES} \
     --output_tensors_name=${OUTPUT_TENSORS_NAME} \
     ${BYPASS_ARGUMENTS}

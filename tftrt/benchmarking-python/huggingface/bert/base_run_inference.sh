@@ -60,7 +60,6 @@ BYPASS_ARGUMENTS=$(echo ${BYPASS_ARGUMENTS} | tr -s " ")
 
 MIN_SEGMENT_SIZE=5
 VOCAB_SIZE=-1
-MAX_WORKSPACE_SIZE=$((2 ** (32 + 1)))  # + 1 necessary compared to python
 MAX_SAMPLES=1
 OUTPUT_TENSORS_NAME="last_hidden_state,pooler_output"
 
@@ -93,7 +92,6 @@ echo ""
 # Custom Transormer Task Flags
 echo "[*] VOCAB_SIZE: ${VOCAB_SIZE}"
 echo "[*] SEQ_LEN: ${SEQ_LEN}"
-echo "[*] MAX_WORKSPACE_SIZE: ${MAX_WORKSPACE_SIZE}"
 echo "[*] MAX_SAMPLES: ${MAX_SAMPLES}"
 echo "[*] OUTPUT_TENSORS_NAME: ${OUTPUT_TENSORS_NAME}"
 echo ""
@@ -148,7 +146,6 @@ python ${BASE_DIR}/infer.py \
     --batch_size ${BATCH_SIZE} \
     --vocab_size ${VOCAB_SIZE} \
     --sequence_length=${SEQ_LEN} \
-    --max_workspace_size ${MAX_WORKSPACE_SIZE} \
     --total_max_samples=${MAX_SAMPLES} \
     --output_tensors_name=${OUTPUT_TENSORS_NAME} \
     ${BYPASS_ARGUMENTS}
