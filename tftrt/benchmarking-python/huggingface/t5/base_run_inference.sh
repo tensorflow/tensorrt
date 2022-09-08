@@ -105,10 +105,12 @@ fi
 
 # Install Dependencies
 
+TF_VERSION=$(python -c "import tensorflow as tf; print('.'.join(tf.__version__.split('.')[:2]))")
 pip install --upgrade \
     prefetch_generator \
     orjson \
-    t5==0.4.0
+    t5==0.4.0 \
+    tensorflow-text==${TF_VERSION}
 
 set -x
 
