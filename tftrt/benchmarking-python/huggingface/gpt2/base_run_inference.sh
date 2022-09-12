@@ -8,7 +8,7 @@ BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 MODEL_NAME=""
 
 # Default Argument Values
-BATCH_SIZE=32
+BATCH_SIZE=12
 SEQ_LEN=1024
 VOCAB_SIZE=50257
 
