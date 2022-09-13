@@ -75,7 +75,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         self._args = args
 
         # Temporary fix to re-enable NHWC layout.
-        os.environ["TF_ENABLE_LAYOUT_NHWC"] = "1"
+        # os.environ["TF_ENABLE_LAYOUT_NHWC"] = "1"
 
         if args.use_xla_auto_jit:
             logging.info("[Benchmark] - Activating XLA JIT Auto Clustering")
