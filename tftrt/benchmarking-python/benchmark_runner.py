@@ -367,6 +367,12 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 pass
 
             if strtobool(os.environ.get("TF_TRT_BENCHMARK_EARLY_QUIT", "0")):
+                # Save the result if needed
+                converter.save(self._args.output_saved_model_dir)
+                logging.info(
+                    f"Converted graph saved to "
+                    f"`{self._args.output_saved_model_dir}`"
+                )
                 sys.exit(0)
 
             if self._args.optimize_offline:
