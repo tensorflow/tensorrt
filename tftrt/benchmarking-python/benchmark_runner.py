@@ -7,7 +7,6 @@ import contextlib
 import copy
 import csv
 import json
-import logging as _logging
 import os
 import requests
 import sys
@@ -22,6 +21,7 @@ import tensorflow as tf
 
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
 from tensorflow.python.framework.errors_impl import OutOfRangeError
+from tensorflow.python.platform import tf_logging
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model import tag_constants
 
@@ -87,8 +87,19 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
 
         # Hide unnecessary TensorFlow DEBUG Python Logs
-        _logging.getLogger("tensorflow").setLevel(_logging.INFO)
-        _logging.disable(_logging.WARNING)
+        tf_logger = tf_logging.get_logger()
+        tf_logger.setLevel(tf_logging.INFO)
+        tf_logger.propagate = False
+
+        # disable TF warnings
+        tf_logging.get_logger().warning = lambda *a, **kw: None
+        tf_logging.get_logger().warn = lambda *a, **kw: None
+        old_log = tf_logging.get_logger().log
+        tf_logging.get_logger().log = lambda level, msg, *a, **kw: (
+            old_log(level, msg, *a, **kw)
+            if level != tf_logging.WARN else
+            None
+        )
 
         # TensorFlow can execute operations synchronously or asynchronously.
         # If asynchronous execution is enabled, operations may return
