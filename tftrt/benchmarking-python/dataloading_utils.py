@@ -34,16 +34,23 @@ def SyntheticDataset(dataset, device):
     return itertools.repeat(data_batch)
 
 
+def _validate_data_gpu_compatible(data):
+    if isinstance(data, dict):
+        return all([_validate_data_gpu_compatible(x) for x in data.values()])
+
+    elif isinstance(data, (tuple, list)):
+        return all([_validate_data_gpu_compatible(x) for x in data])
+
+    else:
+        return data.dtype != tf.int32
+
+
 def ensure_dataset_on_gpu(dataset, device):
 
     # ensuring no tensor dtype == int32
     input_batch = next(iter(dataset))
-    if isinstance(input_batch, dict):
-        input_batch = input_batch.values()
-    elif not isinstance(input_batch, (tuple, list)):
-        input_batch = [input_batch]
 
-    if any([t.dtype == tf.int32 for t in input_batch]):
+    if not _validate_data_gpu_compatible(input_batch):
         logging.warning(
             "The dataloader generates INT32 tensors. Prefetch to "
             "GPU not supported"
