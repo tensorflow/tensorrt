@@ -589,9 +589,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
                     with tracing_ctx('Input Dequeueing'):
                         try:
-                            start_time = time.time()
+                            start_time = time.perf_counter()
                             data_batch = dequeue_batch_fn()
-                            dequeue_times.append(time.time() - start_time)
+                            dequeue_times.append(time.perf_counter() - start_time)
                         except (StopIteration, OutOfRangeError):
                             logging.info("[Exiting] Reached end of dataset ...")
                             break
@@ -600,14 +600,14 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         x, y = self.preprocess_model_inputs(data_batch)
 
                     with tracing_ctx('Inputs MemcpyHtoD'):
-                        start_time = time.time()
+                        start_time = time.perf_counter()
                         x = force_data_on_gpu_fn(x)
-                        memcopy_times.append(time.time() - start_time)
+                        memcopy_times.append(time.perf_counter() - start_time)
 
                     with tracing_ctx('GPU Inference'):
-                        start_time = time.time()
+                        start_time = time.perf_counter()
                         y_pred = infer_batch(x)
-                        iter_times.append(time.time() - start_time)
+                        iter_times.append(time.perf_counter() - start_time)
 
                 if not self._args.debug_performance:
                     log_step(

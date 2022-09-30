@@ -132,10 +132,10 @@ if __name__ == "__main__":
         for step in range(1, INFERENCE_STEPS + 1):
             if step % 100 == 0:
                 print("Processing step: %04d ..." % step)
-            start_t = time.time()
+            start_t = time.perf_counter()
             probs = infer(features)[output_tensorname]
             inferred_class = tf.math.argmax(probs).numpy()
-            step_time = time.time() - start_t
+            step_time = time.perf_counter() - start_t
             if step >= WARMUP_STEPS:
                 step_times.append(step_time)
     except tf.errors.OutOfRangeError:

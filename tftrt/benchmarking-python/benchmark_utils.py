@@ -68,9 +68,9 @@ def timed_section(msg, activate=True, start_end_mode=True):
         if start_end_mode:
             logging.info(f"[START] {msg} ...")
 
-        start_time = time.time()
+        start_time = time.perf_counter()
         yield
-        total_time = time.time() - start_time
+        total_time = time.perf_counter() - start_time
 
         if start_end_mode:
             logging.info(f"[END] {msg} - Duration: {total_time:.1f}s")

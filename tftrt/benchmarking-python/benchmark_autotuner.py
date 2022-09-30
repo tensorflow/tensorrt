@@ -32,9 +32,9 @@ class _TFFunctionAutoTuner(object):
     def _autotune(self, *arg, **kwargs):
         fn_id = self._call_counter // self._calls_per_func
         try:
-            start_t = time.time()
+            start_t = time.perf_counter()
             output = self._fns[fn_id](*arg, **kwargs)
-            self._timings[fn_id].append(time.time() - start_t)
+            self._timings[fn_id].append(time.perf_counter() - start_t)
         except IndexError:
             print()  # visual spacing
             logging.debug("AutoTuning is over... Collecting timing statistics:")

@@ -137,9 +137,9 @@ for idx, batch in enumerate(ds_iter):
     # let's say transforming a list into a dict() or reverse
     batch = preprocess_model_inputs(batch)
 
-    start_t = time.time()
+    start_t = time.perf_counter()
     outputs = model_fn(batch)
-    print(f"Inference Time: {(time.time() - start_t)*1000:.1f}ms")  # 0.001
+    print(f"Inference Time: {(time.perf_counter() - start_t)*1000:.1f}ms")  # 0.001
 
     ## post my outputs to "measure accuracy"
     ## note: we skip that

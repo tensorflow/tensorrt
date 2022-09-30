@@ -46,6 +46,11 @@ Description of the change
 
 <!-- YOU CAN EDIT FROM HERE -->
 
+## [2.0.1] - 2022.09.30 - @DEKHTIARJonathan
+
+- Change from `time.time()` to `time.perf_counter()` for better time
+measurement. 
+
 ## [2.0.0] - 2022.08.04 - @DEKHTIARJonathan
 
 - Fix for XLA FP16 actually not being applied due to `"min_graph_nodes": -1`
