@@ -19,6 +19,8 @@ import scipy as sp
 import scipy.stats
 import tensorflow as tf
 
+from absl import logging as absl_logging
+
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
 from tensorflow.python.framework.errors_impl import OutOfRangeError
 from tensorflow.python.platform import tf_logging
@@ -100,6 +102,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             if level != tf_logging.WARN else
             None
         )
+
+        # Set ABSL verbosity to Err level
+        absl_logging.set_verbosity(absl_logging.ERROR)
 
         # TensorFlow can execute operations synchronously or asynchronously.
         # If asynchronous execution is enabled, operations may return
