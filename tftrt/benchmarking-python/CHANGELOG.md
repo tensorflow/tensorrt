@@ -46,10 +46,16 @@ Description of the change
 
 <!-- YOU CAN EDIT FROM HERE -->
 
+## [2.0.2] - 2022.09.30 - @DEKHTIARJonathan
+
+- Bug Fixed in real data GPU Prefetcher that could cause a crash when the dataset
+was returning a dictionary of values.
+- Raised `abseil` python verbosity to `ERROR` level to declutter `stdout`.
+
 ## [2.0.1] - 2022.09.30 - @DEKHTIARJonathan
 
 - Change from `time.time()` to `time.perf_counter()` for better time
-measurement. 
+measurement.
 
 ## [2.0.0] - 2022.08.04 - @DEKHTIARJonathan
 
