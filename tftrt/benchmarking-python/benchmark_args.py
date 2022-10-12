@@ -201,6 +201,13 @@ class BaseCommandLineAPI(object):
             help="Whether to build TensorRT engines during runtime."
         )
 
+        self._add_bool_argument(
+            name="detailed_conversion_summary",
+            default=False,
+            required=False,
+            help="Whether to use TF-TRT detailled conversion summary."
+        )
+
         self._parser.add_argument(
             "--max_workspace_size",
             type=int,

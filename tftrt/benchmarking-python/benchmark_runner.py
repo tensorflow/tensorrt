@@ -378,7 +378,10 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     line_length = max(160, os.get_terminal_size().columns)
                 except OSError:
                     line_length = 160
-                converter.summary(line_length=line_length, detailed=True)
+                converter.summary(
+                    line_length=line_length,
+                    detailed=self._args.detailed_conversion_summary
+                )
             except AttributeError:
                 pass
 
