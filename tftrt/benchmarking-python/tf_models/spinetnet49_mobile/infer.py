@@ -94,7 +94,8 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         dataset = tf.data.Dataset.from_tensor_slices(inputs)
 
         dataset = dataset.map(
-            lambda x: {"inputs": tf.cast(x, tf.uint8)}, num_parallel_calls=tf.data.AUTOTUNE
+            lambda x: {"inputs": tf.cast(x, tf.uint8)},
+            num_parallel_calls=tf.data.AUTOTUNE
         )
 
         dataset = dataset.repeat()

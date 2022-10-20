@@ -308,7 +308,23 @@ class BaseCommandLineAPI(object):
         # =========================== TF Profiling =========================== #
 
         self._parser.add_argument(
-            "--tf_profile_export_path",
+            "--tftrt_build_profile_export_path",
+            type=str,
+            default=None,
+            help="If set, the script will export tf.profile files for further "
+            "performance analysis."
+        )
+
+        self._parser.add_argument(
+            "--tftrt_convert_profile_export_path",
+            type=str,
+            default=None,
+            help="If set, the script will export tf.profile files for further "
+            "performance analysis."
+        )
+
+        self._parser.add_argument(
+            "--inference_loop_profile_export_path",
             type=str,
             default=None,
             help="If set, the script will export tf.profile files for further "
@@ -450,6 +466,18 @@ class BaseCommandLineAPI(object):
 
         if args.debug or args.debug_data_aggregation or args.debug_performance:
             logging.set_verbosity(logging.DEBUG)
+
+        if (args.inference_loop_profile_export_path or
+                args.tftrt_build_profile_export_path or
+                args.tftrt_convert_profile_export_path):
+            """Warm-up the profiler session.
+            The profiler session will set up profiling context, including loading CUPTI
+            library for GPU profiling. This is used for improving the accuracy of
+            the profiling results.
+            """
+            from tensorflow.python.profiler.profiler_v2 import warmup
+            logging.info("[PROFILER] Warming Up ...")
+            warmup()
 
         return args
 

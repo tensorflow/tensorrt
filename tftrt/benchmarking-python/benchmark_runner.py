@@ -6,6 +6,7 @@ import abc
 import contextlib
 import copy
 import csv
+import functools
 import json
 import os
 import requests
@@ -33,6 +34,9 @@ from benchmark_info import __version__
 from benchmark_info import get_commit_id
 
 from benchmark_logger import logging
+
+from benchmark_profiling import ProfilingCTX
+from benchmark_profiling import time_and_trace_ctx
 
 from benchmark_utils import DataAggregator
 from benchmark_utils import generate_json_metrics
@@ -98,9 +102,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         tf_logging.get_logger().warn = lambda *a, **kw: None
         old_log = tf_logging.get_logger().log
         tf_logging.get_logger().log = lambda level, msg, *a, **kw: (
-            old_log(level, msg, *a, **kw)
-            if level != tf_logging.WARN else
-            None
+            old_log(level, msg, *a, **kw) if level != tf_logging.WARN else None
         )
 
         # Set ABSL verbosity to Err level
@@ -115,15 +117,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
     def _config_gpu_memory(self, gpu_mem_cap):
         try:
-            gpus = tf.config.list_physical_devices('GPU')
+            gpus = tf.config.list_physical_devices("GPU")
         except AttributeError:
-            gpus = tf.config.experimental.list_physical_devices('GPU')
+            gpus = tf.config.experimental.list_physical_devices("GPU")
 
         if not gpus:
             raise RuntimeError("No GPUs has been found.")
 
         print()  # visual spacing
-        logging.debug('Found the following GPUs:')
+        logging.debug("Found the following GPUs:")
         for gpu in gpus:
             logging.debug(f"\t- {gpu}")
 
@@ -166,7 +168,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 args=vars(self._args),
             )
 
-            with open(file_path, 'w') as json_f:
+            with open(file_path, "w") as json_f:
                 print(json_string, file=json_f)
 
         except Exception as e:
@@ -204,15 +206,15 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             fieldnames = sorted(data.keys())
 
             if not os.path.isfile(file_path):
-                with open(file_path, 'w') as outcsv:
+                with open(file_path, "w") as outcsv:
                     writer = csv.DictWriter(
-                        outcsv, fieldnames=fieldnames, delimiter=','
+                        outcsv, fieldnames=fieldnames, delimiter=","
                     )
                     writer.writeheader()
 
-            with open(file_path, 'a') as outcsv:
+            with open(file_path, "a") as outcsv:
                 writer = csv.DictWriter(
-                    outcsv, fieldnames=fieldnames, delimiter=','
+                    outcsv, fieldnames=fieldnames, delimiter=","
                 )
                 writer.writerow(data)
 
@@ -287,7 +289,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
 
         if not self._args.use_tftrt:
 
-            with timed_section("Loading TensorFlow native model"):
+            with time_and_trace_ctx("Loading TensorFlow native model"):
                 graph_func = load_model_from_disk(
                     path=self._args.input_saved_model_dir,
                     tags=self._args.model_tag.split(","),
@@ -329,101 +331,144 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             logging.info("[*] TF-TRT Converter Parameters:")
             print_dict(trt_converter_params)
 
-            try:
-                converter = trt.TrtGraphConverterV2(**trt_converter_params)
-            except TypeError:
-                del trt_converter_params["enable_sparse_compute"]
-                converter = trt.TrtGraphConverterV2(**trt_converter_params)
+            with timed_section("TF-TRT Conversion and Build"):
 
-            def engine_build_input_fn(num_batches, model_phase):
-                dataset, _ = self.get_dataset_batches()
+                with timed_section("TrtGraphConverterV2 creation"):
 
-                for idx, data_batch in enumerate(dataset):
-                    logging.info(
-                        f"* [{model_phase}] "
-                        f"- step {(idx+1):04d}/{num_batches:04d}"
-                    )
-                    x, _ = self.preprocess_model_inputs(data_batch)  # x, y
-
-                    if not isinstance(x, (tuple, list, dict)):
-                        x = [x]
-
-                    yield x
-
-                    if (idx + 1) >= num_batches:
-                        break
-
-            if tftrt_precision == trt.TrtPrecisionMode.INT8:
-
-                calibration_input_fn = lambda: engine_build_input_fn(
-                    num_batches=self._args.num_calib_batches,
-                    model_phase="Calibration"
-                )
-
-                with timed_section(
-                        "TF-TRT graph conversion and INT8 calibration ..."):
-                    graph_func = converter.convert(
-                        calibration_input_fn=(
-                            tf.autograph.experimental.
-                            do_not_convert(calibration_input_fn)
+                    try:
+                        converter = trt.TrtGraphConverterV2(
+                            **trt_converter_params
                         )
-                    )
+                    except TypeError:
+                        del trt_converter_params["enable_sparse_compute"]
+                        converter = trt.TrtGraphConverterV2(
+                            **trt_converter_params
+                        )
 
-            else:
-                with timed_section("TF-TRT graph conversion ..."):
-                    graph_func = converter.convert()
+                def engine_build_input_fn(num_batches, model_phase):
+                    dataset, _ = self.get_dataset_batches()
 
-            try:
-                try:
-                    line_length = max(160, os.get_terminal_size().columns)
-                except OSError:
-                    line_length = 160
-                converter.summary(
-                    line_length=line_length,
-                    detailed=self._args.detailed_conversion_summary
-                )
-            except AttributeError:
-                pass
+                    for idx, data_batch in enumerate(dataset):
+                        logging.info(
+                            f"* [{model_phase}] "
+                            f"- step {(idx+1):04d}/{num_batches:04d}"
+                        )
+                        x, _ = self.preprocess_model_inputs(data_batch)  # x, y
 
-            if strtobool(os.environ.get("TF_TRT_BENCHMARK_EARLY_QUIT", "0")):
-                # Save the result if needed
-                converter.save(self._args.output_saved_model_dir)
-                logging.info(
-                    f"Converted graph saved to "
-                    f"`{self._args.output_saved_model_dir}`"
-                )
-                sys.exit(0)
+                        if not isinstance(x, (tuple, list, dict)):
+                            x = [x]
 
-            if self._args.optimize_offline:
+                        yield x
 
-                offline_opt_input_fn = lambda: engine_build_input_fn(
-                    num_batches=self._args.num_build_batches,
-                    model_phase="Building"
-                )
+                        if (idx + 1) >= num_batches:
+                            break
 
-                with timed_section("Building TensorRT engines"):
-                    converter.build(
-                        input_fn=tf.autograph.experimental.
-                        do_not_convert(offline_opt_input_fn)
-                    )
+                with ProfilingCTX(self._args.tftrt_convert_profile_export_path,
+                                  verbose=self._args.tf_profile_verbose,
+                                  delay_ms=0):
 
-            if self._args.output_saved_model_dir is not None:
+                    with time_and_trace_ctx("TF-TRT Model Conversion",
+                                            step_num=0, _r=0):
+                        if tftrt_precision == trt.TrtPrecisionMode.INT8:
 
-                with timed_section("Saving converted graph with TF-TRT"):
-                    converter.save(self._args.output_saved_model_dir)
-                    logging.info(
-                        f"Converted graph saved to "
-                        f"`{self._args.output_saved_model_dir}`"
-                    )
-                    # Engine cache is cleared while saving, we have to reload.
-                    # Failing to do so, would force TF-TRT to rebuild
-                    del converter
-                    del graph_func
-                    graph_func = load_model_from_disk(
-                        self._args.output_saved_model_dir,
-                        tags=self._args.model_tag.split(","),
-                        signature_key=self._args.input_signature_key
-                    )
+                            calibration_input_fn = lambda: engine_build_input_fn(
+                                num_batches=self._args.num_calib_batches,
+                                model_phase="Calibration"
+                            )
+
+                            graph_func = converter.convert(
+                                calibration_input_fn=(
+                                    tf.autograph.experimental.
+                                    do_not_convert(calibration_input_fn)
+                                )
+                            )
+
+                        else:
+                            graph_func = converter.convert()
+
+                    with time_and_trace_ctx("TF-TRT Model Summary", step_num=0,
+                                            _r=0):
+                        try:
+                            try:
+                                line_length = max(
+                                    160,
+                                    os.get_terminal_size().columns
+                                )
+                            except OSError:
+                                line_length = 160
+
+                            converter.summary(
+                                line_length=line_length,
+                                detailed=self._args.detailed_conversion_summary
+                            )
+                        except AttributeError:
+                            pass
+
+                    if strtobool(os.environ.get("TF_TRT_BENCHMARK_EARLY_QUIT",
+                                                "0")):
+                        with time_and_trace_ctx("TF-TRT Model Saving",
+                                                step_num=0, _r=0):
+                            # Save the result if needed
+                            if self._args.output_saved_model_dir is not None:
+                                converter.save(
+                                    self._args.output_saved_model_dir
+                                )
+
+                            logging.info(
+                                f"Converted graph saved to "
+                                f"`{self._args.output_saved_model_dir}`"
+                            )
+                            try:
+                                # Stop profiling and export if started
+                                profiler.stop()
+                            except tf.errors.UnavailableError:
+                                pass
+                            sys.exit(0)
+
+                if self._args.optimize_offline:
+
+                    with ProfilingCTX(
+                            self._args.tftrt_build_profile_export_path,
+                            verbose=self._args.tf_profile_verbose, delay_ms=0):
+
+                        if tftrt_precision == trt.TrtPrecisionMode.INT8:
+                            message = "TF-TRT Engines Building and Calibrating"
+                        else:
+                            message = "TF-TRT Engines Building"
+
+                        with time_and_trace_ctx(message, step_num=0, _r=0):
+
+                            offline_opt_input_fn = lambda: engine_build_input_fn(
+                                num_batches=self._args.num_build_batches,
+                                model_phase="Building"
+                            )
+
+                            converter.build(
+                                input_fn=tf.autograph.experimental.
+                                do_not_convert(offline_opt_input_fn)
+                            )
+
+                if self._args.output_saved_model_dir is not None:
+
+                    with time_and_trace_ctx("TF-TRT Model Saving", step_num=0,
+                                            _r=0):
+                        converter.save(self._args.output_saved_model_dir)
+                        logging.info(
+                            f"Converted graph saved to "
+                            f"`{self._args.output_saved_model_dir}`"
+                        )
+
+                    with time_and_trace_ctx("TF-TRT Model Reloading",
+                                            step_num=0, _r=0):
+                        # Engine cache is cleared while saving, we have to reload.
+                        # Failing to do so, would force TF-TRT to rebuild
+                        del converter
+                        del graph_func
+                        graph_func = load_model_from_disk(
+                            self._args.output_saved_model_dir,
+                            tags=self._args.model_tag.split(","),
+                            signature_key=self._args.input_signature_key
+                        )
 
         if isinstance(graph_func.structured_outputs, (tuple, list)):
             savedmodel_outputs = "\n\t- ".join([
@@ -526,47 +571,6 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         f"dequeue_time(ms)={dequeue_time:08.3f}"
                     )
 
-            if self._args.tf_profile_export_path:
-
-                def start_profiling():
-                    if self._args.tf_profile_verbose:
-                        profiler_opts = tf.profiler.experimental.ProfilerOptions(
-                            # Ajust TraceMe levels:
-                            # - 1: critical
-                            # - 2: info [default]
-                            # - 3: verbose
-                            host_tracer_level=2,
-                            # Enables python function call tracing
-                            # - 0: disable [default]
-                            # - 1: enable
-                            python_tracer_level=1,
-                            # Adjust device (TPU/GPU) tracer level:
-                            # - 0: disable
-                            # - 1: enable [default]
-                            device_tracer_level=1,
-                            # start profiling after 15 sec.
-                            # - Skip tf.function building
-                            # - Skip autotuning
-                            delay_ms=30000
-                        )
-                        logging.info("Using verbose TF Profiler.")
-                    else:
-                        profiler_opts = None
-
-                    profiling_ctx = tf.profiler.experimental.start(
-                        self._args.tf_profile_export_path,
-                        options=profiler_opts
-                    )
-
-                stop_profiling = tf.profiler.experimental.stop
-
-                tracing_ctx = tf.profiler.experimental.Trace
-
-            else:
-                start_profiling = stop_profiling = lambda *a, **kw: None
-                profiling_ctx = contextlib.nullcontext()
-                tracing_ctx = lambda *a, **kw: contextlib.nullcontext()
-
             step_idx = 0
             ds_iter = iter(dataset)
 
@@ -582,37 +586,46 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 use_synthetic_data=self._args.use_synthetic_data
             )
 
+            profiler = ProfilingCTX(
+                export_dir=self._args.inference_loop_profile_export_path,
+                verbose=self._args.tf_profile_verbose,
+                delay_ms=0
+            )
+
             while True:
 
                 step_idx += 1
 
                 if step_idx == self._args.num_warmup_iterations - 5:
-                    start_profiling()
+                    profiler.start()
 
                 if (self._args.num_iterations is not None and
                         step_idx > self._args.num_iterations):
                     break
 
-                with tracing_ctx('', step_num=step_idx, _r=1):
+                with tf.profiler.experimental.Trace("Step ", step_num=step_idx,
+                                                    _r=1):
 
-                    with tracing_ctx('Input Dequeueing'):
+                    with tf.profiler.experimental.Trace("Input Dequeueing"):
                         try:
                             start_time = time.perf_counter()
                             data_batch = dequeue_batch_fn()
-                            dequeue_times.append(time.perf_counter() - start_time)
+                            dequeue_times.append(
+                                time.perf_counter() - start_time
+                            )
                         except (StopIteration, OutOfRangeError):
                             logging.info("[Exiting] Reached end of dataset ...")
                             break
 
-                    with tracing_ctx('Inputs Preprocessing'):
+                    with tf.profiler.experimental.Trace("Inputs Preprocessing"):
                         x, y = self.preprocess_model_inputs(data_batch)
 
-                    with tracing_ctx('Inputs MemcpyHtoD'):
+                    with tf.profiler.experimental.Trace("Inputs MemcpyHtoD"):
                         start_time = time.perf_counter()
                         x = force_data_on_gpu_fn(x)
                         memcopy_times.append(time.perf_counter() - start_time)
 
-                    with tracing_ctx('GPU Inference'):
+                    with tf.profiler.experimental.Trace("GPU Inference"):
                         start_time = time.perf_counter()
                         y_pred = infer_batch(x)
                         iter_times.append(time.perf_counter() - start_time)
@@ -666,9 +679,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             # yapf: enable
 
             if step_idx >= 100:
-                stop_profiling()
+                profiler.stop()
 
-        with timed_section("Metric Computation"):
+        with time_and_trace_ctx("Metric Computation"):
 
             metrics = dict()
 
@@ -693,12 +706,12 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             dequeue_times = np.array(dequeue_times)
             dequeue_times = dequeue_times[self._args.num_warmup_iterations:-1]
 
-            metrics['Total GPU Time (s)'] = int(np.ceil(np.sum(iter_times)))
+            metrics["Total GPU Time (s)"] = int(np.ceil(np.sum(iter_times)))
 
-            metrics['__commit__'] = get_commit_id()
-            metrics['__version__'] = __version__
+            metrics["__commit__"] = get_commit_id()
+            metrics["__version__"] = __version__
 
-            metrics['Throughput (samples/sec)'] = (
+            metrics["Throughput (samples/sec)"] = (
                 self._args.batch_size /
                 sp.stats.trim_mean(iter_times, self._args.trim_mean_percentage)
             )
@@ -712,7 +725,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                     trim_mean(time_arr, self._args.trim_mean_percentage) * 1000
                 )
                 data[f"{log_prefix} 99th_percentile (ms)"] = np.percentile(
-                    time_arr, q=99, interpolation='lower'
+                    time_arr, q=99, interpolation="lower"
                 ) * 1000
                 data[f"{log_prefix} Mean (ms)"] = np.mean(time_arr) * 1000
                 data[f"{log_prefix} Median (ms)"] = np.median(time_arr) * 1000

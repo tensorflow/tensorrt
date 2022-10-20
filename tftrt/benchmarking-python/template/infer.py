@@ -139,7 +139,9 @@ for idx, batch in enumerate(ds_iter):
 
     start_t = time.perf_counter()
     outputs = model_fn(batch)
-    print(f"Inference Time: {(time.perf_counter() - start_t)*1000:.1f}ms")  # 0.001
+    print(
+        f"Inference Time: {(time.perf_counter() - start_t)*1000:.1f}ms"
+    )  # 0.001
 
     ## post my outputs to "measure accuracy"
     ## note: we skip that

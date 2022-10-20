@@ -46,6 +46,12 @@ Description of the change
 
 <!-- YOU CAN EDIT FROM HERE -->
 
+## [2.0.3] - 2022.10.20 - @DEKHTIARJonathan
+
+- Profiling for TF-TRT build and convert added
+- Argument `tf_profile_export_path` renamed: `tftrt_build_profile_export_path`
+- NVIDIA PyCOCOTools Updated to version 0.7.1
+
 ## [2.0.2] - 2022.09.30 - @DEKHTIARJonathan
 
 - Bug Fixed in real data GPU Prefetcher that could cause a crash when the dataset
