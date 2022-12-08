@@ -142,6 +142,7 @@ variables.data*
 !pytest.ini
 
 # Top Level Script Files
+/scripts/
 /*.sh
 
 # Benchmark Result Dir
