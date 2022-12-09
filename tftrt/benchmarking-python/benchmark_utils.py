@@ -6,9 +6,11 @@ import json
 import time
 
 import numpy as np
-import tensorflow as tf
-
 from contextlib import contextmanager
+
+import tensorflow as tf
+from tensorflow.python.saved_model import signature_constants
+from tensorflow.python.saved_model import tag_constants
 
 from benchmark_logger import logging
 
@@ -223,3 +225,33 @@ class DataAggregator(object):
                             f"Expected: {y[key].shape}"
                         )
                     self._expected[key][idx_start:idx_stop] = y[key]
+
+
+def load_model_from_disk(
+    path,
+    tags=[tag_constants.SERVING],
+    signature_key=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
+    precision="FP32"
+):
+
+    tf.config.optimizer.set_experimental_options({
+        "disable_model_pruning": False,
+        "debug_stripper": True,
+        "auto_mixed_precision": precision != "FP32",
+        "layout_optimizer": True,
+        "dependency_optimization": True,
+        "min_graph_nodes": -1  # do not skip small graphs
+    })
+
+    saved_model_loaded = tf.saved_model.load(export_dir=path, tags=tags)
+
+    graph_func = saved_model_loaded.signatures[signature_key]
+
+    # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
+    # it looks like if the original trackable object is released by
+    # the Python garbage collector once it goes out of scope, and
+    # the signature returned by the function does not maintain a
+    # back-reference to the original loaded object.
+    graph_func._backref_to_saved_model = saved_model_loaded
+
+    return graph_func

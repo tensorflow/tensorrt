@@ -40,6 +40,7 @@ from benchmark_profiling import time_and_trace_ctx
 
 from benchmark_utils import DataAggregator
 from benchmark_utils import generate_json_metrics
+from benchmark_utils import load_model_from_disk
 from benchmark_utils import print_dict
 from benchmark_utils import timed_section
 
@@ -257,35 +258,6 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
         precision: str, floating point precision (FP32, FP16, or INT8)
         returns: TF function that is ready to run for inference
         """
-
-        def load_model_from_disk(
-            path,
-            tags=[tag_constants.SERVING],
-            signature_key=signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY,
-            precision="FP32"
-        ):
-
-            tf.config.optimizer.set_experimental_options({
-                "disable_model_pruning": False,
-                "debug_stripper": True,
-                "auto_mixed_precision": precision != "FP32",
-                "layout_optimizer": True,
-                "dependency_optimization": True,
-                "min_graph_nodes": -1  # do not skip small graphs
-            })
-
-            saved_model_loaded = tf.saved_model.load(export_dir=path, tags=tags)
-
-            graph_func = saved_model_loaded.signatures[signature_key]
-
-            # Known TF Issue: https://github.com/tensorflow/tensorflow/issues/37615#issuecomment-767804930
-            # it looks like if the original trackable object is released by
-            # the Python garbage collector once it goes out of scope, and
-            # the signature returned by the function does not maintain a
-            # back-reference to the original loaded object.
-            graph_func._backref_to_saved_model = saved_model_loaded
-
-            return graph_func
 
         if not self._args.use_tftrt:
 
