@@ -6,6 +6,11 @@ import itertools
 import time
 import tensorflow as tf
 
+from tensorflow.core.framework import types_pb2
+from tensorflow.python.saved_model import signature_constants
+from tensorflow.python.saved_model import tag_constants
+from tensorflow.python.tools import saved_model_utils
+
 from benchmark_autotuner import auto_tf_func_tuner
 from benchmark_logger import logging
 from benchmark_utils import force_gpu_resync
@@ -139,3 +144,74 @@ def patch_dali_dataset(dataset):
     dataset.__class__.take = take
 
     return dataset
+
+
+
+def _get_signature_def_map(saved_model_dir, tag_set):
+  """Gets SignatureDef map from a MetaGraphDef in a SavedModel.
+  Returns the SignatureDef map for the given tag-set in the SavedModel
+  directory.
+  Args:
+    saved_model_dir: Directory containing the SavedModel to inspect or execute.
+    tag_set: Group of tag(s) of the MetaGraphDef with the SignatureDef map, in
+        string format, separated by ','. For tag-set contains multiple tags, all
+        tags must be passed in.
+  Returns:
+    A SignatureDef map that maps from string keys to SignatureDefs.
+  """
+  meta_graph = saved_model_utils.get_meta_graph_def(saved_model_dir, tag_set)
+  return meta_graph.signature_def
+
+
+def _extract_dtype(tensor_info):
+    return tf.dtypes.DType(tensor_info.dtype)
+
+
+def _tensor_shape_to_list(tensor_info):
+    tensor_shape = tensor_info.tensor_shape
+    if tensor_shape.unknown_rank:
+        raise ValueError()
+    else:
+        return [dim.size for dim in tensor_shape.dim]
+
+
+def model_input_data(saved_model_dir, tag_set, input_signature_key):
+    signature_def = _get_signature_def_map(saved_model_dir, tag_set)
+    func_inputs = signature_def[input_signature_key].inputs
+
+    input_data = list()
+
+    for key, tensor_info in func_inputs.items():
+        input_data.append({
+            "key": key,
+            "name": tensor_info.name.split(":")[0],
+            "shape": _tensor_shape_to_list(tensor_info),
+            "dtype": _extract_dtype(tensor_info),
+        })
+
+    return input_data
+
+
+def get_random_tensor(shape, dtype):
+    if dtype == tf.uint8:
+        _dtype = tf.int32
+        maxval = 255
+    elif dtype == tf.bool:
+        _dtype = tf.int32
+        maxval = 2
+    elif dtype in [tf.int32, tf.int64]:
+        _dtype = dtype
+        maxval = 255
+    else:
+        _dtype = dtype
+        maxval = None
+
+    shape[0] = 1 if shape[0] == -1 else shape[0]
+    if any([d == -1 for d in shape]):
+        raise ValueError("Unknown dimension found in the inputs")
+
+    t = tf.random.uniform(shape=shape, dtype=_dtype, maxval=maxval)
+
+    if dtype != _dtype:
+        return tf.cast(t, dtype)
+    return t
