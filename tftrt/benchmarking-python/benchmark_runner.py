@@ -393,7 +393,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                             try:
                                 # Stop profiling and export if started
                                 profiler.stop()
-                            except tf.errors.UnavailableError:
+                            except (NameError, tf.errors.UnavailableError):
                                 pass
                             sys.exit(0)
 
