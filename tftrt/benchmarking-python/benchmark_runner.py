@@ -564,16 +564,16 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                 delay_ms=0
             )
 
-            while True:
+            # If `self._args.num_iterations` is None then using the
+            # largest integer in python for the loop upper-bound
+            # Note: sys.maxsize + 1 is safe.
+            max_iters = self._args.num_iterations or sys.maxsize
 
-                step_idx += 1
+            for step_idx in range(1, max_iters + 1):
 
+                # Starting the profiler just before the end of warmup
                 if step_idx == self._args.num_warmup_iterations - 5:
                     profiler.start()
-
-                if (self._args.num_iterations is not None and
-                        step_idx > self._args.num_iterations):
-                    break
 
                 with tf.profiler.experimental.Trace("Step ", step_num=step_idx,
                                                     _r=1):
