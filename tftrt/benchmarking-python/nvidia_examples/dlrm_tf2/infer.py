@@ -42,7 +42,7 @@ from benchmark_runner import BaseBenchmarkRunner
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -59,7 +59,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
 
         dataset = TfRawBinaryDataset(
             data_path=os.path.join(self._args.data_dir, "test"),
-            batch_size=self._args.batch_size,
+            batch_size=batch_size,
             numerical_features=13,
             categorical_features=[
                 19, 0, 21, 9, 20, 10, 22, 11, 1, 4, 2, 23, 14, 3, 6, 13, 7, 17,

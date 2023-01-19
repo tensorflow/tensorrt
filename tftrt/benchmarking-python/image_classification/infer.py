@@ -83,7 +83,7 @@ class CommandLineAPI(BaseCommandLineAPI):
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -98,7 +98,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         Note: script arguments can be accessed using `self._args.attr`
         """
 
-        dataset = get_dataloader(self._args)
+        dataset = get_dataloader(self._args, batch_size)
 
         return dataset, None
 

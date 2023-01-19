@@ -96,7 +96,7 @@ class CommandLineAPI(BaseCommandLineAPI):
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -119,7 +119,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                 vocab_model_dir=self._args.vocab_model_dir,
                 tokenizer_dir=self._args.tokenizer_model_dir,
                 sequence_length=self._args.sequence_length,
-                batch_size=self._args.batch_size,
+                batch_size=batch_size,
                 vocab_size=self._args.vocab_size,
             )
 
@@ -164,7 +164,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                 ds_decoder_input_ids, ds_input_ids
             ))
             dataset = dataset.repeat()
-            dataset = dataset.batch(self._args.batch_size)
+            dataset = dataset.batch(batch_size)
 
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset, None

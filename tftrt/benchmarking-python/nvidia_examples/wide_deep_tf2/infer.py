@@ -43,7 +43,7 @@ from benchmark_runner import BaseBenchmarkRunner
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -151,7 +151,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         )
 
         dataset = dataset.batch(
-            batch_size=self._args.batch_size // 4096, drop_remainder=False
+            batch_size=batch_size // 4096, drop_remainder=False
         )
 
         dataset = dataset.apply(

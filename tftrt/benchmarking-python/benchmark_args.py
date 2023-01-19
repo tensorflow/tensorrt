@@ -69,6 +69,13 @@ class BaseCommandLineAPI(object):
         )
 
         self._parser.add_argument(
+            "--build_batch_sizes",
+            nargs='+', type=int,
+            default=None,
+            help="List of batch_sizes to be used during TF-TRT build."
+        )
+
+        self._parser.add_argument(
             "--display_every",
             type=int,
             default=50,

@@ -57,7 +57,7 @@ class CommandLineAPI(BaseCommandLineAPI):
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -205,7 +205,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         dataset = dataset.map(
             parse_record_fn, num_parallel_calls=tf.data.AUTOTUNE
         )
-        dataset = dataset.batch(self._args.batch_size, drop_remainder=False)
+        dataset = dataset.batch(batch_size, drop_remainder=False)
         dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
         return dataset, None

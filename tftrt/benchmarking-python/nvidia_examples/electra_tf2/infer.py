@@ -174,7 +174,7 @@ class CommandLineAPI(BaseCommandLineAPI):
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -284,7 +284,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
                 pickle.dump(dev_features, writer)
 
         dev_dataset = get_dataset_from_features(
-            features=dev_features, batch_size=self._args.batch_size
+            features=dev_features, batch_size=batch_size
         )
 
         bypass_data_to_eval = {

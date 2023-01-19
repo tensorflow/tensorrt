@@ -7,6 +7,7 @@ import contextlib
 import copy
 import csv
 import functools
+import itertools
 import json
 import os
 import requests
@@ -59,7 +60,7 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
     ############################################################################
 
     @abc.abstractmethod
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -318,12 +319,38 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         )
 
                 def engine_build_input_fn(num_batches, model_phase):
-                    dataset, _ = self.get_dataset_batches()
+                    if model_phase not in ["Calibration", "Building"]:
+                        raise ValueError()
 
+                    if model_phase == "Building":
+                      batch_sizes = (
+                          self._args.build_batch_sizes or [self._args.batch_size]
+                      )
+                    else:
+                      batch_sizes = [self._args.batch_size]
+
+                    datasets = [
+                        self.get_dataset_batches(bs)[0].take(num_batches)
+                        for bs in batch_sizes
+                    ]
+
+                    dataset = itertools.chain(*datasets)
+
+                    def get_batch_size_from_data_batch(batch):
+                        if isinstance(batch, (list, tuple)):
+                          return get_batch_size_from_data_batch(batch[0])
+                        elif isinstance(batch, dict):
+                          return get_batch_size_from_data_batch(batch.values[0])
+                        else:
+                          return batch.shape[0]
+
+                    total_num_batches = num_batches * len(batch_sizes)
                     for idx, data_batch in enumerate(dataset):
+                        batch_size = get_batch_size_from_data_batch(data_batch)
                         logging.info(
                             f"* [{model_phase}] "
-                            f"- step {(idx+1):04d}/{num_batches:04d}"
+                            f"- step: {(idx+1):04d}/{total_num_batches:04d} "
+                            f"- batch_size: {batch_size}"
                         )
                         x, _ = self.preprocess_model_inputs(data_batch)  # x, y
 
@@ -331,9 +358,6 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                             x = [x]
 
                         yield x
-
-                        if (idx + 1) >= num_batches:
-                            break
 
                 with ProfilingCTX(self._args.tftrt_convert_profile_export_path,
                                   verbose=self._args.tf_profile_verbose,
@@ -482,7 +506,9 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
             graph_func = self._get_graph_func()
 
         with timed_section("Model Inference"):
-            dataset, bypass_data_to_eval = self.get_dataset_batches()
+            dataset, bypass_data_to_eval = self.get_dataset_batches(
+                self._args.batch_size
+            )
 
             if self._args.use_synthetic_data:
                 try:

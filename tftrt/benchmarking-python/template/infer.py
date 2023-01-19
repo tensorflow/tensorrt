@@ -51,7 +51,7 @@ class CommandLineAPI(BaseCommandLineAPI):
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -126,7 +126,7 @@ import time
 
 model_fn = load_my_model("/path/to/my/model")
 
-dataset, _ = get_dataset_batches()  # dataset, None
+dataset, _ = get_dataset_batches(batch_size=32)  # dataset, None
 
 ds_iter = iter(dataset)
 

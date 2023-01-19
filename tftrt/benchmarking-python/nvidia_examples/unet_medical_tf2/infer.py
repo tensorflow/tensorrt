@@ -60,7 +60,7 @@ class CommandLineAPI(BaseCommandLineAPI):
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -76,10 +76,10 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         """
 
         images = load_multipage_tiff(
-            os.path.join(args.data_dir, 'train-volume.tif')
+            os.path.join(self._args.data_dir, 'train-volume.tif')
         )
         masks = load_multipage_tiff(
-            os.path.join(args.data_dir, 'train-labels.tif')
+            os.path.join(self._args.data_dir, 'train-labels.tif')
         )
         _, val_indices = get_val_train_indices(len(images), 0)
 
@@ -92,14 +92,14 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         x, y = preproc_samples(
             tf.convert_to_tensor(val_images),
             tf.convert_to_tensor(val_masks),
-            tf.float16 if args.amp else tf.float32,
+            tf.float16 if self._args.amp else tf.float32,
         )
 
         dataset = tf.data.Dataset.from_tensor_slices((x, y))
 
         dataset = dataset.repeat(600)
 
-        dataset = dataset.batch(args.batch_size, drop_remainder=False)
+        dataset = dataset.batch(batch_size, drop_remainder=False)
 
         dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 

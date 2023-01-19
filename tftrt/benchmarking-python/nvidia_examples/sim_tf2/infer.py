@@ -63,7 +63,7 @@ class CommandLineAPI(BaseCommandLineAPI):
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -104,7 +104,7 @@ class BenchmarkRunner(BaseBenchmarkRunner):
             os.path.join(self._args.data_dir, self._args.test_filename)
         ])
 
-        dataset = dataset.batch(self._args.batch_size, drop_remainder=False)
+        dataset = dataset.batch(batch_size, drop_remainder=False)
 
         dataset = dataset.map(
             map_func=partial(tf.io.parse_example, features=feature_spec),

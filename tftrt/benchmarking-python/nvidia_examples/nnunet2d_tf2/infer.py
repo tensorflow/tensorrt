@@ -67,7 +67,7 @@ class CommandLineAPI(BaseCommandLineAPI):
 
 class BenchmarkRunner(BaseBenchmarkRunner):
 
-    def get_dataset_batches(self):
+    def get_dataset_batches(self, batch_size):
         """Returns a list of batches of input samples.
 
         Each batch should be in the form [x, y], where
@@ -152,13 +152,13 @@ class BenchmarkRunner(BaseBenchmarkRunner):
         pipeline = EvalPipeline(
             x_files,
             y_files,
-            batch_size=self._args.batch_size,
+            batch_size=batch_size,
             num_image_slices=self._args.num_image_slices
         )
 
         dataset = dali_tf.DALIDataset(
             pipeline,
-            batch_size=self._args.batch_size,
+            batch_size=batch_size,
             device_id=0,
             output_dtypes=(tf.float32, tf.uint8)
         )

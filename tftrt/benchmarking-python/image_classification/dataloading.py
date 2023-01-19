@@ -24,7 +24,7 @@ import preprocessing
 __all__ = ["get_dataloader"]
 
 
-def get_dataloader(args):
+def get_dataloader(args, batch_size):
 
     def get_files(data_dir, filename_pattern):
         if data_dir is None:
@@ -111,7 +111,7 @@ def get_dataloader(args):
         num_parallel_calls=tf.data.AUTOTUNE,
     )
 
-    dataset = dataset.batch(args.batch_size, drop_remainder=False)
+    dataset = dataset.batch(batch_size, drop_remainder=False)
 
     dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
