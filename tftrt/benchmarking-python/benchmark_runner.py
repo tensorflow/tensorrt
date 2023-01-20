@@ -340,7 +340,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         if isinstance(batch, (list, tuple)):
                           return get_batch_size_from_data_batch(batch[0])
                         elif isinstance(batch, dict):
-                          return get_batch_size_from_data_batch(batch.values[0])
+                          return get_batch_size_from_data_batch(
+                              list(batch.values())[0])
                         else:
                           return batch.shape[0]
 
@@ -349,8 +350,8 @@ class BaseBenchmarkRunner(object, metaclass=abc.ABCMeta):
                         batch_size = get_batch_size_from_data_batch(data_batch)
                         logging.info(
                             f"* [{model_phase}] "
-                            f"- step: {(idx+1):04d}/{total_num_batches:04d} "
-                            f"- batch_size: {batch_size}"
+                            f"step: {(idx+1):04d}/{total_num_batches:04d} "
+                            f"| batch_size: {batch_size}"
                         )
                         x, _ = self.preprocess_model_inputs(data_batch)  # x, y
 
