@@ -19,34 +19,38 @@ def force_gpu_resync(func):
 
     func_name = func.__name__
     try:
-        sync_device_fn = tf.experimental.sync_devices
+        if hasattr(tf.experimental, "sync_devices"):
+            sync_device_fn = tf.experimental.sync_devices
+
+        elif hasattr(tf.test.experimental, "sync_devices"):
+            sync_device_fn = tf.test.experimental.sync_devices
+            
+        else:
+            raise AttributeError("`sync_devices` API does not exist in this "
+                                 "version of TensorFlow")
+
         logging.debug(
-            "Using API `tf.experimental.sync_devices` to resync GPUs "
+            f"Using API `tf.{sync_device_fn._tf_api_names[0]}` to resync GPUs "
             f"on function: {func_name}."
         )
 
-        def wrapper(*args, **kwargs):
-            rslt = func(*args, **kwargs)
-            sync_device_fn()
-            return rslt
-
-        return wrapper
-
     except AttributeError:
         logging.warning(
-            "Using deprecated API to resync GPUs. "
+            "TensorFlow API to force GPU resync is not available in your "
+            "version of TensorFlow. Please upgrade to TensorFlow >= `2.12.0`. "
             "Non negligeable overhead might be present on function: "
             f"{func_name}."
         )
 
         p = tf.constant(0.)  # Create small tensor to force GPU resync
+        sync_device_fn = lambda: (p + 1.).numpy()  # Sync the GPU
 
-        def wrapper(*args, **kwargs):
-            rslt = func(*args, **kwargs)
-            (p + 1.).numpy()  # Sync the GPU
-            return rslt
+    def wrapper(*args, **kwargs):
+        rslt = func(*args, **kwargs)
+        sync_device_fn()
+        return rslt
 
-        return wrapper
+    return wrapper
 
 
 def print_dict(input_dict, prefix='\t', postfix='', redirect_to_str=False):

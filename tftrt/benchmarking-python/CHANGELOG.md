@@ -46,6 +46,12 @@ Description of the change
 
 <!-- YOU CAN EDIT FROM HERE -->
 
+## [2.0.4] - 2022.02.07 - @DEKHTIARJonathan
+
+- Transition to `tf.test.experimental.sync_devices` to plan for TF 2.12.0
+- NVIDIA PyCOCOTools Updated to version 0.7.2
+- Minor bug fixes
+
 ## [2.0.3] - 2022.10.20 - @DEKHTIARJonathan
 
 - Profiling for TF-TRT build and convert added
